@@ -3,1254 +3,714 @@
 <head>
 
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harriet - Hereford City Tour</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/osrm@0.1.0/index.min.js"></script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Explore Hereford with Harriet</title>
+  <!--
+  HARRIET GUIDED WALK HEREFORD - v2.0 · The SetUp Crew
+  BEFORE DEPLOYING: Replace all {{PLACEHOLDER}} values in CONFIG.
+  TO DEPLOY FOR A NEW CITY: Update only the CONFIG object.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    :root{--color-primary:#1B4332;--color-primary-light:#2D6A4F;--color-bg:#F5F0E8;--color-accent:#C9A84C;--color-accent-light:#E8C96A;--color-text:#1A1A1A;--color-text-light:#F5F0E8;--color-muted:#E8E0D0;--color-muted-dark:#B0A898;--color-visited:#40916C;--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Lato',sans-serif;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,.12);--shadow-lg:0 8px 32px rgba(0,0,0,.18);--transition:200ms ease}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden;background:var(--color-primary)}
+    body{font-family:var(--font-body);color:var(--color-text)}
+    button{font-family:var(--font-body);cursor:pointer;border:none;outline:none}
+    img{display:block;max-width:100%}
+    #app{position:fixed;inset:0;overflow:hidden}
+    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--color-bg);opacity:0;pointer-events:none;transition:opacity var(--transition);overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .screen.active{opacity:1;pointer-events:all}
+    .harriet-bar{background:var(--color-primary);color:var(--color-text-light);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .harriet-bar .guide-name{font-family:var(--font-display);font-size:1.1rem;font-weight:500;opacity:.9}
+    .harriet-bar .city-name{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.6}
+    .harriet-bar .back-btn{background:transparent;color:var(--color-text-light);font-size:.85rem;padding:6px 10px;border-radius:var(--radius-sm);opacity:.8}
+    #screen-splash{background:var(--color-primary);color:var(--color-text-light);justify-content:flex-start;align-items:center;text-align:center;padding:40px 24px 60px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .splash-backdrop{position:absolute;inset:0;background:url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Hereford_Cathedral_from_south_side.jpg/640px-Hereford_Cathedral_from_south_side.jpg') center/cover no-repeat;opacity:.30}
+    .splash-content{position:relative;z-index:1;max-width:400px}
+    .splash-eyebrow{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--color-accent);margin-bottom:12px}
+    .splash-city{font-family:var(--font-display);font-size:3.8rem;font-weight:600;line-height:1.05;margin-bottom:8px}
+    .splash-tagline{font-family:var(--font-display);font-size:1.2rem;font-style:italic;opacity:.75;margin-bottom:32px}
+    .harriet-intro-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius);padding:20px;text-align:left;margin-bottom:28px}
+    .harriet-intro-card .avatar{width:44px;height:44px;background:var(--color-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:12px}
+    .harriet-intro-card p{font-family:var(--font-display);font-size:1.05rem;font-style:italic;line-height:1.6;opacity:.9}
+    .btn-play-intro{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:12px 20px;border-radius:50px;font-size:.9rem;display:flex;align-items:center;gap:8px;margin:0 auto 12px}
+    .btn-start-tour{background:var(--color-accent);color:var(--color-primary);padding:16px 32px;border-radius:50px;font-size:1rem;font-weight:700;width:100%;max-width:280px;display:block;margin:0 auto}
+    .splash-small{font-size:.72rem;opacity:.45;margin-top:20px;line-height:1.6}
+    .splash-city-image{width:100%;height:160px;border-radius:var(--radius);overflow:hidden;margin-bottom:20px;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.35);flex-shrink:0}
+    .splash-city-image img{width:100%;height:100%;object-fit:cover;display:block}
+    .splash-city-image-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(27,67,50,.45))}
+    #screen-headphones{background:var(--color-primary);color:var(--color-text-light);justify-content:center;align-items:center;text-align:center;padding:48px 28px}
+    .headphones-icon{font-size:4rem;margin-bottom:24px}
+    .headphones-title{font-family:var(--font-display);font-size:1.9rem;font-weight:600;margin-bottom:16px;line-height:1.2}
+    .headphones-body{font-size:.95rem;line-height:1.7;opacity:.8;max-width:340px;margin:0 auto 8px}
+    .headphones-note{font-size:.8rem;font-style:italic;opacity:.55;max-width:300px;margin:0 auto 36px}
+    .btn-headphones-yes{background:var(--color-accent);color:var(--color-primary);padding:16px 24px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;max-width:320px;display:block;margin:0 auto 12px}
+    .btn-headphones-no{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:14px 24px;border-radius:50px;font-size:.9rem;width:100%;max-width:320px;display:block;margin:0 auto;opacity:.75}
+    #screen-stoplist{background:var(--color-bg)}
+    .stoplist-header{background:var(--color-primary);color:var(--color-text-light);padding:16px 16px 20px;flex-shrink:0}
+    .stoplist-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+    .stoplist-header h1{font-family:var(--font-display);font-size:1.7rem;font-weight:600}
+    .btn-ask-harriet-header{background:rgba(255,255,255,.15);color:var(--color-text-light);border:1px solid rgba(255,255,255,.3);padding:7px 13px;border-radius:50px;font-size:.78rem;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:5px}
+    .stamp-progress-bar{background:rgba(255,255,255,.1);border-radius:50px;height:8px;margin-bottom:8px;overflow:hidden}
+    .stamp-progress-fill{height:100%;background:var(--color-accent);border-radius:50px;transition:width .5s ease}
+    .stamp-progress-label{font-size:.78rem;opacity:.7}
+    .stoplist-body{flex:1;overflow-y:auto;padding:16px 16px 100px}
+    .stop-card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;transition:transform .15s;border:1.5px solid transparent}
+    .stop-card:active{transform:scale(.98)}
+    .stop-card.visited{border-color:var(--color-visited)}
+    .stop-number{width:40px;height:40px;border-radius:50%;background:var(--color-primary);color:var(--color-text-light);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0}
+    .stop-card.visited .stop-number{background:var(--color-visited)}
+    .stop-card-info{flex:1;min-width:0}
+    .stop-card-name{font-family:var(--font-display);font-size:1.1rem;font-weight:600;line-height:1.2;margin-bottom:3px}
+    .stop-card-desc{font-size:.8rem;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .stop-card-distance{font-size:.75rem;color:var(--color-accent);font-weight:700;flex-shrink:0}
+    .stoplist-nav-btn{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;color:var(--color-primary);border:2px solid var(--color-primary);padding:15px 28px;border-radius:50px;font-size:1rem;font-weight:700;box-shadow:var(--shadow-lg);white-space:nowrap;z-index:100}
+    #screen-detail{background:var(--color-bg)}
+    .detail-compact-header{background:var(--color-primary);color:var(--color-text-light);padding:12px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;min-height:56px}
+    .detail-hero-back{background:transparent;color:var(--color-text-light);font-size:.85rem;padding:4px 0;opacity:.85;flex-shrink:0;white-space:nowrap}
+    .detail-compact-title{font-family:var(--font-display);font-size:1.25rem;font-weight:600;color:var(--color-text-light);flex:1;line-height:1.2}
+    .detail-hero-badge{background:var(--color-accent);color:var(--color-primary);border-radius:50px;padding:5px 11px;font-size:.72rem;font-weight:700;flex-shrink:0}
+    .visited-stamp-overlay{display:inline-flex;align-items:center;font-size:1.1rem;margin-left:4px}
+    .detail-body{flex:1;overflow-y:auto;padding:16px 16px 120px}
+    .narration-card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .narration-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .narration-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);display:flex;align-items:center;gap:6px}
+    .narration-text{font-family:var(--font-display);font-size:1.05rem;line-height:1.75;max-height:3.8em;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,black 55%,transparent 100%);mask-image:linear-gradient(to bottom,black 55%,transparent 100%)}
+    .narration-text.expanded{max-height:none;-webkit-mask-image:none;mask-image:none}
+    .btn-expand-narration{font-size:.8rem;color:var(--color-accent);background:none;border:none;padding:4px 0 8px;cursor:pointer;font-weight:700;display:block}
+    .narration-play-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+    .btn-narration-toggle{background:var(--color-primary);color:var(--color-text-light);padding:12px 24px;border-radius:50px;font-size:.95rem;display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:4px}
+    .btn-narration-toggle.paused{background:transparent;border:1.5px solid var(--color-primary);color:var(--color-primary)}
+    .detail-stop-img-wrap{width:100%;height:160px;overflow:hidden;flex-shrink:0;position:relative;background:var(--color-primary)}
+    .detail-stop-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+    .btn-mark-complete{background:var(--color-visited);color:#fff;padding:5px 12px;border-radius:50px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .btn-mark-complete.already-done{background:#ccc;color:#666;cursor:default}
+    .stoplist-map-wrap{height:200px;flex-shrink:0;background:var(--color-muted);position:relative}
+    #stoplist-mini-map{width:100%;height:100%}
+    .facts-section{margin-bottom:14px}
+    .facts-section h3{font-family:var(--font-display);font-size:1.1rem;font-weight:600;margin-bottom:10px;color:var(--color-primary)}
+    .fact-card{background:var(--color-muted);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+    .fact-icon{font-size:1.1rem;flex-shrink:0}
+    .fact-text{font-size:.88rem;line-height:1.55}
+    .tell-me-more-card{background:var(--color-primary);color:var(--color-text-light);border-radius:var(--radius);padding:20px;margin-bottom:14px;cursor:pointer}
+    .tell-me-more-card .tmm-eyebrow{font-size:1.4rem;margin-bottom:8px}
+    .tell-me-more-card h3{font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:8px}
+    .tell-me-more-card p{font-family:var(--font-display);font-size:.95rem;font-style:italic;opacity:.8;line-height:1.5;margin-bottom:14px}
+    .btn-ask-harriet{background:var(--color-accent);color:var(--color-primary);padding:12px 20px;border-radius:50px;font-size:.9rem;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+    .find-something-card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:14px;cursor:pointer;border:1.5px solid var(--color-muted);box-shadow:0 1px 4px rgba(0,0,0,.05)}
+    .find-something-card .fs-eyebrow{font-size:1.2rem;margin-bottom:8px}
+    .find-something-card h3{font-family:var(--font-display);font-size:1.15rem;font-weight:600;margin-bottom:6px;color:var(--color-primary)}
+    .find-something-card p{font-size:.85rem;color:#666;line-height:1.5;margin-bottom:14px}
+    .btn-find-something{background:var(--color-primary);color:var(--color-text-light);padding:12px 20px;border-radius:50px;font-size:.9rem;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+    .sponsor-card{background:linear-gradient(135deg,var(--color-primary),var(--color-primary-light));color:var(--color-text-light);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+    .sponsor-card .sponsor-label{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;opacity:.55;margin-bottom:10px}
+    .sponsor-card .sponsor-name{font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:4px}
+    .sponsor-card .sponsor-tagline{font-size:.85rem;opacity:.75;margin-bottom:14px}
+    .btn-sponsor-cta{background:var(--color-accent);color:var(--color-primary);padding:10px 18px;border-radius:50px;font-size:.85rem;font-weight:700}
+    .detail-nav-btn{position:fixed;bottom:16px;left:16px;right:16px;background:var(--color-accent);color:var(--color-primary);padding:18px;border-radius:50px;font-size:1rem;font-weight:700;text-align:center;box-shadow:var(--shadow-lg);z-index:100}
+    #screen-nav{background:var(--color-primary);overflow:hidden;padding:0}
+    #map{position:absolute;inset:0;bottom:180px}
+    .nav-top-bar{position:absolute;top:0;left:0;right:0;z-index:500;background:linear-gradient(to bottom,var(--color-primary) 60%,transparent);padding:12px 16px 32px;display:flex;align-items:center;justify-content:space-between}
+    .nav-guide{color:var(--color-text-light)}
+    .nav-guide-name{font-family:var(--font-display);font-size:1rem;opacity:.8}
+    .nav-destination{font-family:var(--font-display);font-size:1.3rem;font-weight:600;color:var(--color-text-light)}
+    .nav-back-btn{background:rgba(255,255,255,.15);color:var(--color-text-light);padding:8px 14px;border-radius:50px;font-size:.85rem}
+    .nav-demo-btn{position:absolute;bottom:196px;right:12px;z-index:600;background:rgba(27,67,50,.85);color:var(--color-text-light);padding:8px 12px;border-radius:50px;font-size:.75rem;border:1px solid rgba(255,255,255,.2)}
+    .nav-bottom-sheet{position:absolute;bottom:0;left:0;right:0;height:180px;background:var(--color-primary);z-index:500;padding:14px 16px;border-top:2px solid var(--color-accent)}
+    .nav-turn-instruction{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+    .nav-turn-icon{width:44px;height:44px;background:rgba(255,255,255,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+    .nav-turn-text{flex:1;color:var(--color-text-light)}
+    .nav-guide-byline{font-size:.7rem;color:var(--color-accent);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px}
+    .nav-turn-main{font-family:var(--font-display);font-size:1.15rem;font-weight:600;line-height:1.3}
+    .nav-stats{display:flex;gap:20px}
+    .nav-stat{color:rgba(245,240,232,.65)}
+    .nav-stat-val{font-size:1.05rem;font-weight:700;color:var(--color-text-light)}
+    .nav-stat-lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em}
+    .nav-stamp-btn{margin-left:auto;background:rgba(201,168,76,.2);border:1.5px solid var(--color-accent);color:var(--color-accent);padding:8px 14px;border-radius:50px;font-size:.8rem;font-weight:700}
+    .map-marker-current{width:32px;height:32px;background:var(--color-accent);border:3px solid #fff;border-radius:50%;animation:pulse-gold 2s infinite}
+    .map-marker-visited{width:28px;height:28px;background:var(--color-visited);border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem}
+    .map-marker-future{width:28px;height:28px;background:var(--color-primary);border:2px solid rgba(255,255,255,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700}
+    .map-marker-user{width:18px;height:18px;background:#4A90E2;border:3px solid #fff;border-radius:50%;animation:pulse-blue 2s infinite}
+    .map-marker-sponsor{width:22px;height:22px;background:var(--color-accent);border:2px solid var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem}
+    #screen-stamps{background:var(--color-bg)}
+    .stamps-header{background:var(--color-primary);color:var(--color-text-light);padding:16px;text-align:center;flex-shrink:0}
+    .stamps-header h2{font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:4px}
+    .stamps-header p{font-size:.85rem;opacity:.7}
+    .stamps-body{flex:1;overflow-y:auto;padding:20px 16px 80px}
+    .stamps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
+    .stamp-slot{aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--color-muted);border:2px dashed var(--color-muted-dark);transition:all .3s;padding:6px;text-align:center;overflow:hidden}
+    .stamp-slot.earned{background:var(--color-primary);border:2px solid var(--color-accent);animation:stamp-collect .4s ease-out}
+    .stamp-slot .stamp-name{font-family:var(--font-display);font-size:.72rem;font-weight:600;line-height:1.15;color:var(--color-muted-dark);word-break:break-word;hyphens:auto}
+    .stamp-slot.earned .stamp-name{color:var(--color-text-light)}
+    .completion-card{background:var(--color-primary);color:var(--color-text-light);border-radius:var(--radius);padding:28px 20px;text-align:center;display:none}
+    .completion-card.visible{display:block}
+    .completion-card .comp-icon{font-size:3rem;margin-bottom:16px}
+    .completion-card h3{font-family:var(--font-display);font-size:1.8rem;font-weight:600;margin-bottom:8px}
+    .completion-card p{opacity:.8;margin-bottom:24px;line-height:1.6}
+    .btn-share{background:var(--color-accent);color:var(--color-primary);padding:14px 28px;border-radius:50px;font-size:.95rem;font-weight:700}
+    #audio-player-bar{position:fixed;bottom:0;left:0;right:0;background:var(--color-primary);color:var(--color-text-light);padding:10px 16px;z-index:1000;display:none;align-items:center;gap:12px;border-top:2px solid var(--color-accent)}
+    #audio-player-bar.visible{display:flex}
+    .audio-info{flex:1;min-width:0}
+    .audio-guide-name{font-size:.65rem;color:var(--color-accent);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .audio-label{font-family:var(--font-display);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .audio-progress-wrap{height:3px;background:rgba(255,255,255,.15);border-radius:3px;margin-top:5px;overflow:hidden}
+    .audio-progress-fill{height:100%;background:var(--color-accent);border-radius:3px;transition:width .1s linear;width:0%}
+    .audio-btn{background:rgba(255,255,255,.1);color:var(--color-text-light);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+    #notification-overlay{position:fixed;bottom:16px;left:16px;right:16px;z-index:900;pointer-events:none}
+    .notification-card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-lg);border-left:4px solid var(--color-accent);pointer-events:all;transform:translateY(120%);transition:transform .35s cubic-bezier(.34,1.2,.64,1);overflow:hidden;position:relative}
+    .notification-card.show{transform:translateY(0)}
+    .notification-card.sponsor-notif{border-left-color:var(--color-primary)}
+    .notif-type{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:6px}
+    .notif-title{font-family:var(--font-display);font-size:1.05rem;font-weight:600;margin-bottom:4px;color:var(--color-primary)}
+    .notif-text{font-family:var(--font-display);font-size:.95rem;font-style:italic;color:#444;line-height:1.5;margin-bottom:8px}
+    .notif-stars{color:var(--color-accent);font-size:.8rem;margin-bottom:6px}
+    .notif-cta{background:var(--color-primary);color:var(--color-text-light);padding:8px 14px;border-radius:50px;font-size:.8rem;font-weight:700}
+    .notif-progress{position:absolute;bottom:0;left:0;height:3px;background:var(--color-accent)}
+    #modal-tellmore,#modal-findsomething{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.6);display:none;align-items:flex-end}
+    #modal-tellmore.open,#modal-findsomething.open{display:flex}
+    .modal-sheet{background:var(--color-bg);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:0 0 40px}
+    .modal-handle{width:40px;height:4px;background:var(--color-muted-dark);border-radius:2px;margin:12px auto 0}
+    .modal-header{padding:16px 16px 0;display:flex;align-items:flex-start;justify-content:space-between}
+    .modal-header h3{font-family:var(--font-display);font-size:1.4rem;font-weight:600;color:var(--color-primary);flex:1}
+    .modal-close{background:var(--color-muted);color:var(--color-text);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .modal-body{padding:16px}
+    .modal-location-label{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent);margin-bottom:14px}
+    .typing-indicator{display:flex;align-items:center;gap:4px;padding:16px 0}
+    .typing-dot{width:8px;height:8px;background:var(--color-primary);border-radius:50%;opacity:.4;animation:typing-bounce 1.2s infinite}
+    .typing-dot:nth-child(2){animation-delay:.2s}
+    .typing-dot:nth-child(3){animation-delay:.4s}
+    .modal-response{font-family:var(--font-display);font-size:1.05rem;line-height:1.75}
+    .modal-response p{margin-bottom:1em}
+    .btn-hear-response{background:var(--color-primary);color:var(--color-text-light);padding:14px 20px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px}
+    .find-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+    .find-chip{background:var(--color-muted);color:var(--color-text);padding:8px 14px;border-radius:50px;font-size:.85rem;cursor:pointer;transition:all .15s;border:1.5px solid transparent}
+    .find-chip:active{background:var(--color-primary);color:var(--color-text-light)}
+    #arrival-overlay{position:fixed;inset:0;z-index:700;background:rgba(27,67,50,.92);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--color-text-light);padding:40px}
+    #arrival-overlay.show{display:flex}
+    .arrival-stamp{font-size:4rem;animation:stamp-collect .5s ease-out;margin-bottom:20px}
+    .arrival-title{font-family:var(--font-display);font-size:2rem;font-weight:600;margin-bottom:8px}
+    .arrival-stop-name{font-size:1.1rem;opacity:.8;margin-bottom:28px}
+    .btn-arrival-explore{background:var(--color-accent);color:var(--color-primary);padding:16px 32px;border-radius:50px;font-size:1rem;font-weight:700}
+    #toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--color-primary);color:var(--color-text-light);padding:12px 20px;border-radius:50px;font-size:.88rem;font-weight:700;z-index:1100;transition:transform .3s ease;white-space:nowrap;box-shadow:var(--shadow-lg);border:1px solid var(--color-accent)}
+    #toast.show{transform:translateX(-50%) translateY(0)}
+    @keyframes pulse-gold{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.5)}50%{box-shadow:0 0 0 10px rgba(201,168,76,0)}}
+    @keyframes pulse-blue{0%,100%{box-shadow:0 0 0 0 rgba(74,144,226,.5)}50%{box-shadow:0 0 0 12px rgba(74,144,226,0)}}
+    @keyframes stamp-collect{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+    @keyframes typing-bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+    .hidden{display:none!important}
+    .leaflet-container{font-family:var(--font-body)}
+    /* Key setup overlay */
+    #key-setup-overlay{position:fixed;inset:0;background:rgba(27,67,50,0.97);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
+    #key-setup-overlay.hidden{display:none!important}
+    .key-setup-card{background:#F5F0E8;border-radius:16px;padding:36px 28px;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.4)}
+    .key-setup-logo{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-bottom:8px}
+    .key-setup-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:2rem;font-weight:600;color:#1B4332;margin-bottom:8px}
+    .key-setup-body{font-size:14px;color:#555;line-height:1.6;margin-bottom:24px}
+    .key-setup-label{font-size:12px;font-weight:700;color:#333;margin-bottom:6px;display:block}
+    .key-setup-input{width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:'SF Mono','Fira Code',monospace;background:white;outline:none;color:#1a1a1a;margin-bottom:6px}
+    .key-setup-input:focus{border-color:#1B4332}
+    .key-setup-hint{font-size:11px;color:#999;margin-bottom:20px}
+    .key-setup-hint a{color:#1B4332}
+    .key-setup-btn{width:100%;padding:14px;background:#1B4332;color:#F5F0E8;font-size:15px;font-weight:700;border:none;border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif}
+    .key-setup-btn:hover{background:#14532d}
+    .key-setup-error{font-size:12px;color:#dc2626;margin-top:8px;min-height:16px}
+    .key-setup-privacy{font-size:11px;color:#aaa;text-align:center;margin-top:14px}
+
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle;margin-right:6px}
+    .btn-narration-toggle.loading{opacity:.7;cursor:not-allowed}
+    #tour-complete-overlay{position:fixed;inset:0;z-index:950;background:var(--color-primary);display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0}
+    #tour-complete-overlay.show{display:flex}
+    .tour-complete-content{padding:48px 24px 80px;text-align:center;max-width:420px;color:var(--color-text-light)}
+    .tc-icon{font-size:4rem;margin-bottom:20px;animation:stamp-collect .5s ease-out}
+    .tc-title{font-family:var(--font-display);font-size:2.4rem;font-weight:600;margin-bottom:8px}
+    .tc-sub{font-family:var(--font-display);font-size:1.1rem;font-style:italic;opacity:.75;margin-bottom:32px}
+    .tc-harriet-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius);padding:20px;text-align:left;margin-bottom:20px}
+    .tc-harriet-card p{font-family:var(--font-display);font-size:1.05rem;font-style:italic;line-height:1.7;opacity:.9}
+    .tc-suggest{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.35);border-radius:var(--radius);padding:18px;text-align:left;margin-bottom:28px}
+    .tc-suggest .sug-label{font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--color-accent);margin-bottom:8px}
+    .tc-suggest p{font-family:var(--font-display);font-size:1rem;line-height:1.6;opacity:.88}
+    .btn-tc-play{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:14px 22px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+    .btn-tc-play:hover{background:rgba(255,255,255,.08)}
+    .btn-tc-ask{background:var(--color-accent);color:var(--color-primary);padding:16px 28px;border-radius:50px;font-size:1rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-tc-back{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;width:100%;display:flex;align-items:center;justify-content:center}
+    .weather-banner{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:.85rem;line-height:1.45;text-align:left}
+    .weather-icon-lrg{font-size:1.6rem;flex-shrink:0}
+    .weather-text{flex:1;opacity:.88}
+    .weather-cta{background:var(--color-accent);color:var(--color-primary);border:none;border-radius:50px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .event-banner{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:.85rem;line-height:1.5;text-align:left}
+    .event-banner .ev-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:4px}
+    .open-badge{display:inline-flex;align-items:center;gap:3px;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:50px;vertical-align:middle;margin-left:6px}
+    .open-badge.open{background:rgba(64,145,108,.25);color:#6fcf97}
+    .open-badge.closed{background:rgba(220,38,38,.2);color:#f87171}
 
-    :root {
-      --primary-color: #8B4513;
-      --secondary-color: #D2B48C;
-      --accent-color: #FF6B6B;
-      --background-color: #FFF8DC;
-      --text-color: #333;
-      --border-color: #DDD;
-      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
-    }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
-        'Helvetica Neue',
-        sans-serif;
-      background-color: var(--background-color);
-      color: var(--text-color);
-      overflow: hidden;
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .app-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* Screen displays */
-    .screen {
-      display: none;
-      flex: 1;
-      flex-direction: column;
-      overflow-y: auto;
-      animation: fadeIn 0.3s ease-in;
-    }
-
-    .screen.active {
-      display: flex;
-    }
-
-    /* Splash Screen */
-    .splash-screen {
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      color: white;
-      padding: 20px;
-    }
-
-    .splash-screen h1 {
-      font-size: 3.5rem;
-      margin-bottom: 1rem;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    .splash-screen p {
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
-      opacity: 0.9;
-    }
-
-    .intro-card {
-      background: white;
-      color: var(--text-color);
-      padding: 2rem;
-      border-radius: 15px;
-      margin: 1rem;
-      box-shadow: var(--shadow-lg);
-      max-width: 500px;
-    }
-
-    .intro-card h2 {
-      margin-bottom: 1rem;
-      color: var(--primary-color);
-    }
-
-    .intro-card p {
-      margin-bottom: 1rem;
-      line-height: 1.6;
-    }
-
-    /* Buttons */
-    button {
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-      margin: 0.5rem;
-    }
-
-    button:hover {
-      background-color: var(--accent-color);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
-
-    /* Headphones Screen */
-    .headphones-screen {
-      background: white;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .headphones-visual {
-      font-size: 5rem;
-      margin: 2rem;
-    }
-
-    .headphones-screen h2 {
-      color: var(--primary-color);
-      margin: 1rem 0;
-    }
-
-    .headphones-screen p {
-      margin: 1rem 0;
-      color: #666;
-      max-width: 400px;
-    }
-
-    /* Stop List Screen */
-    .stoplist-screen {
-      background: var(--background-color);
-      padding: 0;
-      flex-direction: column;
-    }
-
-    .stoplist-header {
-      background: var(--primary-color);
-      color: white;
-      padding: 1.5rem;
-      text-align: center;
-    }
-
-    .stoplist-header h2 {
-      margin-bottom: 0.5rem;
-    }
-
-    .stoplist-header p {
-      opacity: 0.9;
-      font-size: 0.9rem;
-    }
-
-    .map-container {
-      height: 250px;
-      background: #e0e0e0;
-      position: relative;
-    }
-
-    #tour-map {
-      width: 100%;
-      height: 100%;
-    }
-
-    .stoplist-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0.5rem 0;
-    }
-
-    .stop-item {
-      background: white;
-      margin: 0.5rem;
-      padding: 1rem;
-      border-radius: 10px;
-      box-shadow: var(--shadow);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-left: 4px solid var(--primary-color);
-    }
-
-    .stop-item:hover {
-      transform: translateX(5px);
-      box-shadow: var(--shadow-lg);
-    }
-
-    .stop-item-number {
-      display: inline-block;
-      background: var(--primary-color);
-      color: white;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 28px;
-      font-weight: bold;
-      margin-right: 0.5rem;
-    }
-
-    .stop-item-name {
-      font-weight: bold;
-      color: var(--primary-color);
-    }
-
-    .stop-item-distance {
-      font-size: 0.85rem;
-      color: #666;
-      margin-top: 0.5rem;
-    }
-
-    /* Detail Screen */
-    .detail-screen {
-      background: white;
-      flex-direction: column;
-    }
-
-    .detail-header {
-      background: var(--primary-color);
-      color: white;
-      padding: 1.5rem;
-      border-radius: 0 0 15px 15px;
-    }
-
-    .detail-header h2 {
-      margin-bottom: 0.5rem;
-    }
-
-    .detail-header p {
-      opacity: 0.9;
-      font-size: 0.9rem;
-    }
-
-    .detail-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.5rem;
-    }
-
-    .detail-content h3 {
-      color: var(--primary-color);
-      margin-top: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .detail-content p, .detail-content ul {
-      margin-bottom: 1rem;
-      line-height: 1.6;
-      color: #555;
-    }
-
-    .detail-content ul {
-      margin-left: 1.5rem;
-    }
-
-    .detail-actions {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
-      padding: 1rem;
-      flex-wrap: wrap;
-    }
-
-    /* Navigation Screen */
-    .nav-screen {
-      padding: 0;
-      flex-direction: column;
-    }
-
-    .nav-header {
-      background: var(--primary-color);
-      color: white;
-      padding: 1rem;
-      text-align: center;
-    }
-
-    .nav-map-container {
-      flex: 0 0 60%;
-      position: relative;
-      background: #e0e0e0;
-    }
-
-    #nav-map {
-      width: 100%;
-      height: 100%;
-    }
-
-    .nav-info {
-      flex: 1;
-      background: white;
-      padding: 1rem;
-      overflow-y: auto;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .nav-distance {
-      font-size: 0.9rem;
-      color: #666;
-      margin-bottom: 0.5rem;
-    }
-
-    .nav-instruction {
-      font-weight: bold;
-      color: var(--primary-color);
-      margin-bottom: 0.5rem;
-    }
-
-    /* Stamps Screen */
-    .stamps-screen {
-      background: var(--background-color);
-      padding: 1.5rem;
-      flex-direction: column;
-    }
-
-    .stamps-header {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .stamps-header h2 {
-      color: var(--primary-color);
-      margin-bottom: 0.5rem;
-    }
-
-    .stamps-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    .stamp {
-      aspect-ratio: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      font-size: 2.5rem;
-      background: white;
-      box-shadow: var(--shadow);
-      font-weight: bold;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    .stamp:hover {
-      transform: scale(1.05);
-    }
-
-    .stamp.collected {
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-      color: white;
-    }
-
-    .stamp.uncollected {
-      background: #f0f0f0;
-      color: #ccc;
-      opacity: 0.5;
-    }
-
-    /* Keyframes */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideUp {
-      from {
-        transform: translateY(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideDown {
-      from {
-        transform: translateY(-100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.5;
-      }
-    }
-
-    /* Modal Styling */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.4);
-      animation: fadeIn 0.3s ease;
-    }
-
-    .modal.show {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal-content {
-      background-color: white;
-      padding: 2rem;
-      border-radius: 15px;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: var(--shadow-lg);
-      animation: slideUp 0.3s ease;
-    }
-
-    .modal-content h2 {
-      color: var(--primary-color);
-      margin-bottom: 1rem;
-    }
-
-    .modal-content p {
-      margin-bottom: 1rem;
-      line-height: 1.6;
-      color: #555;
-    }
-
-    .close-btn {
-      float: right;
-      font-size: 1.5rem;
-      font-weight: bold;
-      cursor: pointer;
-      color: var(--primary-color);
-      background: none;
-      border: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .close-btn:hover {
-      color: var(--accent-color);
-      transform: scale(1.2);
-    }
-
-    /* Modal Sheets */
-    .modal-sheet {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.4);
-      animation: fadeIn 0.3s ease;
-    }
-
-    .modal-sheet.show {
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-    }
-
-    .modal-sheet-content {
-      background-color: white;
-      width: 100%;
-      max-width: 500px;
-      padding: 2rem;
-      border-radius: 15px 15px 0 0;
-      box-shadow: var(--shadow-lg);
-      animation: slideUp 0.3s ease;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-sheet-content h2 {
-      color: var(--primary-color);
-      margin-bottom: 1rem;
-    }
-
-    /* Audio Player Bar */
-    .audio-bar {
-      background: var(--primary-color);
-      color: white;
-      padding: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      justify-content: space-between;
-      box-shadow: var(--shadow-lg);
-    }
-
-    .audio-bar.hidden {
-      display: none;
-    }
-
-    .audio-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex: 1;
-    }
-
-    .play-pause-btn {
-      background: white;
-      color: var(--primary-color);
-      border: none;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      margin: 0;
-      padding: 0;
-    }
-
-    .play-pause-btn:hover {
-      background: var(--secondary-color);
-    }
-
-    .audio-progress {
-      flex: 1;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 2px;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .audio-progress-bar {
-      height: 100%;
-      background: white;
-      border-radius: 2px;
-      width: 0%;
-    }
-
-    .audio-time {
-      font-size: 0.8rem;
-      min-width: 40px;
-      text-align: right;
-    }
-
-    /* Notification Overlay */
-    .notification-overlay {
-      display: none;
-      position: fixed;
-      z-index: 1500;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.3);
-      animation: fadeIn 0.3s ease;
-    }
-
-    .notification-overlay.show {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .notification-content {
-      background-color: white;
-      padding: 2rem;
-      border-radius: 15px;
-      text-align: center;
-      box-shadow: var(--shadow-lg);
-      animation: slideUp 0.3s ease;
-    }
-
-    .notification-content h2 {
-      color: var(--primary-color);
-      margin-bottom: 1rem;
-    }
-
-    .notification-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
   </style>
-
 </head>
-
 <body>
-
-  <div class="app-container">
-
-    <!-- Splash Screen -->
-    <div class="screen splash-screen active" id="splash-screen">
-      <h1>Harriet</h1>
-      <p>Explore Hereford with AI-Guided Tours</p>
-      <div class="intro-card">
-        <h2>Welcome to Harriet</h2>
-        <p>Discover the rich history and hidden gems of Hereford with your personal AI guide, Harriet. Follow GPS-guided routes and collect digital stamps as you explore iconic landmarks.</p>
-        <button onclick="startApp()">Start Tour</button>
+<div id="app">
+  <div id="screen-splash" class="screen">
+    <div class="splash-backdrop"></div>
+    <div class="splash-content">
+      <div class="splash-city-image" id="splash-city-image">
+        <img id="splash-city-img" onerror="this.parentElement.style.display='none'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Hereford_Cathedral_Exterior_from_NW%2C_Herefordshire%2C_UK_-_Diliff.jpg/330px-Hereford_Cathedral_Exterior_from_NW%2C_Herefordshire%2C_UK_-_Diliff.jpg" alt="Hereford">
+        <div class="splash-city-image-overlay"></div>
       </div>
-    </div>
-
-    <!-- Headphones Screen -->
-    <div class="screen headphones-screen" id="headphones-screen">
-      <div class="headphones-visual">🎧</div>
-      <h2>Prepare Your Audio</h2>
-      <p>Please ensure your headphones are connected and volume is at a comfortable level.</p>
-      <button onclick="goToStopList()">Ready to Explore</button>
-    </div>
-
-    <!-- Stop List Screen -->
-    <div class="screen stoplist-screen" id="stoplist-screen">
-      <div class="stoplist-header">
-        <h2>Hereford City Tour</h2>
-        <p id="stop-counter">0 of 10 stops</p>
-      </div>
-      <div class="map-container">
-        <div id="tour-map"></div>
-      </div>
-      <div class="stoplist-content" id="stoplist-content">
-        <!-- Stop items generated by JavaScript -->
-      </div>
-    </div>
-
-    <!-- Detail Screen -->
-    <div class="screen detail-screen" id="detail-screen">
-      <div class="detail-header">
-        <h2 id="detail-title">Stop Title</h2>
-        <p id="detail-distance">Distance info</p>
-      </div>
-      <div class="detail-content" id="detail-content">
-        <!-- Content generated by JavaScript -->
-      </div>
-      <div class="detail-actions">
-        <button onclick="playAudio('guide')">Play Guide</button>
-        <button onclick="openTellMeMore()">Tell Me More</button>
-        <button onclick="openFindSomething()">Find Something</button>
-        <button onclick="startNavigation()">Navigate</button>
-        <button onclick="goToStopList()">Back</button>
-      </div>
-    </div>
-
-    <!-- Navigation Screen -->
-    <div class="screen nav-screen" id="nav-screen">
-      <div class="nav-header">
-        <h2>GPS Navigation</h2>
-      </div>
-      <div class="nav-map-container">
-        <div id="nav-map"></div>
-      </div>
-      <div class="nav-info">
-        <div class="nav-distance" id="nav-distance">Distance: calculating...</div>
-        <div class="nav-instruction" id="nav-instruction">Getting your location...</div>
-        <button onclick="goToDetail()">Back to Details</button>
-      </div>
-    </div>
-
-    <!-- Stamps Screen -->
-    <div class="screen stamps-screen" id="stamps-screen">
-      <div class="stamps-header">
-        <h2>Collection Progress</h2>
-        <p>Collect stamps as you visit each stop</p>
-      </div>
-      <div class="stamps-grid" id="stamps-grid">
-        <!-- Stamps generated by JavaScript -->
-      </div>
-      <button onclick="goToStopList()" style="align-self: center;">Back to Tour</button>
-    </div>
-
-  </div>
-
-  <!-- Tell Me More Modal -->
-  <div class="modal-sheet" id="tell-me-more-modal">
-    <div class="modal-sheet-content">
-      <span class="close-btn" onclick="closeTellMeMore()">&times;</span>
-      <h2>Tell Me More</h2>
-      <div id="tell-me-more-content">
-        Loading...
-      </div>
-    </div>
-  </div>
-
-  <!-- Find Something Modal -->
-  <div class="modal-sheet" id="find-something-modal">
-    <div class="modal-sheet-content">
-      <span class="close-btn" onclick="closeFindSomething()">&times;</span>
-      <h2>Find Something</h2>
-      <input type="text" id="find-search" placeholder="What are you looking for?" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px;">
-      <button onclick="searchLocations()" style="width: 100%;">Search</button>
-      <div id="find-something-results" style="margin-top: 1rem;">
-        <!-- Results loaded here -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Arrival Overlay -->
-  <div class="notification-overlay" id="arrival-overlay">
-    <div class="notification-content">
-      <div class="notification-icon">🎉</div>
-      <h2>You've Arrived!</h2>
-      <p id="arrival-message">You've reached the destination.</p>
-      <button onclick="collectStamp()">Collect Stamp</button>
-      <button onclick="closeArrivalOverlay()">Close</button>
-    </div>
-  </div>
-
-  <!-- Tour Complete Overlay -->
-  <div class="notification-overlay" id="tour-complete-overlay">
-    <div class="notification-content">
-      <div class="notification-icon">🏆</div>
-      <h2>Tour Complete!</h2>
-      <p id="tour-complete-message">Congratulations! You've completed the tour.</p>
-      <button onclick="playTourCompleteNarration()">Play Completion Message</button>
-      <button onclick="closeTourComplete()">Close</button>
-    </div>
-  </div>
-
-  <!-- Key Setup Overlay -->
-  <div class="notification-overlay" id="key-setup-overlay">
-    <div class="notification-content">
-      <h2>API Keys Required</h2>
-      <p>This application requires API keys to function properly. Please set them up:</p>
-      <div style="text-align: left; margin: 1rem 0;">
-        <label>
-          Claude API Key:
-          <input type="password" id="claude-key-input" placeholder="sk-..." style="width: 100%; padding: 8px; margin: 0.5rem 0; border: 1px solid var(--border-color); border-radius: 5px;">
-        </label>
-        <label>
-          ElevenLabs API Key:
-          <input type="password" id="elevenlabs-key-input" placeholder="Your ElevenLabs key" style="width: 100%; padding: 8px; margin: 0.5rem 0; border: 1px solid var(--border-color); border-radius: 5px;">
-        </label>
-        <label>
-          Google Places API Key:
-          <input type="password" id="google-places-key-input" placeholder="Your Google key" style="width: 100%; padding: 8px; margin: 0.5rem 0; border: 1px solid var(--border-color); border-radius: 5px;">
-        </label>
-      </div>
-      <button onclick="saveAPIKeys()" style="width: 100%;">Save Keys</button>
-    </div>
-  </div>
-
-  <!-- Audio Player -->
-  <audio id="audio-player"></audio>
-
-  <script>
-    // State management
-    const state = {
-      currentScreen: 'splash',
-      currentStop: null,
-      currentPosition: null,
-      collectedStamps: JSON.parse(localStorage.getItem('collectedStamps')) || [],
-      apiKeys: JSON.parse(localStorage.getItem('apiKeys')) || {},
-      isPlaying: false,
-      currentNarration: ''
-    };
-
-    // Configuration
-    const CONFIG = {
-      city: 'Hereford',
-      centerCoords: [52.0550, -2.7175],
-      stops: [
-        {
-          id: 1,
-          name: 'Hereford Cathedral',
-          coords: [52.0561, -2.7200],
-          narration: 'Welcome to Hereford Cathedral, a stunning example of Norman and later medieval architecture. Construction began in 1110 and the Cathedral has witnessed over 900 years of Hereford history.',
-          facts: [
-            'The Cathedral contains the famous Mappa Mundi, a unique medieval map of the world',
-            'The Chained Library holds one of the most important collections of pre-1700 books in the world',
-            'The Cathedral has been rebuilt and restored many times, with the latest major restoration completed in 1995'
-          ]
-        },
-        {
-          id: 2,
-          name: 'Bishop\'s Palace',
-          coords: [52.0545, -2.7210],
-          narration: 'This is the Bishop\'s Palace, an impressive example of 17th-century architecture. The Bishop\'s residence shows the power and influence of the Church in Hereford\'s history.',
-          facts: [
-            'Built in the 1600s as a residence for the Bishop of Hereford',
-            'The palace features classic Georgian architecture with stunning garden views',
-            'Today it serves as office and administrative space, maintaining its historical significance'
-          ]
-        },
-        {
-          id: 3,
-          name: 'Hereford City Walls',
-          coords: [52.0580, -2.7190],
-          narration: 'You\'re now at the site of the historic City Walls. Built in medieval times, these walls protected Hereford from invasion and remain a crucial part of the city\'s defensive heritage.',
-          facts: [
-            'The walls were built primarily in the 13th century to protect the city',
-            'Originally over 7 meters high and fortified with towers and gates',
-            'Sections of the original walls still stand today and are protected monuments'
-          ]
-        },
-        {
-          id: 4,
-          name: 'Castle Green',
-          coords: [52.0570, -2.7160],
-          narration: 'Welcome to Castle Green, the historic heart of Hereford. This green space marks where Hereford Castle once stood, a Norman fortress that dominated the medieval city.',
-          facts: [
-            'Hereford Castle was built shortly after the Norman Conquest',
-            'The castle was a strategic stronghold during the English Civil War',
-            'Today, Castle Green is a peaceful public space used for markets, events, and gatherings'
-          ]
-        },
-        {
-          id: 5,
-          name: 'Hereford Museum & Art Gallery',
-          coords: [52.0565, -2.7185],
-          narration: 'Here is the Hereford Museum & Art Gallery, a treasure trove of local history and art. The museum tells the story of Hereford from Roman times to the present day.',
-          facts: [
-            'The museum houses artifacts dating back to Roman occupation',
-            'Collections include medieval manuscripts, Civil War documents, and local artwork',
-            'The building itself, Broad Street House, is a Grade II listed property'
-          ]
-        },
-        {
-          id: 6,
-          name: 'All Saints Church',
-          coords: [52.0580, -2.7220],
-          narration: 'This is All Saints Church, one of Hereford\'s finest medieval churches. With its distinctive black and white half-timbered tower, it\'s an iconic landmark visible throughout the city.',
-          facts: [
-            'The church dates back to the 14th century with significant additions in later periods',
-            'The tower is the only half-timbered church tower in Britain',
-            'Inside, you\'ll find beautiful medieval brasses and stained glass windows'
-          ]
-        },
-        {
-          id: 7,
-          name: 'High Town',
-          coords: [52.0560, -2.7195],
-          narration: 'Welcome to High Town, the vibrant commercial heart of Hereford. This historic square has been the center of commerce and community life for centuries.',
-          facts: [
-            'High Town is the oldest marketplace in Hereford, dating back to medieval times',
-            'The square is surrounded by historic buildings spanning several centuries',
-            'Today it\'s a lively hub with shops, restaurants, and regular street markets'
-          ]
-        },
-        {
-          id: 8,
-          name: 'The Old House',
-          coords: [52.0555, -2.7180],
-          narration: 'You\'re now at The Old House, a remarkable building that showcases Hereford\'s architectural heritage. Built in 1621, it\'s the finest timber-framed building in the city.',
-          facts: [
-            'Built in 1621, The Old House features exquisite oak paneling and period furniture',
-            'It survived the English Civil War and subsequent city changes remarkably intact',
-            'Now operated by the National Trust, it provides a window into 17th-century life'
-          ]
-        },
-        {
-          id: 9,
-          name: 'Blackfriars Monastery',
-          coords: [52.0575, -2.7175],
-          narration: 'Here stand the remains of Blackfriars Monastery, a Dominican monastery founded in the 13th century. The ruins tell the story of religious life in medieval Hereford.',
-          facts: [
-            'Founded in 1289 by Edmund Mortimer, an important local nobleman',
-            'The monastery was dissolved in 1538 during Henry VIII\'s Dissolution of the Monasteries',
-            'The remaining buildings now house offices but retain their historical character'
-          ]
-        },
-        {
-          id: 10,
-          name: 'River Wye',
-          coords: [52.0590, -2.7130],
-          narration: 'Finally, we reach the River Wye, the lifeblood of Hereford. This historic waterway has shaped the city\'s geography, economy, and culture for thousands of years.',
-          facts: [
-            'The Wye flows over 130 miles from Wales to join the Severn near Monmouth',
-            'The river was crucial for medieval trade and commerce in Hereford',
-            'Today, the Wye Valley offers beautiful walks and is a center for outdoor activities'
-          ]
-        }
-      ],
-      locationFacts: [
-        'Hereford is known as the "Cattle Capital" due to its historic importance in cattle trading',
-        'The city has a history dating back over 1,200 years',
-        'Famous for producing Hereford cattle, known worldwide in agriculture',
-        'The River Wye is a special area of conservation with diverse wildlife'
-      ]
-    };
-
-    // Initialize the app
-    function initApp() {
-      // Check for stored API keys
-      if (!state.apiKeys.claude) {
-        showKeySetupOverlay();
-      }
-      renderStopList();
-      renderStamps();
-    }
-
-    // Screen navigation
-    function goToScreen(screenName) {
-      document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.remove('active');
-      });
-      document.getElementById(`${screenName}-screen`).classList.add('active');
-      state.currentScreen = screenName;
-    }
-
-    function startApp() {
-      goToScreen('headphones');
-    }
-
-    function goToStopList() {
-      goToScreen('stoplist');
-    }
-
-    function goToDetail(stopId) {
-      if (stopId) state.currentStop = stopId;
-      const stop = CONFIG.stops.find(s => s.id === state.currentStop);
-      if (!stop) return;
-
-      document.getElementById('detail-title').innerText = stop.name;
-      document.getElementById('detail-content').innerHTML = `
-        <h3>About this Stop</h3>
-        <p>${stop.narration}</p>
-        <h3>Key Facts</h3>
-        <ul>
-          ${stop.facts.map(fact => `<li>${fact}</li>`).join('')}
-        </ul>
-      `;
-
-      goToScreen('detail');
-    }
-
-    function openStopDetail(stopId) {
-      state.currentStop = stopId;
-      goToDetail(stopId);
-    }
-
-    function goToNavigation() {
-      goToScreen('nav');
-      initNavigation();
-    }
-
-    function startNavigation() {
-      goToNavigation();
-    }
-
-    function goToStamps() {
-      goToScreen('stamps');
-    }
-
-    function goToDetail() {
-      if (state.currentStop) {
-        goToDetail(state.currentStop);
-      } else {
-        goToStopList();
-      }
-    }
-
-    // Stop List Rendering
-    function renderStopList() {
-      const container = document.getElementById('stoplist-content');
-      container.innerHTML = CONFIG.stops.map(stop => `
-        <div class="stop-item" onclick="openStopDetail(${stop.id})">
-          <span class="stop-item-number">${stop.id}</span>
-          <span class="stop-item-name">${stop.name}</span>
-          <div class="stop-item-distance">${state.collectedStamps.includes(stop.id) ? '✓ Visited' : 'Not yet visited'}</div>
+      <p class="splash-eyebrow">Guided walk</p>
+      <h1 class="splash-city" id="splash-city-name">Hereford</h1>
+      <p class="splash-tagline">with Harriet</p>
+      <div class="harriet-intro-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="avatar" style="margin-bottom:0;">🎙️</div>
+          <button class="btn-play-intro" onclick="playSplashIntro()" style="margin:0;"><span>▶</span> Play Introduction</button>
         </div>
-      `).join('');
-
-      updateStopCounter();
-      initTourMap();
-    }
-
-    // Update stop counter
-    function updateStopCounter() {
-      const visited = state.collectedStamps.length;
-      document.getElementById('stop-counter').innerText = `${visited} of ${CONFIG.stops.length} stops`;
-    }
-
-    // Tour Map
-    function initTourMap() {
-      if (window.tourMap) {
-        window.tourMap.remove();
-      }
-
-      window.tourMap = L.map('tour-map').setView(CONFIG.centerCoords, 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(window.tourMap);
-
-      CONFIG.stops.forEach(stop => {
-        const marker = L.circleMarker(stop.coords, {
-          radius: 8,
-          fillColor: state.collectedStamps.includes(stop.id) ? '#FF6B6B' : '#8B4513',
-          color: '#fff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.8
-        }).addTo(window.tourMap);
-
-        marker.bindPopup(`<strong>${stop.name}</strong><br>Stop ${stop.id}`);
-        marker.on('click', () => openStopDetail(stop.id));
-      });
-    }
-
-    // Navigation
-    function initNavigation() {
-      if (!state.currentStop) return;
-
-      const stop = CONFIG.stops.find(s => s.id === state.currentStop);
-
-      if (window.navMap) {
-        window.navMap.remove();
-      }
-
-      window.navMap = L.map('nav-map').setView(CONFIG.centerCoords, 14);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(window.navMap);
-
-      // Add destination marker
-      L.marker(stop.coords).addTo(window.navMap);
-
-      // Get user location
-      navigator.geolocation.watchPosition(position => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-
-        state.currentPosition = [userLat, userLng];
-
-        // Remove old user marker if exists
-        if (window.userMarker) {
-          window.navMap.removeLayer(window.userMarker);
-        }
-
-        window.userMarker = L.circleMarker([userLat, userLng], {
-          radius: 6,
-          fillColor: '#8B4513',
-          color: '#fff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.8
-        }).addTo(window.navMap);
-
-        // Calculate distance
-        const distance = calculateDistance(userLat, userLng, stop.coords[0], stop.coords[1]);
-        document.getElementById('nav-distance').innerText = `Distance: ${distance.toFixed(2)} km`;
-
-        if (distance < 0.05) { // 50 meters
-          showArrivalOverlay(stop.name);
-        }
-      });
-    }
-
-    // Distance calculation
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371; // Earth's radius in km
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
-
-    // Stamps
-    function renderStamps() {
-      const container = document.getElementById('stamps-grid');
-      container.innerHTML = CONFIG.stops.map(stop => `
-        <div class="stamp ${state.collectedStamps.includes(stop.id) ? 'collected' : 'uncollected'}">
-          ${stop.id}
+        <p>"Hello, I'm Harriet. I'll be your guide today as we walk through some of Hereford's most fascinating places. Along the way I'll share stories, point out hidden details, and introduce you to a few local businesses worth knowing. At any stop you can tap <em>Tell me about this area</em> and ask me anything. Whenever you're ready, let's go."</p>
+      </div>
+      <div id="weather-banner" class="weather-banner hidden"><span class="weather-icon-lrg" id="weather-icon">&#127780;&#65039;</span><span class="weather-text" id="weather-text"></span><button class="weather-cta hidden" id="weather-cta" onclick="openFindSomething()">Ask Harriet</button></div><div id="event-banner" class="event-banner hidden"><div class="ev-label">&#128197; Happening in Hereford</div><div id="event-text"></div></div>
+      <button class="btn-start-tour" onclick="showScreen('stoplist')">Start the Tour</button>
+      <p class="splash-small">No download needed · Works in your browser<br>GPS requested when your walk begins</p>
+    </div>
+  </div>
+  <div id="screen-headphones" class="screen">
+    <div class="headphones-icon">🎧</div>
+    <h2 class="headphones-title">For the best experience,<br>connect your headphones.</h2>
+    <p class="headphones-note">(You can also follow along on screen at any time - all narration appears as text.)</p>
+    <button class="btn-headphones-yes" onclick="setHeadphones(true)">🎧 I'm ready with headphones</button>
+    <button class="btn-headphones-no" onclick="setHeadphones(false)">Continue without headphones</button>
+  </div>
+  <div id="screen-stoplist" class="screen">
+    <div class="stoplist-header">
+      <div class="stoplist-header-row">
+        <h1>Your Walk</h1>
+        <button class="btn-ask-harriet-header" onclick="openCityAskHarriet()">🔍 Ask Harriet</button>
+      </div>
+      <div class="stamp-progress-bar"><div class="stamp-progress-fill" id="stamp-progress-fill" style="width:0%"></div></div>
+      <p class="stamp-progress-label" id="stamp-progress-label">0 of 10 stamps collected</p>
+    </div>
+    <div class="stoplist-map-wrap"><div id="stoplist-mini-map"></div></div>
+    <div class="stoplist-body" id="stoplist-body"></div>
+    <button class="stoplist-nav-btn" onclick="navigateToNextStop()">Navigate to next stop →</button>
+  </div>
+  <div id="screen-detail" class="screen">
+    <div class="detail-compact-header">
+      
+<button class="detail-hero-back" onclick="stopAudio();showScreen('stoplist')">← Tour</button>
+      <span class="detail-compact-title" id="detail-stop-name">Stop Name</span>
+      <span class="visited-stamp-overlay hidden" id="detail-visited-overlay">✅</span>
+      <div class="detail-hero-badge" id="detail-stop-badge">Stop 1</div>
+    </div>
+    <div class="detail-stop-img-wrap" id="detail-stop-img-wrap">
+      <img id="detail-stop-img" src="" alt="" onerror="this.parentElement.style.display='none'">
+    </div>
+    <div class="detail-body">
+      <div class="narration-card">
+        <div class="narration-label-row">
+          <div class="narration-label">🎙️ Harriet says</div>
+          <button class="btn-mark-complete" id="btn-mark-complete" onclick="markStopComplete()">I've visited here</button>
         </div>
-      `).join('');
-    }
+        <div class="narration-play-row">
+          <button class="btn-narration-toggle" id="btn-narration-toggle" onclick="toggleDetailNarration()">▶ Play narration</button>
+        </div>
+        <p class="narration-text" id="detail-narration"></p>
+        <button class="btn-expand-narration" id="btn-expand-narration" onclick="toggleNarrationExpand()">Read more ↓</button>
+      </div>
+      <div class="facts-section"><h3>Interesting Facts</h3><div id="detail-facts"></div></div>
+      <div class="tell-me-more-card" onclick="openTellMeMore()">
+        <div class="tmm-eyebrow">🔍</div>
+        <h3>Curious about where you're standing?</h3>
+        <p>Tap to ask Harriet about the history of this exact spot - the buildings around you, the people who walked here, and the stories most visitors never hear.</p>
+        <span class="btn-ask-harriet">Ask Harriet →</span>
+      </div>
+      <div class="find-something-card" onclick="openFindSomething()">
+        <div class="fs-eyebrow">🗺️</div>
+        <h3>Find me something nearby</h3>
+        <p>Ask Harriet where to eat, drink, explore, or simply take a moment to sit.</p>
+        <span class="btn-find-something">Ask Harriet</span>
+      </div>
+      <div id="detail-sponsor-card"></div>
+    </div>
+    <button class="detail-nav-btn" id="detail-nav-btn" onclick="openNavToCurrentStop()">Navigate to this stop →</button>
+  </div>
+  <div id="screen-nav" class="screen">
+    <div id="map"></div>
+    <div class="nav-top-bar">
+      <div class="nav-guide">
+        <div class="nav-guide-name">Harriet · Hereford</div>
+        <div class="nav-destination" id="nav-destination-label">Walking to…</div>
+      </div>
+      <button class="nav-back-btn" onclick="stopNavigation()">✕ Stop</button>
+    </div>
+    <button class="nav-demo-btn" id="nav-demo-btn" onclick="toggleDemoMode()">▶ Demo Mode</button>
+    <div class="nav-bottom-sheet">
+      <div class="nav-turn-instruction">
+        <div class="nav-turn-icon" id="nav-turn-icon">↑</div>
+        <div class="nav-turn-text">
+          <div class="nav-guide-byline">Harriet</div>
+          <div class="nav-turn-main" id="nav-turn-main">Getting your route…</div>
+        </div>
+        <button class="nav-stamp-btn hidden" id="nav-stamp-btn" onclick="showScreen('stamps')">🎫 Stamps</button>
+      </div>
+      <div class="nav-stats">
+        <div class="nav-stat"><div class="nav-stat-val" id="nav-dist-next">–</div><div class="nav-stat-lbl">to turn</div></div>
+        <div class="nav-stat"><div class="nav-stat-val" id="nav-dist-dest">–</div><div class="nav-stat-lbl">to destination</div></div>
+        <div class="nav-stat"><div class="nav-stat-val" id="nav-eta">–</div><div class="nav-stat-lbl">mins walk</div></div>
+      </div>
+    </div>
+  </div>
+  <div id="screen-stamps" class="screen">
+    <div class="harriet-bar">
+      <div><div class="guide-name">Harriet</div><div class="city-name">Hereford Walk</div></div>
+      <button class="back-btn" onclick="stopAudio();showScreen('stoplist')">← Tour</button>
+    </div>
+    <div class="stamps-header"><h2>Your Stamp Card</h2><p id="stamps-subtitle">Collect all stamps to complete the tour</p></div>
+    <div class="stamps-body">
+      <div class="stamps-grid" id="stamps-grid"></div>
+      <div class="completion-card" id="completion-card">
+        <div class="comp-icon">🏆</div>
+        <h3>Tour Complete!</h3>
+        <p>You've explored the very best of Hereford. Harriet hopes you've loved every step.</p>
+        <button class="btn-share" onclick="shareCompletion()">🔗 Share your achievement</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="audio-player-bar">
+  <div class="audio-info">
+    <div class="audio-guide-name">Harriet</div>
+    <div class="audio-label" id="audio-label">Playing…</div>
+    <div class="audio-progress-wrap"><div class="audio-progress-fill" id="audio-progress-fill"></div></div>
+  </div>
+  <button class="audio-btn" id="audio-play-pause-btn" onclick="toggleAudioPlayPause()">⏸</button>
+  <button class="audio-btn" onclick="stopAudio()">✕</button>
+</div>
+<div id="notification-overlay">
+  <div class="notification-card" id="notification-card">
+    <div class="notif-type" id="notif-type">Harriet says</div>
+    <div class="notif-title" id="notif-title"></div>
+    <div class="notif-text" id="notif-text"></div>
+    <div class="notif-stars hidden" id="notif-stars"></div>
+    <button class="notif-cta hidden" id="notif-cta"></button>
+    <div class="notif-progress" id="notif-progress"></div>
+  </div>
+</div>
+<div id="modal-tellmore">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><h3 id="tmm-modal-title">Harriet on…</h3><button class="modal-close" onclick="closeModal('tellmore')">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-location-label" id="tmm-location-label">📍 Loading…</div>
+      <div class="typing-indicator" id="tmm-typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+      <div class="modal-response hidden" id="tmm-response"></div>
+      <button class="btn-hear-response hidden" id="btn-hear-response" onclick="hearTellMeMore()">▶ Hear this</button>
+    </div>
+  </div>
+</div>
+<div id="modal-findsomething">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><h3>Find me something</h3><button class="modal-close" onclick="closeModal('findsomething')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-family:var(--font-display);font-style:italic;color:#666;margin-bottom:16px;">What are you looking for?</p>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input type="text" id="fs-custom-input" placeholder="e.g. toilet, wildlife area, playground…"
+          style="flex:1;padding:12px 14px;border:1.5px solid #ddd;border-radius:50px;font-size:.9rem;font-family:inherit;outline:none;"
+          onkeydown="if(event.key==='Enter'){findSomethingCustom();}" />
+        <button onclick="findSomethingCustom()"
+          style="background:var(--color-primary);color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap;">Ask →</button>
+      </div>
+      <div class="find-chips">
+        <button class="find-chip" onclick="findSomething('somewhere to eat')">🍽️ Eat</button>
+        <button class="find-chip" onclick="findSomething('a pub or bar')">🍺 Drink</button>
+        <button class="find-chip" onclick="findSomething('a coffee shop or café')">☕ Coffee</button>
+        <button class="find-chip" onclick="findSomething('something interesting to see nearby')">🏛️ Explore</button>
+        <button class="find-chip" onclick="findSomething('somewhere to sit and rest')">🪑 Rest</button>
+        <button class="find-chip" onclick="findSomething('a good view or photo spot')">📸 Photo</button>
+      </div>
+      <div class="typing-indicator hidden" id="fs-typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+      <div class="modal-response hidden" id="fs-response"></div>
+    </div>
+  </div>
+</div>
+<div id="arrival-overlay">
+  <div class="arrival-stamp" id="arrival-emoji">⛪</div>
+  <h2 class="arrival-title">You've arrived!</h2>
+  <p class="arrival-stop-name" id="arrival-stop-name">Stop Name</p>
+  <button class="btn-arrival-explore" onclick="closeArrivalOverlay()">Find out more →</button>
+</div>
+<div id="tour-complete-overlay">
+  <div class="tour-complete-content">
+    <div class="tc-icon">&#127942;</div>
+    <h2 class="tc-title">Walk Complete!</h2>
+    <p class="tc-sub">You've explored all of Hereford with Harriet</p>
+    <div class="tc-harriet-card">
+      <p>&#8220;Well done &#8212; you&#8217;ve done it. Every stop, every story, every stamp. Hereford has shown you what it really is, and I hope it&#8217;s earned a return visit. Before you head off, there&#8217;s one more place I&#8217;d like to point you towards &#8212; somewhere that didn&#8217;t make the tour but absolutely deserves your attention.&#8221;</p>
+    </div>
+    <button class="btn-tc-play" onclick="playTourCompleteNarration()"><span>&#9654;</span> Play Harriet&#8217;s wrap-up</button>
+    <div class="tc-suggest">
+      <div class="sug-label">&#10024; Harriet&#8217;s final suggestion</div>
+      <p>The Lichfield Vaults on Church Street &#8212; one of Hereford&#8217;s most atmospheric pubs. Real ales, a fireplace, proper food, and the kind of welcome that makes you stay longer than planned. Five minutes&#8217; walk from here. Or ask me to help find something that suits you.</p>
+    </div>
+    <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
+    <button class="btn-tc-back" onclick="closeTourComplete()">&#8592; Back to the tour</button>
+  </div>
+</div>
+<div id="toast"></div>
+<!-- Key setup overlay - shown when no valid ElevenLabs key is found -->
+<div id="key-setup-overlay" class="hidden">
+  <div class="key-setup-card">
+    <div class="key-setup-logo">The SetUp Crew</div>
+    <div class="key-setup-title">Welcome to Harriet</div>
+    <p class="key-setup-body">To hear Harriet's voice, paste your ElevenLabs API key below. It's saved on this device only - never sent to any server.</p>
+    <label class="key-setup-label">ElevenLabs API Key</label>
+    <input class="key-setup-input" type="password" id="key-input" placeholder="sk_..." autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveKey()" />
+    <div class="key-setup-hint">Get your key free at <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank">elevenlabs.io → Settings → API Keys</a></div>
+    <button class="key-setup-btn" onclick="saveKey()">Save &amp; Start the Tour →</button>
+    <div class="key-setup-error" id="key-error"></div>
+    <div class="key-setup-privacy">🔒 Stored locally on this device only</div>
+  </div>
+</div>
+<script>
+// ⚠️ REPLACE ALL {{PLACEHOLDER}} VALUES BEFORE DEPLOYING
+const CONFIG = {
+  city:"Hereford",postcodeArea:"HR1",guideName:"Harriet",
+  guideVoiceId:"NTqGiNK8P02i66yY2GOH",
+  maxStops:10,
+  colorPrimary:"#1B4332",colorBackground:"#F5F0E8",colorAccent:"#C9A84C",
+  operatorName:"Hereford BID",operatorEmail:"{{OPERATOR_EMAIL}}",
+  platformOwner:"Mark",platformFeePercent:20,
+  elevenlabsApiKey:"{{ELEVENLABS_API_KEY}}",
+  claudeApiKey:"{{CLAUDE_API_KEY}}",
+  googlePlacesApiKey:"{{GOOGLE_PLACES_API_KEY}}",
+  stripePublishableKey:"{{STRIPE_PUBLISHABLE_KEY}}",
+  stripeConnectAccountId:"{{STRIPE_CONNECT_ACCOUNT_ID}}",
+  adminPasswordHash:"{{BCRYPT_HASH_OF_ADMIN_PASSWORD}}",
+  stops:[
+    {id:1,name:"Hereford Cathedral",shortDescription:"Home to the Mappa Mundi and the world\u2019s largest chained library \u2014 a city of faith built on the bones of a martyred king",coordinates:{lat:52.0546,lng:-2.7139},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Hereford_Cathedral_Exterior_from_NW%2C_Herefordshire%2C_UK_-_Diliff.jpg/330px-Hereford_Cathedral_Exterior_from_NW%2C_Herefordshire%2C_UK_-_Diliff.jpg",narration:"Every great English city has a building that tells you what it is. In Hereford, that building is this one.\n\nThe Cathedral was founded in 676 AD on the site where St Ethelbert, King of East Anglia, was buried after his murder. He had come to Mercia to negotiate a marriage and was killed by his host, Offa the Great. Ethelbert became a martyr, his tomb became a pilgrimage site, and the Cathedral that grew around it became one of the most important churches in western England.\n\nThe building you see now is largely Norman and later medieval, built in the distinctive local red sandstone. Unlike the pale limestone of Canterbury or the oolite of Bath, this stone was quarried from the hills of the Welsh Marches, and it makes the Cathedral look and feel like part of the landscape it stands in.\n\nInside, two things above all others are worth seeking out. The Mappa Mundi, made around 1300, is the largest surviving medieval map of the world \u2014 not a map in any modern sense, but a diagram of Christian cosmology with Jerusalem at the centre, Paradise at the top, and monsters at the margins.\n\nThe Chained Library contains over 1,500 books, each secured by a chain to its shelf. It is the largest intact chained library in the world. This was the medieval internet: everything worth knowing, locked in one room, available to those with the knowledge to read it.\n\nIn 1988 the Cathedral nearly lost the Mappa Mundi. Facing serious financial difficulties, the Dean and Chapter explored selling it to an American buyer. The resulting public outcry was immediate and enormous \u2014 a fundraising campaign raised millions in weeks. The map stayed. It is now housed in its own purpose-built gallery, opened in 1996.\n\nEvery August the Cathedral becomes the home of the Three Choirs Festival \u2014 rotating since the 1720s between Hereford, Worcester, and Gloucester. Elgar premiered work here. Vaughan Williams came every year he could. The festival continues to this day.\n\nStand in the nave and look east. The light comes through the great window at the end of the choir in colours that the medieval masons planned for precisely this effect. They had never seen the building complete. They built it anyway.\n\nTake a slow walk around the Cathedral now — step inside if you can. Stand in the Chained Library, find the Mappa Mundi, watch the light fall through the choir window. Take it all in, take your time. When you've had your fill, I'll meet you outside and we'll head together to the Bishop's Palace.",facts:["The Mappa Mundi was made around 1300 and in 1988 was nearly sold to an American buyer. A public fundraising campaign raised millions in weeks and kept it in Hereford permanently.","The Chained Library contains over 1,500 books each secured to its shelf by a chain \u2014 long enough to allow the book to be read on the desk in front. It is the largest intact chained library in the world.","The Three Choirs Festival, rotating between Hereford, Worcester and Gloucester since the 1720s, is one of the oldest classical music festivals in the world. Elgar and Vaughan Williams were regular attendees."],emoji:"\u26ea"},
+    {id:2,name:"The Bishop\u2019s Palace",shortDescription:"A medieval palace hidden behind the Cathedral \u2014 and gardens that have been here since the Normans",coordinates:{lat:52.0539,lng:-2.7150},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Hereford_Cathedral_and_Bishop%%27s_Palace_-_geograph.org.uk_-_6603009.jpg/500px-Hereford_Cathedral_and_Bishop%%27s_Palace_-_geograph.org.uk_-_6603009.jpg",narration:"Just to the south of the Cathedral, down a lane that most visitors miss, is one of the most complete medieval episcopal complexes in England. The Bishop's Palace has been here since the Norman period \u2014 over nine hundred years of continuous occupation on the same site.\n\nThe great hall, built around 1179 by Bishop Robert Foliot, is still standing \u2014 its proportions those of a serious Norman building, designed to impress visiting nobility and demonstrate the power of the diocese. Hereford was not a peripheral see: it controlled a diocese that ran from the Welsh borders deep into the Marches.\n\nThe palace gardens slope gently down towards the River Wye. On a clear day the views across the water to the meadows on the far bank are the kind that make you understand immediately why people have been living in this valley for thousands of years.\n\nThe gardens contain a yew tree said to be over five hundred years old \u2014 which would make it already ancient when Henry VIII was dissolving the monasteries. Trees this size make the medieval period feel present rather than distant.\n\nThe Wye Valley has long drawn poets and artists. William Wordsworth made his journey through this valley in 1798 and wrote Lines Written a Few Miles above Tintern Abbey directly inspired by the landscape. Turner painted the Wye. Gilpin coined the word picturesque for it. The valley's pull on the imagination is not a modern invention.\n\nThe gardens have been carefully restored and are now more openly accessible to visitors than at any point in the twentieth century. On a fine afternoon, they are one of Hereford's genuinely lovely surprises.\n\nWander down through the gardens if they're open, look across to the meadows on the far bank, and put your hand on that ancient yew if you can find it. Whenever you're ready, we'll move on to the line of the old city walls.",facts:["The great hall of the Bishop\u2019s Palace dates from around 1179 \u2014 one of the oldest surviving episcopal halls in England.","William Wordsworth visited the Wye Valley in 1798 and wrote Lines Written a Few Miles above Tintern Abbey directly inspired by the river and landscape visible from this area.","The palace gardens have been carefully restored and are now more openly accessible to visitors than at any point in the twentieth century."],emoji:'🏰'},
+    {id:3,name:"Hereford City Walls \u0026 Redcliffe Gardens",shortDescription:"The medieval walls that once ringed the city \u2014 and the gardens that grew from their rubble",coordinates:{lat:52.0530,lng:-2.7125},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Bastion_in_Hereford%%27s_medieval_city_walls_%%28Geograph_2598944_by_Roger_Davies%%29.jpg/500px-Bastion_in_Hereford%%27s_medieval_city_walls_%%28Geograph_2598944_by_Roger_Davies%%29.jpg",narration:"Hereford was a walled city from at least the tenth century. The Anglo-Saxon burh was enclosed by earthworks and a defensive ditch. The Normans rebuilt these defences in stone after the Conquest. The resulting walls ran for approximately a mile around the city, pierced by gateways and defended by towers.\n\nMost of the walls were demolished in the eighteenth and nineteenth centuries as the city expanded and the stone was needed for other projects. What remains today is fragmentary \u2014 sections preserved where the demolition was incomplete or the stone proved too well-built to shift easily.\n\nThe gardens along this stretch preserve the line of the old city defences. The ground level changes here reflect the original earthwork \u2014 you can still read the profile of the medieval rampart in the slope of the garden.\n\nHereford's walls were tested. The city was a Royalist stronghold during the Civil War, besieged by Scottish forces under the Earl of Leven in 1645 for over a month. The walls held during that siege \u2014 but the city fell to a different Parliamentary force later the same year.\n\nDuring the Second World War, Hereford received thousands of evacuee children from Birmingham and the industrial cities. The city's population temporarily swelled, old buildings near these walls became temporary homes for children who had never seen proper countryside. Some never went back.\n\nThe gardens were significantly improved in the early 2000s and are now a proper public green space \u2014 maintained, planted, and used by local residents in a way the neglected wall line never was. Sometimes the best thing you can do with a medieval ruin is make a garden around it.\n\nWalk the length of these gardens — the old wall line is there if you know how to read it. Sit a moment, picture the rampart, picture the besieging army on the far side. When you're ready, we'll head down towards Castle Green and the river.",facts:["Hereford was besieged by Scottish forces in 1645 during the Civil War. The walls held during that siege \u2014 but the city fell to a different Parliamentary force later the same year.","During the Second World War, Hereford received thousands of child evacuees from Birmingham and the industrial cities. Some families stayed and became part of the city permanently.","The city\u2019s five medieval gateways \u2014 Friars Gate, Eign Gate, St Owen\u2019s Gate, Wye Bridge Gate and Widemarsh Gate \u2014 were all demolished in the eighteenth century."],emoji:'🏰'},
+    {id:4,name:"Castle Green",shortDescription:"Where Hereford\u2019s great castle stood for five hundred years \u2014 now a park with the best view of the river",coordinates:{lat:52.0525,lng:-2.7105},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Nelson_Column%%2C_Castle_Green%%2C_Hereford_-_geograph.org.uk_-_5405331.jpg/500px-Nelson_Column%%2C_Castle_Green%%2C_Hereford_-_geograph.org.uk_-_5405331.jpg",narration:"The large open space you are standing on was, for five hundred years, one of the most strategically important castle sites in England.\n\nHereford Castle was founded by William FitzOsbern, one of William the Conqueror's closest companions, shortly after the Norman Conquest. Its position was chosen with care: on a loop of the River Wye, with water on three sides, commanding the crossing point and the road into Wales. Whoever held Hereford Castle held the key to England's western frontier.\n\nThe castle was large, heavily fortified, and repeatedly fought over. King Stephen was captured nearby during the Anarchy. King John stored part of his treasury here. Edward I used it as a staging post for his Welsh campaigns. The castle was at the centre of English power in the March for three centuries.\n\nIn the seventeenth century, having survived medieval siege warfare and the Civil War, the castle was simply demolished \u2014 not in battle, but in peacetime, by a government that decided it was too expensive to maintain. The stone was sold off and within a generation the most important castle in the West of England had disappeared.\n\nThe Nelson Column in the middle of the Green predates the famous one in Trafalgar Square by thirty-two years. Erected in 1809, four years after Trafalgar \u2014 Hereford mourned its admiral fast. London's column didn't follow until 1843.\n\nToday Castle Green is the city's main civic park \u2014 used for the annual Hereford Food Festival, summer concerts, and on any dry afternoon, the full range of city life: runners, families, dogs, and the occasional heron standing completely still in the shallows below.\n\nThe view across the Wye from the Green is essentially unchanged from what the castle garrison would have seen. The same river, the same meadows, the same hills on the horizon. That continuity is one of the things that makes the Welsh Marches unusual.\n\nTake a few minutes here. Walk across to the Nelson Column, sit on the grass if it's a fine day, watch the boats pass below. When you're ready, we'll head back into the heart of the city to find the Museum and Art Gallery.",facts:["Hereford\u2019s Nelson Column was erected in 1809 \u2014 thirty-two years before the more famous column in Trafalgar Square. Hereford mourned its admiral fast.","Hereford Castle was one of the most besieged in medieval England, controlling the main road into Wales. Almost nothing survives above ground \u2014 the mound is the only visible trace.","Castle Green now hosts the annual Hereford Food Festival each autumn \u2014 one of the best regional food events in the West of England."],emoji:'🏰'},
+    {id:5,name:"Hereford Museum \u0026 Art Gallery",shortDescription:"Roman mosaics, a world-class cider story, and the natural history of an exceptional county \u2014 all free",coordinates:{lat:52.0561,lng:-2.7169},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Hereford_Museum_and_Art_Gallery_-_DSCF1971.JPG/330px-Hereford_Museum_and_Art_Gallery_-_DSCF1971.JPG",narration:"The museum on Broad Street is the place where Hereford's long history is most systematically gathered and presented. The building itself is Victorian Gothic \u2014 built in 1874, with the ornate stonework and pitched roofs that the period favoured for civic institutions.\n\nThe Roman material comes largely from Magnis \u2014 the Roman town at Kenchester, about five miles west of Hereford. Magnis was a civitas capital: the administrative centre of the Dobunni tribe under Roman rule, a town with a forum, a basilica, and the kind of urban infrastructure the Romans built wherever they governed.\n\nOne thing the museum documents particularly well is the cider industry \u2014 Herefordshire's most characteristic contribution to British culture. The H.P. Bulmer company was founded in Hereford in 1887 and grew to become the largest cider producer in the world. The ancient orchards you can see from any high point in the county \u2014 small, gnarled, moss-covered trees in a density that has disappeared almost everywhere else \u2014 are the visible evidence of that history.\n\nThe natural history collections document the county's remarkable biodiversity. Herefordshire sits in one of the most ecologically rich corners of England, where the geology changes, the rivers are clean, and the hedgerows have survived in a density that has largely disappeared elsewhere.\n\nThe art gallery holds changing exhibitions and a permanent collection strong in local landscapes. Herefordshire has attracted painters since the eighteenth century \u2014 the valley light, the orchards, the particular quality of an agricultural county that is always beautiful has made it a subject that rewards sustained attention.\n\nFree entry. Worth an hour of your time. On a rainy afternoon in Hereford, the museum is one of the better ways to spend two hours.\n\nIf the weather's against you, this is the place to spend a proper hour. If not, take a quick look at the Roman material and step back outside. Whenever you're ready, we'll cross the road to All Saints Church.",facts:["Kenchester (Roman Magnis), five miles west of Hereford, was a proper Roman town with forum and basilica \u2014 almost entirely unexcavated. The objects here represent a tiny fraction of what is still underground.","H.P. Bulmer, founded in Hereford in 1887, became the world\u2019s largest cider producer. The Bulmers Norman apple used in Strongbow was developed on local Herefordshire farms.","Herefordshire has more ancient orchards per square mile than almost any other county in England \u2014 the visual evidence of a cider-making tradition stretching back centuries."],emoji:'🎨'},
+    {id:6,name:"All Saints Church",shortDescription:"A medieval church with a twisted spire, a chained library, and one of England\u2019s most celebrated church caf\u00e9s",coordinates:{lat:52.0556,lng:-2.7170},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/All_Saints_Church%%2C_Hereford_-_DSCF1910.JPG/500px-All_Saints_Church%%2C_Hereford_-_DSCF1910.JPG",narration:"All Saints Church stands at the corner of Broad Street and High Street \u2014 a thirteenth-century church in the middle of a modern city, and one of the most quietly surprising buildings in Hereford.\n\nThe church was begun in the late thirteenth century and completed in stages through the fourteenth. The nave is tall and light, the columns slender, the windows generous with daylight. It has the feel of a building that was always meant to be used \u2014 a working parish church for the merchants and craftspeople of the medieval city.\n\nThe most striking feature is the twisted spire. Church spires sometimes twist as the timber frame dries and shrinks unevenly over decades \u2014 pulling the whole structure slightly out of true. All Saints' spire has had a pronounced and permanent twist for centuries. Simon Jenkins listed this church in England's Thousand Best Churches partly on the strength of it.\n\nThe church also has a small chained library \u2014 thirty-three volumes, mostly seventeenth-century, chained to their shelves in the same way as the far larger collection at the Cathedral. Two chained libraries within a few hundred metres of each other is exceptional in England.\n\nSince 1999, the nave has housed one of England's most celebrated church caf\u00e9s \u2014 widely credited as a pioneer of the concept that has since been copied by hundreds of churches across the country. Good coffee, good food, in a medieval building. The pews are gone, but the columns, the windows, and the height of the ceiling are exactly as they were.\n\nIn 2020, during the COVID lockdowns, All Saints live-streamed concerts from this medieval nave to audiences around the world. A building begun in the thirteenth century found a global audience via broadband. That combination of the very old and the very new is something this church manages unusually well.\n\nStep inside if it's open — the café is worth a coffee, and the columns are worth ten minutes of just looking up. When you're ready, we'll move into the heart of the city, to the market square at High Town.",facts:["All Saints\u2019 twisted spire is listed in Simon Jenkins\u2019 England\u2019s Thousand Best Churches. The twist developed as the timber frame dried unevenly over centuries \u2014 and is now permanent.","The caf\u00e9 at All Saints opened in 1999 and is widely credited as one of the first church caf\u00e9s in England \u2014 a model that hundreds of churches across the country have since copied.","During the COVID lockdowns of 2020, All Saints live-streamed concerts from the medieval nave that were watched by thousands of people around the world."],emoji:"\u26ea"},
+    {id:7,name:"High Town \u0026 the Market",shortDescription:"The commercial heart of Hereford since before the Normans \u2014 and still the place where the city does its business",coordinates:{lat:52.0560,lng:-2.7155},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/The_Old_House%%2C_High_Town%%2C_Hereford_-_geograph.org.uk_-_11172.jpg/330px-The_Old_House%%2C_High_Town%%2C_Hereford_-_geograph.org.uk_-_11172.jpg",narration:"You are standing in the commercial heart of Hereford. High Town has been the city's market place since at least the eleventh century \u2014 the Saxons who established the burh needed a market, and this broad open space at the centre of the settlement was the obvious place for it.\n\nThe buildings around the edges represent several centuries of prosperous urban architecture. The black and white timbered buildings are typical of the Herefordshire vernacular: oak-framed structures built from the local timber that was abundant in a heavily wooded county. Herefordshire has the highest density of black and white timber-framed buildings of any county in England.\n\nThe indoor Buttermarket has been on this site since the medieval period, though the current building dates from the 1860s. The function is the same as it has always been: a place to buy things, to meet people, to hear news, to do business.\n\nHereford remains a genuine market town. The farmers' market \u2014 held on the first and third Saturdays of the month \u2014 attracts producers from across the county. Cheese, cider, meat, vegetables, local honey. It is one of the better farmers' markets in the West of England.\n\nThe Christmas Market has grown significantly in recent years and now fills the whole of High Town with traders from across the region. Hereford regularly appears in quality-of-life surveys as one of the most liveable small cities in England \u2014 combining city amenities with immediate access to exceptional countryside.\n\nSpend a few minutes looking at the buildings on the edges of High Town. The variety of styles \u2014 medieval timber-framing, Georgian brick, Victorian stucco \u2014 is the visual record of a city that has been continuously commercial for a thousand years.\n\nSpend a few minutes wandering. Look at the buildings, look at the people, get a feel for the rhythm of the place. When you've had your moment, we'll find Hereford's most photographed building — and it's right in front of you.",facts:["Hereford\u2019s Tuesday market has been documented since at least the twelfth century \u2014 one of the oldest continuously operating markets in England.","Herefordshire has the highest density of black and white timber-framed buildings of any county in England. The abundance of local oak made it the dominant building material until the eighteenth century.","Hereford regularly features in quality-of-life surveys as one of the most liveable small cities in England \u2014 combining genuine city amenities with immediate access to exceptional countryside."],emoji:'🛍️'},
+    {id:8,name:"Old House Museum",shortDescription:"The most photographed building in Hereford \u2014 a Jacobean townhouse that survived while everything around it was demolished",coordinates:{lat:52.0559,lng:-2.7155},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/The_Old_House%%2C_High_Town%%2C_Hereford_-_geograph.org.uk_-_11172.jpg/330px-The_Old_House%%2C_High_Town%%2C_Hereford_-_geograph.org.uk_-_11172.jpg",narration:"In the middle of High Town, surrounded by shopfronts and pedestrians, stands a building from a completely different world. The Old House was built in 1621 as part of a long row of shops and houses lining the medieval market street. Everything either side of it was demolished in the eighteenth and nineteenth centuries. The Old House alone survived.\n\nThe date 1621 puts it squarely in the Jacobean period \u2014 James I had been on the throne eighteen years, Shakespeare had been dead for five, the Civil War was still twenty years away. The construction technique is known as close-studding: vertical oak timbers placed close together, the gaps filled with plaster panels. The upper stories jet out over the ground floor \u2014 the jettying that maximised floor space on a valuable street plot.\n\nInside, the museum recreates Jacobean domestic life across three floors. The rooms are furnished with period pieces \u2014 four-poster beds, pewter plates, heavy wooden furniture designed to last generations. The scale is intimate: ceilings low, rooms small, windows leaded.\n\nIn March 2020, during the first COVID lockdown, photographs of the Old House standing completely alone in an empty High Town spread across social media and were shared thousands of times. The image of this seventeenth-century building isolated in a deserted pedestrian street had an unexpected resonance \u2014 it looked like something from a dream. The Old House became briefly a global image of lockdown.\n\nIt remains Hereford's most photographed building. The shot from the northeast corner \u2014 the jettied upper stories against the sky, the black and white timbers sharp in morning light \u2014 is the image most associated with this city. The building survived because it was always too useful to demolish. That accidental survival is now its most reliable ambassador.\n\nWalk all the way around it — the building looks different from every angle, and you'll see things from one side you simply can't see from the others. Step inside if the museum is open. When you're ready, we'll head north to a quiet corner most visitors never find: the ruins of Blackfriars.",facts:["The Old House was built in 1621 as part of Butchers\u2019 Row. The rest of the row was demolished in 1816 \u2014 the Old House survived because it was always too useful to knock down.","During the first COVID lockdown in 2020, photographs of the Old House standing completely alone in an empty High Town went viral, shared thousands of times around the world.","The house was gifted to Hereford city by Lloyds Bank in 1928. Before that it had served as a bank, a butcher\u2019s shop, and a private residence."],emoji:'🏚️'},
+    {id:9,name:"Blackfriars Ruin",shortDescription:"A Dominican friary, a rare medieval preaching cross, and the best-kept secret in Hereford",coordinates:{lat:52.0584,lng:-2.7162},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Ruins_of_Blackfriars_Friary_-_geograph.org.uk_-_577441.jpg/330px-Ruins_of_Blackfriars_Friary_-_geograph.org.uk_-_577441.jpg",narration:"A short walk north from the city centre, in a small public garden on Widemarsh Street, stand the ruins of a Dominican friary. The Black Friars came to Hereford in 1276 and remained active in the city's religious life for nearly three hundred years.\n\nThe Dominicans were the great preaching order of the medieval church \u2014 scholars and teachers who moved through cities, educated the clergy, and engaged with the intellectual questions of the age. Their house in Hereford was one of the more important in the Welsh March.\n\nHenry VIII dissolved it in 1538. The buildings were stripped, materials carted off, and what remained fell into ruin. What you see now is the shell of the nave and the outline of the cloister walk.\n\nThe outstanding survival is the preaching cross \u2014 a late medieval stone cross standing in what was the friary cemetery. Only a handful of preaching crosses survive in England. This one is in unusually good condition: the steps, base, and shaft are intact. Stand beside it and think about outdoor preaching in a fourteenth-century cemetery, the congregation gathered among the graves with the church behind them.\n\nThe garden around the ruins is now partly managed by Herefordshire Wildlife Trust. The combination of old stonework and deliberately relaxed planting makes it a habitat as well as a historic site. Slow worms have been found in the warm south-facing walls.\n\nBlackfriars is the least-visited significant historic site in Hereford city centre \u2014 almost entirely unknown to visitors and coach parties. No ticket, no gift shop. On a weekday afternoon you may have the garden entirely to yourself. That is either a recommendation or a description, depending on what you are looking for.\n\nTake your time here. Sit in the garden if it's quiet, walk around the preaching cross, look for the cloister outline in the grass. When you're ready, we'll head down to the river — the last stop on our walk together.",facts:["The Hereford Blackfriars preaching cross is one of only a handful of intact medieval preaching crosses remaining in England \u2014 most were destroyed during the Reformation.","The garden around the ruins is partly managed by Herefordshire Wildlife Trust. Slow worms have been recorded in the warm south-facing stonework.","Blackfriars is the least-visited significant historic site in Hereford city centre \u2014 almost entirely unknown to visitors and coach parties."],emoji:'🏛️'},
+    {id:10,name:"The River Wye \u0026 Wye Bridge",shortDescription:"Where the walk ends and the river begins \u2014 two thousand years of Hereford at the water\u2019s edge",coordinates:{lat:52.0505,lng:-2.7105},heroImageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/River_Wye_at_Hay-on-Wye.jpg/330px-River_Wye_at_Hay-on-Wye.jpg",narration:"We end here, at the water, because the River Wye is where Hereford begins.\n\nThe city exists because of this crossing. The Romans had a ford here. The Saxons built their burh to control it. The Normans built their castle to defend it. Every significant event in Hereford's history has been shaped by this river \u2014 the road from England to Wales had to cross here, and whoever controlled the crossing controlled the trade, the taxes, and the movement of armies.\n\nThe bridge you are looking at is stone, dating from the fourteenth and fifteenth centuries \u2014 though repaired and widened many times since. It replaced an earlier wooden structure, which replaced the Saxon ford. The river has been crossed at roughly this point for two thousand years.\n\nThe River Wye is one of the cleanest large rivers in England, designated a Site of Special Scientific Interest for its entire length. Otters have returned in significant numbers after being locally extinct for most of the twentieth century. You are unlikely to see one from the bridge in daylight \u2014 but at dusk, standing quietly on the bank and watching the water, the chances improve considerably.\n\nThe Wye is also one of the finest canoe rivers in Britain. The stretch from Hay-on-Wye to Hereford \u2014 about twenty miles \u2014 is paddled by thousands of people each year, supported by a network of hire and camping businesses along the route. The river that defended this city for a thousand years now draws people to it for entirely different reasons.\n\nHereford has shown you today what several centuries of English history looks like in a medium-sized city that most people drive past on the way somewhere else. I hope it has convinced you to stop for longer next time. Come back. The Cathedral is always worth returning to. The river is always worth sitting beside.",facts:["The River Wye is designated a Site of Special Scientific Interest for its entire length \u2014 one of the cleanest large rivers in England.","Otters have returned to the Wye in significant numbers after being locally extinct for most of the twentieth century. Dawn and dusk on the riverbank give the best chance of a sighting.","The twenty-mile canoe route from Hay-on-Wye to Hereford is one of the finest river journeys in Britain, paddled by thousands of visitors each year."],emoji:'🌊'}
+  ],
+  locationFacts:[
+    {id:"lf_01",leg:"1-2",coordinates:{lat:52.0543,lng:-2.7144},radiusMetres:30,text:"Hereford Cathedral's Mappa Mundi was nearly sold to an American buyer in 1988. The sale fell through due to public outcry, and a fundraising campaign eventually secured it for the Cathedral. Had it sold, it would have left England permanently.",type:"fact"},
+    {id:"lf_02",leg:"1-2",coordinates:{lat:52.0540,lng:-2.7147},radiusMetres:30,text:"The Three Choirs Festival - one of the oldest classical music festivals in the world, dating to the 1720s - rotates annually between Hereford, Gloucester, and Worcester. When it comes to Hereford, the Cathedral is its home.",type:"fact"},
+    {id:"lf_03",leg:"2-3",coordinates:{lat:52.0548,lng:-2.7152},radiusMetres:30,text:"Hereford is the birthplace of the Hereford cattle breed - the red and white beef cattle that now number over five million worldwide. The breed was developed on local farms in the eighteenth century and transformed beef farming across the English-speaking world.",type:"fact"},
+    {id:"lf_04",leg:"3-4",coordinates:{lat:52.0560,lng:-2.7162},radiusMetres:30,text:"The SAS - the Special Air Service - is based at Credenhill, just outside Hereford. The regiment has been associated with the city since it was formally established after the Second World War. Hereford is the only city in Britain with an active SAS barracks.",type:"fact"},
+    {id:"lf_05",leg:"4-5",coordinates:{lat:52.0558,lng:-2.7168},radiusMetres:30,text:"Nell Gwynne, mistress of Charles II and mother of the Duke of St Albans, is traditionally said to have been born in Hereford around 1650. Her exact birthplace is disputed, but the city has claimed her for centuries.",type:"fact"},
+    {id:"lf_06",leg:"5-6",coordinates:{lat:52.0568,lng:-2.7167},radiusMetres:30,text:"Roger of Hereford was one of the most important mathematicians and astronomers of twelfth-century England. Working from this city, he produced astronomical tables and writings on astrology that were used across medieval Europe for two centuries.",type:"fact"},
+    {id:"lf_07",leg:"6-7",coordinates:{lat:52.0572,lng:-2.7160},radiusMetres:30,text:"The term 'marches' - as in the Welsh Marches, the borderlands between England and Wales - comes from the Latin marca, meaning boundary or frontier. For over four centuries after the Norman Conquest, Herefordshire was governed by the Lords Marcher, who had special powers unavailable to ordinary English nobles.",type:"fact"},
+    {id:"lf_08",leg:"7-8",coordinates:{lat:52.0545,lng:-2.7135},radiusMetres:30,text:"The apple variety Bulmers Norman, used in the production of Strongbow cider, was developed near Hereford in the nineteenth century. The H.P. Bulmer company was founded in Hereford in 1887 and remains one of the largest cider producers in the world.",type:"fact"},
+    {id:"lf_09",leg:"8-9",coordinates:{lat:52.0530,lng:-2.7115},radiusMetres:30,text:"Hereford was the last English cathedral city to get a railway connection - the line from Shrewsbury arrived in 1853, making it briefly the most isolated major city in England. The delay was partly due to the difficulty of routing a railway through the surrounding hills.",type:"fact"},
+    {id:"lf_10",leg:"9-10",coordinates:{lat:52.0515,lng:-2.7105},radiusMetres:30,text:"The meadows visible across the River Wye from the city are traditional hay meadows - among the most biodiverse habitats in lowland Britain. They have been cut for hay every summer for centuries, maintaining a plant community that has largely disappeared from intensively farmed landscapes.",type:"fact"},
+    {id:"lf_11",leg:"1-2",coordinates:{lat:52.0542,lng:-2.7140},radiusMetres:30,text:"The diocese of Hereford, established in the seventh century, was one of the first in England west of the Severn. It was created to serve the territory of the Magonsaete - the Anglo-Saxon sub-kingdom occupying what is now Herefordshire and south Shropshire.",type:"fact"},
+    {id:"lf_12",leg:"5-6",coordinates:{lat:52.0563,lng:-2.7164},radiusMetres:30,text:"Herefordshire has more miles of hedgerow per square mile than any other county in England. Many of these hedges are ancient - some contain species combinations that indicate they have been in place since the medieval period or earlier.",type:"fact"},
+    {id:"lf_13",leg:"2-3",coordinates:{lat:52.0551,lng:-2.7153},radiusMetres:30,text:"St Thomas Cantilupe, Bishop of Hereford from 1275 to 1282, was the last English-born medieval saint to be canonised before the Reformation. His shrine in the Cathedral was one of the most visited pilgrimage sites in England in the fourteenth century.",type:"fact"},
+    {id:"lf_14",leg:"7-8",coordinates:{lat:52.0549,lng:-2.7138},radiusMetres:30,text:"The Herefordshire School of Romanesque sculpture - a distinctive tradition of carved stone decoration found in churches across the county - produced some of the most imaginative architectural sculpture in twelfth-century England. The best examples can be seen at Kilpeck, twelve miles south of the city.",type:"fact"},
+    {id:"lf_15",leg:"4-5",coordinates:{lat:52.0559,lng:-2.7165},radiusMetres:30,text:"The county of Herefordshire was briefly abolished in 1974 when it was merged with Worcestershire to form Hereford and Worcester. So unpopular was this arrangement that the county was restored in 1998 - one of the very few administrative reversals of the 1974 local government reorganisation.",type:"fact"}
+  ],
+  sponsors:[
+    {id:"sp_01",name:"The Nest Hereford",category:"Cafe / Coffee",tagline:"Specialty coffee and local food in the Cathedral Quarter",coordinates:{lat:52.0552,lng:-2.7148},proximityRadiusMetres:50,googlePlaceId:"ChIJ_demo_hereford_cafe",ctaLabel:"Find us near the Cathedral",ctaUrl:"#",subscriptionStatus:"active",tier:"featured",emoji:"☕"},
+    {id:"sp_02",name:"The Bookshop by the River",category:"Independent Bookshop",tagline:"New, used and local books with views of the Wye",coordinates:{lat:52.0508,lng:-2.7108},proximityRadiusMetres:50,googlePlaceId:"ChIJ_demo_hereford_books",ctaLabel:"Browse our collection",ctaUrl:"#",subscriptionStatus:"active",tier:"standard",emoji:"📚"}
+  ],
+  events:[
+    {name:"Hereford May Fair",month:5,dayFrom:1,dayTo:14,emoji:'🎡',upcoming:"The Hereford May Fair is coming up soon \u2014 one of England\u2019s oldest chartered fairs, it\u2019s been held in the city since the thirteenth century. Worth planning a return visit around.",recent:"The Hereford May Fair has just taken place \u2014 one of the oldest chartered fairs in England, a tradition going back to the thirteenth century.",during:"The Hereford May Fair is on right now in the city \u2014 one of England\u2019s oldest chartered fairs. You may hear it from here."},
+    {name:"Three Choirs Festival",month:8,dayFrom:1,dayTo:12,yearCycle:3,nextYear:2024,emoji:'🎵',upcoming:"The Three Choirs Festival is coming to Hereford soon \u2014 one of the oldest classical music festivals in the world, rotating between Hereford, Worcester and Gloucester since the 1720s. The Cathedral will be its home.",recent:"The Three Choirs Festival has just finished in Hereford \u2014 one of the oldest classical music festivals in the world.",during:"The Three Choirs Festival is happening in Hereford right now \u2014 the Cathedral and city are at the heart of one of the world\u2019s oldest classical music festivals."},
+    {name:"Hereford Food Festival",month:9,dayFrom:18,dayTo:21,emoji:'🍽️',upcoming:"The Hereford Food Festival is coming up on Castle Green \u2014 one of the best regional food events in the West of England, celebrating the county\u2019s exceptional producers.",recent:"The Hereford Food Festival has just taken place on Castle Green \u2014 a brilliant celebration of the county\u2019s food and drink producers.",during:"The Hereford Food Festival is on right now on Castle Green \u2014 well worth a visit if you have time after the tour."},
+    {name:"Big River Festival",month:7,dayFrom:1,dayTo:7,emoji:'🛶',upcoming:"The Big River Festival is coming up \u2014 Hereford\u2019s celebration of the River Wye with events, walks, and water activities.",recent:"The Big River Festival has just finished \u2014 Hereford\u2019s annual celebration of the River Wye.",during:"The Big River Festival is happening in Hereford right now \u2014 celebrating the River Wye with events and activities across the city."}
+  ],
+};
+const state={weatherData:null,currentScreen:'headphones',currentStopIndex:0,visitedStops:new Set(),stoplistMap:null,stoplistUserMarker:null,headphones:false,map:null,userMarker:null,routeLayer:null,stopMarkers:[],osrmPath:[],osrmSteps:[],currentStepIdx:0,watchId:null,demoMode:false,demoInterval:null,demoProgress:0,firedFacts:new Set(),firedSponsors:new Set(),currentAudio:null,lastFactTime:0,tmmStopId:null,tmmFullText:'',arrivalFired:false,userLat:null,userLng:null};
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('screen-'+id);if(el)el.classList.add('active');state.currentScreen=id;if(el)el.scrollTop=0;if(id==='stoplist'){renderStopList();initStoplistMap();}if(id==='stamps')renderStamps();}
+function setHeadphones(val){state.headphones=val;showScreen('splash');}
+function renderStopList(){const body=document.getElementById('stoplist-body');if(!body)return;body.innerHTML=CONFIG.stops.map((stop,i)=>{const visited=state.visitedStops.has(stop.id);const dist=state.userLat?formatDist(haversine(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng)):'';return`<div class="stop-card ${visited?'visited':''}" onclick="openStopDetail(${i})"><div class="stop-number">${visited?'✓':stop.id}</div><div class="stop-card-info"><div class="stop-card-name">${stop.name}</div><div class="stop-card-desc">${stop.shortDescription}</div></div>${dist?`<div class="stop-card-distance">${dist}</div>`:''}</div>`;}).join('');const pct=(state.visitedStops.size/CONFIG.maxStops)*100;document.getElementById('stamp-progress-fill').style.width=pct+'%';document.getElementById('stamp-progress-label').textContent=`${state.visitedStops.size} of ${CONFIG.maxStops} stamps collected`;}
+function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;const imgEl=document.getElementById('detail-stop-img');if(imgEl){imgEl.alt=stop.name;imgEl.onerror=()=>{imgEl.onerror=null;imgEl.src=`https://staticmap.openstreetmap.de/staticmap.php?center=${stop.coordinates.lat},${stop.coordinates.lng}&zoom=17&size=400x220&markers=${stop.coordinates.lat},${stop.coordinates.lng},red-pushpin`;imgEl.style.opacity='0.85';};imgEl.src=stop.heroImageUrl||'';}const imgWrap=document.getElementById('detail-stop-img-wrap');if(imgWrap)imgWrap.style.display='';const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const vo=document.getElementById('detail-visited-overlay');vo.classList.toggle('hidden',!state.visitedStops.has(stop.id));const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="I've visited here";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=CONFIG.sponsors.find(s=>s.subscriptionStatus==='active'&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300);sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><button class="btn-sponsor-cta" onclick="navigateToSponsor(${nearSponsor.coordinates.lat},${nearSponsor.coordinates.lng},'${nearSponsor.name}')">${nearSponsor.ctaLabel} →</button></div>`:'';if(nearSponsor)enrichSponsorCard(sponsorEl,nearSponsor);document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';showScreen('detail');}
+function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
+function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
+function initNavScreen(toIdx){showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();const stop=CONFIG.stops[toIdx];document.getElementById('nav-destination-label').textContent=stop.name;document.getElementById('nav-turn-main').textContent='Getting your route…';initMap();updateStopMarkers(toIdx);if(state.userLat)fetchAndDrawRoute(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng);startGPSTracking(toIdx);}
+function initMap(){if(state.map){state.map.invalidateSize();return;}state.map=L.map('map',{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.map);const hfd=CONFIG.stops[0].coordinates;state.map.setView([hfd.lat,hfd.lng],16);state.userMarker=L.marker([hfd.lat,hfd.lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.map);CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active').forEach(sp=>{L.marker([sp.coordinates.lat,sp.coordinates.lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor">${sp.emoji}</div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(state.map).bindPopup(sp.name);});}
+function updateStopMarkers(destIdx){if(!state.map)return;state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];CONFIG.stops.forEach((stop,i)=>{let html,size;if(i===destIdx){html='<div class="map-marker-current"></div>';size=32;}else if(state.visitedStops.has(stop.id)){html='<div class="map-marker-visited">✓</div>';size=28;}else{html=`<div class="map-marker-future">${stop.id}</div>`;size=28;}const m=L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(state.map).bindPopup(`<b>${stop.name}</b><br><button onclick='initNavScreen(${i})' style='margin-top:6px;padding:6px 12px;background:#1B4332;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:.8rem'>Navigate here →</button>`);state.stopMarkers.push(m);});}
+async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){try{const activeSponsors=CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active');const waySponsors=activeSponsors.filter(s=>haversine(fromLat,fromLng,s.coordinates.lat,s.coordinates.lng)<400||haversine(toLat,toLng,s.coordinates.lat,s.coordinates.lng)<400);const coords=[[fromLng,fromLat],...waySponsors.map(s=>[s.coordinates.lng,s.coordinates.lat]),[toLng,toLat]].map(c=>c.join(',')).join(';');const url=`https://router.project-osrm.org/route/v1/walking/${coords}?overview=full&geometries=geojson&steps=true`;const res=await fetch(url);const data=await res.json();if(!data.routes||!data.routes.length)throw new Error('No route');const route=data.routes[0];state.osrmPath=route.geometry.coordinates.map(c=>[c[1],c[0]]);state.osrmSteps=route.legs[0].steps;state.currentStepIdx=0;if(state.routeLayer)state.map.removeLayer(state.routeLayer);state.routeLayer=L.polyline(state.osrmPath,{color:'#1B4332',weight:4,opacity:.8,dashArray:'8, 6'}).addTo(state.map);updateTurnInstruction(0);updateNavStats(0,route.distance);}catch(e){document.getElementById('nav-turn-main').textContent='Walk towards '+CONFIG.stops[state.currentStopIndex].name;}}
+function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-icon').textContent=maneuverIcon(step.maneuver.type,step.maneuver.modifier);document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
+function updateNavStats(distToNext,distToDest){document.getElementById('nav-dist-next').textContent=formatDist(distToNext);document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
+function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available - tap Demo Mode to preview');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied - tap Demo Mode');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
+function onGPSUpdate(lat,lng,toIdx){state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dest=CONFIG.stops[toIdx].coordinates;const distToDest=haversine(lat,lng,dest.lat,dest.lng);if(state.osrmSteps.length&&state.currentStepIdx<state.osrmSteps.length-1){const nextStep=state.osrmSteps[state.currentStepIdx+1];if(nextStep){const sp=nextStep.maneuver.location;const distToStep=haversine(lat,lng,sp[1],sp[0]);if(distToStep<15){state.currentStepIdx++;updateTurnInstruction(state.currentStepIdx);speakDirection(state.currentStepIdx);}updateNavStats(distToStep,distToDest);}}else{updateNavStats(distToDest,distToDest);}checkProximityFacts(lat,lng);checkProximitySponsors(lat,lng);if(!state.arrivalFired&&distToDest<20)triggerArrival(toIdx);}
+function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}if(state.demoInterval){clearInterval(state.demoInterval);state.demoInterval=null;state.demoMode=false;document.getElementById('nav-demo-btn').textContent='▶ Demo Mode';}showScreen('stoplist');}
+function toggleDemoMode(){if(state.demoMode){clearInterval(state.demoInterval);state.demoInterval=null;state.demoMode=false;document.getElementById('nav-demo-btn').textContent='▶ Demo Mode';return;}state.demoMode=true;state.demoProgress=0;document.getElementById('nav-demo-btn').textContent='⏹ Stop Demo';if(!state.osrmPath.length){const from=CONFIG.stops[0].coordinates;const to=CONFIG.stops[state.currentStopIndex].coordinates;fetchAndDrawRoute(from.lat,from.lng,to.lat,to.lng).then(()=>startDemoWalk());}else{startDemoWalk();}}
+function startDemoWalk(){if(!state.osrmPath.length)return;state.demoInterval=setInterval(()=>{state.demoProgress+=0.008;if(state.demoProgress>=1){state.demoProgress=0.99;clearInterval(state.demoInterval);}const idx=Math.min(Math.floor(state.demoProgress*state.osrmPath.length),state.osrmPath.length-1);const[lat,lng]=state.osrmPath[idx];onGPSUpdate(lat,lng,state.currentStopIndex);},100);}
+function checkProximityFacts(lat,lng){let proxFired=false;CONFIG.locationFacts.forEach(fact=>{if(state.firedFacts.has(fact.id))return;const d=haversine(lat,lng,fact.coordinates.lat,fact.coordinates.lng);if(d<fact.radiusMetres){state.firedFacts.add(fact.id);state.lastFactTime=Date.now();proxFired=true;showNotification('fact',null,fact.text,10000);playHarriet(fact.text,'Local Fact');}});if(!proxFired&&Date.now()-state.lastFactTime>70000){const unfired=CONFIG.locationFacts.filter(f=>!state.firedFacts.has(f.id));if(unfired.length){const fact=unfired[Math.floor(Math.random()*unfired.length)];state.firedFacts.add(fact.id);state.lastFactTime=Date.now();showNotification('fact',null,fact.text,10000);playHarriet(fact.text,'Local Fact');}}}
+function checkProximitySponsors(lat,lng){CONFIG.sponsors.forEach(sp=>{if(sp.subscriptionStatus!=='active'||state.firedSponsors.has(sp.id))return;const d=haversine(lat,lng,sp.coordinates.lat,sp.coordinates.lng);if(d<sp.proximityRadiusMetres){state.firedSponsors.add(sp.id);triggerSponsorCallout(sp);}});}
+async function triggerSponsorCallout(sponsor){const callout=`Just ahead on your right is ${sponsor.name} - ${sponsor.tagline}. Worth a look if you have a moment - highly rated by locals. Anyway, let's press on.`;const navUrl=`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`;showNotification('sponsor',sponsor.name,callout,12000,'★★★★★',sponsor.ctaLabel,navUrl);playHarriet(callout,sponsor.name);}
+function triggerArrival(toIdx){state.arrivalFired=true;const stop=CONFIG.stops[toIdx];state.visitedStops.add(stop.id);showToast(`🎫 Stamp collected - ${stop.name}!`);playHarriet(`You've arrived at ${stop.name}. Wonderful - tap to find out more about where you're standing.`,'Arrival');document.getElementById('arrival-emoji').textContent=stop.emoji;document.getElementById('arrival-stop-name').textContent=stop.name;document.getElementById('arrival-overlay').classList.add('show');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);if(state.demoInterval){clearInterval(state.demoInterval);state.demoMode=false;}}
+function closeArrivalOverlay(){document.getElementById('arrival-overlay').classList.remove('show');openStopDetail(state.currentStopIndex);}
+function renderStamps(){const grid=document.getElementById('stamps-grid');grid.innerHTML='';CONFIG.stops.forEach(stop=>{const earned=state.visitedStops.has(stop.id);const div=document.createElement('div');div.className='stamp-slot'+(earned?' earned':'');div.innerHTML=`<span class="stamp-name">${stop.name}</span>`;grid.appendChild(div);});const n=state.visitedStops.size;document.getElementById('stamps-subtitle').textContent=n===CONFIG.maxStops?'Tour complete - well done!':`${n} of ${CONFIG.maxStops} - ${CONFIG.maxStops-n} more to go`;const cc=document.getElementById('completion-card');if(n===CONFIG.maxStops){cc.classList.add('visible');playHarriet(`Congratulations! You've collected all ${CONFIG.maxStops} stamps and completed the Hereford walk. I hope you've fallen a little in love with this city.`,'Completion');}else{cc.classList.remove('visible');}}
+function shareCompletion(){if(navigator.share){navigator.share({title:`I completed the Harriet guided walk of ${CONFIG.city}!`,text:`I just walked the full ${CONFIG.city} heritage tour with Harriet as my AI guide. All ${CONFIG.maxStops} stops collected.`,url:window.location.href});}else{showToast('Copy the URL to share your achievement!');}}
+let notifTimeout=null;
+function showNotification(type,title,text,duration=10000,stars=null,ctaLabel=null,ctaUrl=null){if(notifTimeout){clearTimeout(notifTimeout);dismissNotification();}const card=document.getElementById('notification-card');document.getElementById('notif-type').textContent=type==='sponsor'?'Local recommendation':'Harriet says';document.getElementById('notif-type').style.color=type==='sponsor'?'var(--color-primary)':'var(--color-accent)';const titleEl=document.getElementById('notif-title');titleEl.textContent=title||'';titleEl.style.display=title?'':'none';document.getElementById('notif-text').textContent=text;const starsEl=document.getElementById('notif-stars');starsEl.classList.toggle('hidden',!stars);if(stars)starsEl.textContent=stars;const ctaEl=document.getElementById('notif-cta');ctaEl.classList.toggle('hidden',!ctaLabel);if(ctaLabel){ctaEl.textContent=ctaLabel;ctaEl.onclick=()=>{if(ctaUrl&&ctaUrl.startsWith('nav:')){const[,lat,lng,...nameParts]=ctaUrl.split(':');navigateToSponsor(parseFloat(lat),parseFloat(lng),nameParts.join(':'));}else if(ctaUrl&&ctaUrl!=='#'){window.open(ctaUrl,'_blank');}};}card.classList.toggle('sponsor-notif',type==='sponsor');card.classList.add('show');const prog=document.getElementById('notif-progress');prog.style.transition='none';prog.style.width='100%';setTimeout(()=>{prog.style.transition=`width ${duration}ms linear`;prog.style.width='0%';},50);notifTimeout=setTimeout(dismissNotification,duration);}
+function dismissNotification(){document.getElementById('notification-card').classList.remove('show');notifTimeout=null;}
+async function playHarriet(text,label){if(!CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.startsWith('{{')){if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt2=new SpeechSynthesisUtterance(text);utt2.lang='en-GB';utt2.rate=0.88;utt2.pitch=1.05;const voices2=window.speechSynthesis.getVoices();const v2=voices2.find(v=>v.lang==='en-GB')||voices2.find(v=>v.lang.startsWith('en'));if(v2)utt2.voice=v2;utt2.onstart=()=>showAudioBar(label||'Harriet speaking…',false);utt2.onend=()=>{hideAudioBar();state.currentAudio=null;};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;}};window.speechSynthesis.speak(utt2);}else showAudioBar((label||'Speaking…')+' (demo)',true);return;}try{stopAudio();showAudioBar(label||'Speaking…',false);const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${CONFIG.guideVoiceId}`,{method:'POST',headers:{'xi-api-key':CONFIG.elevenlabsApiKey,'Content-Type':'application/json'},body:JSON.stringify({text,model_id:'eleven_turbo_v2',voice_settings:{stability:.5,similarity_boost:.75}})});if(!res.ok)throw new Error('ElevenLabs error');const blob=await res.blob();const url=URL.createObjectURL(blob);state.currentAudio=new Audio(url);state.currentAudio.play();document.getElementById('audio-play-pause-btn').textContent='⏸';state.currentAudio.ontimeupdate=()=>{if(!state.currentAudio.duration)return;document.getElementById('audio-progress-fill').style.width=(state.currentAudio.currentTime/state.currentAudio.duration*100)+'%';};state.currentAudio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;};}catch(e){console.warn('ElevenLabs failed:',e);hideAudioBar();showToast('Audio unavailable - text shown on screen');}}
+function playSplashIntro(){
+  const weatherLine=getWeatherIntroLine(state.weatherData||null);
+  const evMention=getCurrentEventMention();
+  const eventLine=evMention?` Also, ${evMention.ev[evMention.type]}`:'';
+  playHarriet(`Hello, I'm Harriet — your guide for today's walk through Hereford. We've got ten wonderful stops: the Cathedral with its Mappa Mundi, the old castle grounds, the medieval city walls, the timber-framed Old House, and the River Wye — one of England's most beautiful rivers. Along the way I'll share stories, hidden details, and the occasional local secret.${weatherLine}${eventLine} Whenever you're ready, let's begin.`,'Introduction');}
+function toggleNarrationExpand(){const el=document.getElementById('detail-narration');const btn=document.getElementById('btn-expand-narration');if(!el||!btn)return;const expanded=el.classList.toggle('expanded');btn.textContent=expanded?'Read less ↑':'Read more ↓';if(!expanded)el.scrollIntoView({behavior:'smooth',block:'nearest'});}function toggleDetailNarration(){const btn=document.getElementById('btn-narration-toggle');if(!state.currentAudio||state.currentAudio.ended){const stop=CONFIG.stops[state.currentStopIndex];if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}playNarrationTrack(stop.narration,stop.name);} else if(state.currentAudio.paused){state.currentAudio.play();if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}} else {state.currentAudio.pause();if(btn){btn.textContent='▶ Resume';btn.classList.add('paused');}}}async function playNarrationTrack(text,label){const btn=document.getElementById('btn-narration-toggle');if(!CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.startsWith('{{')){if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance(text);utt.lang='en-GB';utt.rate=0.88;utt.pitch=1.05;const voices=window.speechSynthesis.getVoices();const v=voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'));if(v)utt.voice=v;utt.onstart=()=>{showAudioBar(label||'Harriet speaking…',false);if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}};utt.onend=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};utt.onerror=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;if(btn)btn.textContent='▶ Resume';},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;if(btn)btn.textContent='⏸ Pause';}};window.speechSynthesis.speak(utt);}else{showAudioBar('No audio available - read the narration text below',true);if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}}return;}try{stopAudio();if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}showAudioBar(label||'Speaking…',false);const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${CONFIG.guideVoiceId}`,{method:'POST',headers:{'xi-api-key':CONFIG.elevenlabsApiKey,'Content-Type':'application/json'},body:JSON.stringify({text,model_id:'eleven_turbo_v2',voice_settings:{stability:.5,similarity_boost:.75}})});if(!res.ok)throw new Error('ElevenLabs error');const blob=await res.blob();const url=URL.createObjectURL(blob);state.currentAudio=new Audio(url);state.currentAudio.play();if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused','loading');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='⏸';state.currentAudio.ontimeupdate=()=>{if(!state.currentAudio.duration)return;document.getElementById('audio-progress-fill').style.width=(state.currentAudio.currentTime/state.currentAudio.duration*100)+'%';};state.currentAudio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};}catch(e){console.warn('ElevenLabs failed:',e);hideAudioBar();showToast('Audio unavailable');if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused','loading');btn.disabled=false;}}}
 
-    function collectStamp() {
-      if (state.currentStop && !state.collectedStamps.includes(state.currentStop)) {
-        state.collectedStamps.push(state.currentStop);
-        localStorage.setItem('collectedStamps', JSON.stringify(state.collectedStamps));
-        renderStamps();
-        updateStopCounter();
-        closeArrivalOverlay();
+function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}const vo=document.getElementById('detail-visited-overlay');if(vo)vo.classList.remove('hidden');showToast(`🎫 Stamp collected - ${stop.name}!`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
+function playFact(text){playHarriet(text,'Interesting Fact');}
+function showAudioBar(label,demo){document.getElementById('audio-label').textContent=label;document.getElementById('audio-player-bar').classList.add('visible');}
+function hideAudioBar(){document.getElementById('audio-player-bar').classList.remove('visible');document.getElementById('audio-progress-fill').style.width='0%';}
+function toggleAudioPlayPause(){if(!state.currentAudio)return;if(state.currentAudio.paused){state.currentAudio.play();document.getElementById('audio-play-pause-btn').textContent='⏸';}else{state.currentAudio.pause();document.getElementById('audio-play-pause-btn').textContent='▶';}}
+function stopAudio(){if(state.currentAudio){try{state.currentAudio.pause();}catch(e){}state.currentAudio=null;}hideAudioBar();}
+async function streamClaude(prompt,onChunk,onDone){if(!CONFIG.claudeApiKey||CONFIG.claudeApiKey.startsWith('{{')){const demo=`Harriet here. I'm afraid my live connection isn't set up yet - a Claude API key needs to be added to the CONFIG at the top of this file. Once connected, I can tell you everything about where you're standing - the history, the architecture, the hidden stories. For now, do take a moment to simply look around. History doesn't always need narrating.`;let i=0;const iv=setInterval(()=>{if(i>=demo.length){clearInterval(iv);onDone(demo);return;}onChunk(demo[i]);i++;},15);return;}const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':CONFIG.claudeApiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,stream:true,messages:[{role:'user',content:prompt}]})});const reader=res.body.getReader();const decoder=new TextDecoder();let full='';while(true){const{value,done}=await reader.read();if(done)break;const lines=decoder.decode(value).split('\n');for(const line of lines){if(!line.startsWith('data: '))continue;try{const d=JSON.parse(line.slice(6));if(d.type==='content_block_delta'){const chunk=d.delta.text||'';full+=chunk;onChunk(chunk);}}catch{}}}onDone(full);}
+function openTellMeMore(){const stop=CONFIG.stops[state.currentStopIndex];state.tmmStopId=stop.id;state.tmmFullText='';document.getElementById('tmm-modal-title').textContent=`Harriet on ${stop.name}`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');const prompt=`You are Harriet, a warm, knowledgeable, and quietly witty British walking guide. The tourist is currently standing at ${stop.name} in ${CONFIG.city}.\n\nTell them about this specific location in depth: the history of the buildings or structures around them, notable people connected to this place, architectural details worth looking for, and any stories or anecdotes that most visitors never hear. Write 3–4 engaging paragraphs in a conversational tone, as though speaking directly to the tourist. Include at least one genuinely surprising fact.\n\nDo not use bullet points. Focus entirely on history, architecture, people, and place. Keep it warm and human.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
+function hearTellMeMore(){if(state.tmmFullText){playHarriet(state.tmmFullText,'Tell Me More');closeModal('tellmore');}}
+function findSomethingCustom(){const inp=document.getElementById('fs-custom-input');const query=inp?inp.value.trim():'';if(!query)return;findSomething(query);}
+function openFindSomething(){document.getElementById('fs-typing').classList.add('hidden');document.getElementById('fs-response').classList.add('hidden');document.getElementById('fs-response').innerHTML='';document.getElementById('modal-findsomething').classList.add('open');}
+function findSomething(query){const stop=CONFIG.stops[state.currentStopIndex];document.querySelectorAll('.find-chip').forEach(c=>c.classList.remove('active'));event.target.classList.add('active');document.getElementById('fs-response').classList.add('hidden');document.getElementById('fs-response').innerHTML='';document.getElementById('fs-typing').classList.remove('hidden');const prompt=`You are Harriet, a warm and knowledgeable local guide in ${CONFIG.city}. The tourist is currently near ${stop.name} and is looking for ${query}. Recommend 2–3 specific, real options in ${CONFIG.city} that are within easy walking distance. Be specific about names and what makes them worth visiting. Write in a warm, conversational tone - like a knowledgeable local friend giving advice. Keep it to 3–4 sentences total.`;let full='';streamClaude(prompt,chunk=>{full+=chunk;const el=document.getElementById('fs-response');document.getElementById('fs-typing').classList.add('hidden');el.classList.remove('hidden');el.innerHTML=full.split('\n\n').map(p=>`<p>${p}</p>`).join('');},()=>{});}
+function openCityAskHarriet(){document.getElementById('tmm-modal-title').textContent=`Ask Harriet about ${CONFIG.city}`;document.getElementById('tmm-location-label').textContent=`📍 ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');state.tmmFullText='';const prompt=`You are Harriet, a warm, knowledgeable, and quietly witty British walking guide leading a tour of ${CONFIG.city}. The visitor has asked a general question about the city.\n\nGive them a warm, engaging 3-4 paragraph overview of what makes ${CONFIG.city} special - its history, its character, its hidden gems. Make it feel like advice from a knowledgeable local friend. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
+function closeModal(which){document.getElementById('modal-'+which).classList.remove('open');}
+async function speakDirection(stepIdx){if(!state.osrmSteps[stepIdx])return;const step=state.osrmSteps[stepIdx];const dist=Math.round(step.distance);const rawInstruction=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);if(CONFIG.claudeApiKey&&!CONFIG.claudeApiKey.startsWith('{{')){const prompt=`You are Harriet, a warm British walking guide. Convert this navigation instruction into a single natural, conversational sentence she would speak to a tourist walking beside her. Keep it brief, warm, and practical.\nInstruction: ${rawInstruction}\nDistance: ${dist} metres`;let text='';streamClaude(prompt,c=>text+=c,()=>playHarriet(text,'Direction'));}else{playHarriet(dist>0?`In about ${dist} metres, ${rawInstruction.toLowerCase()}.`:`${rawInstruction}.`,'Direction');}}
+function haversine(lat1,lng1,lat2,lng2){const R=6371000,toRad=d=>d*Math.PI/180;const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function formatDist(m){return m<1000?`${Math.round(m)}m`:`${(m/1000).toFixed(1)}km`;}
+function maneuverIcon(type,modifier){if(type==='arrive')return'🏁';if(type==='depart')return'▶️';if(modifier==='left')return'←';if(modifier==='right')return'→';if(modifier==='slight left')return'↖';if(modifier==='slight right')return'↗';if(modifier==='sharp left')return'↩';if(modifier==='sharp right')return'↪';return'↑';}
+function maneuverText(type,modifier){if(type==='arrive')return'You have arrived';if(type==='depart')return'Head';if(modifier==='left')return'Turn left';if(modifier==='right')return'Turn right';if(modifier==='slight left')return'Bear left';if(modifier==='slight right')return'Bear right';if(modifier==='sharp left')return'Turn sharply left';if(modifier==='sharp right')return'Turn sharply right';return'Continue straight';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function needsKey(){return !CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.startsWith('{{');}
+function saveKey(){const k=document.getElementById('key-input').value.trim();const err=document.getElementById('key-error');if(!k){err.textContent='Please paste your API key above.';return;}if(!k.startsWith('sk_')){err.textContent='That doesn\'t look right - ElevenLabs keys start with sk_';return;}CONFIG.elevenlabsApiKey=k;try{localStorage.setItem('harriet_el_key',k);}catch(e){}document.getElementById('key-setup-overlay').classList.add('hidden');}
+function initStoplistMap(){if(state.stoplistMap){if(state.stoplistMap._leaflet_id)state.stoplistMap.invalidateSize();return;}const mapEl=document.getElementById('stoplist-mini-map');if(!mapEl)return;const firstStop=CONFIG.stops[0].coordinates;state.stoplistMap=L.map('stoplist-mini-map',{zoomControl:true,attributionControl:false,dragging:true,touchZoom:true,scrollWheelZoom:false,tap:true});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.stoplistMap);state.stoplistMap.setView([firstStop.lat,firstStop.lng],15);CONFIG.stops.forEach((stop,i)=>{const visited=state.visitedStops.has(stop.id);const html=visited?'<div class="map-marker-visited">✓</div>':`<div class="map-marker-future">${stop.id}</div>`;L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.stoplistMap).bindPopup(stop.name);});if(state.userLat){addUserDotToStoplistMap(state.userLat,state.userLng);}else if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;addUserDotToStoplistMap(state.userLat,state.userLng);},()=>{},{enableHighAccuracy:true,timeout:8000});}}
+function addUserDotToStoplistMap(lat,lng){if(!state.stoplistMap)return;if(state.stoplistUserMarker)state.stoplistMap.removeLayer(state.stoplistUserMarker);state.stoplistUserMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.stoplistMap);state.stoplistMap.setView([lat,lng],15);}
+function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';initMap();state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];const m=L.marker([lat,lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor" style="background:var(--color-accent);color:var(--color-primary);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">★</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(state.map).bindPopup(name);state.stopMarkers.push(m);if(state.userLat){fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);}else{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.userMarker)state.userMarker.setLatLng([state.userLat,state.userLng]);fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);},()=>{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);},{enableHighAccuracy:true,timeout:8000});}else{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);}}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){document.getElementById('splash-city-name').textContent=CONFIG.city;renderStamps();showScreen('headphones');const stored=localStorage.getItem('harriet_el_key');if(stored){CONFIG.elevenlabsApiKey=stored;}const _hashParams=new URLSearchParams(location.hash.replace(/^#/,''));const _hashKey=_hashParams.get('elevenlabs')||_hashParams.get('key');if(_hashKey){CONFIG.elevenlabsApiKey=_hashKey;localStorage.setItem('harriet_el_key',_hashKey);document.getElementById('key-setup-overlay').classList.add('hidden');}if(needsKey()){document.getElementById('key-setup-overlay').classList.remove('hidden');}fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();}
 
-        if (state.collectedStamps.length === CONFIG.stops.length) {
-          showTourCompleteOverlay();
-        }
-      }
-    }
+// ── TOUR COMPLETE ──────────────────────────────────────────
+const TOUR_COMPLETE_NARRATION="Well done — you’ve done it. Every stop, every story, every stamp. Hereford has shown you what it really is, and I hope it’s earned a return visit. Before you head off, there’s one more place I’d like to point you towards — the Lichfield Vaults on Church Street. One of Hereford’s most atmospheric pubs, real ales, a fireplace, and the kind of welcome that makes you stay longer than planned. Five minutes’ walk from here. Or just tap the button and ask me to find something that suits you better.";
+function showTourComplete(){
+  const ov=document.getElementById('tour-complete-overlay');
+  if(ov)ov.classList.add('show');
+  playHarriet(TOUR_COMPLETE_NARRATION,'Tour Complete');
+}
+function playTourCompleteNarration(){
+  stopAudio();
+  playHarriet(TOUR_COMPLETE_NARRATION,'Tour Complete');
+}
+function closeTourComplete(){
+  const ov=document.getElementById('tour-complete-overlay');
+  if(ov)ov.classList.remove('show');
+  showScreen('stamps');
+}
+function openTourCompleteAsk(){
+  const ov=document.getElementById('tour-complete-overlay');
+  if(ov)ov.classList.remove('show');
+  openFindSomething();
+}
 
-    // Audio
-    function playAudio(type) {
-      const stop = CONFIG.stops.find(s => s.id === state.currentStop);
-      if (!stop) return;
+// ── WEATHER ───────────────────────────────────────────────
+const WEATHER_CODES={
+  0:{icon:'☀️',desc:'clear skies'},1:{icon:'🌤️',desc:'mainly clear'},
+  2:{icon:'⛅',desc:'partly cloudy'},3:{icon:'☁️',desc:'overcast'},
+  45:{icon:'🌫️',desc:'foggy'},48:{icon:'🌫️',desc:'foggy'},
+  51:{icon:'🌦️',desc:'light drizzle'},53:{icon:'🌦️',desc:'drizzle'},55:{icon:'🌦️',desc:'heavy drizzle'},
+  61:{icon:'🌧️',desc:'light rain'},63:{icon:'🌧️',desc:'rain'},65:{icon:'🌧️',desc:'heavy rain'},
+  71:{icon:'🌨️',desc:'light snow'},73:{icon:'🌨️',desc:'snow'},75:{icon:'🌨️',desc:'heavy snow'},
+  80:{icon:'🌦️',desc:'rain showers'},81:{icon:'🌧️',desc:'rain showers'},82:{icon:'⛈️',desc:'heavy showers'},
+  95:{icon:'⛈️',desc:'thunderstorms'},96:{icon:'⛈️',desc:'thunderstorms'},99:{icon:'⛈️',desc:'thunderstorms'}
+};
+async function fetchWeather(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=52.0567&longitude=-2.7159&current=temperature_2m,precipitation,weather_code,wind_speed_10m&timezone=Europe%2FLondon');
+    const d=await r.json();
+    return {temp:Math.round(d.current.temperature_2m),precip:d.current.precipitation,code:d.current.weather_code,wind:Math.round(d.current.wind_speed_10m)};
+  }catch(e){return null;}
+}
+function buildWeatherBanner(w){
+  if(!w)return;
+  const wc=WEATHER_CODES[w.code]||{icon:'🌤️',desc:'variable weather'};
+  let text=`${wc.icon} It’s ${w.temp}°C in Hereford today with ${wc.desc}.`;
+  let showCta=false;let ctaText='';
+  if(w.code>=51&&w.code<=82){
+    text+=' You might want an umbrella ';showCta=true;ctaText='Find one nearby';
+  }else if(w.temp>=24){
+    text+=' It’s warm — you may want to pick up a cold drink before heading off. ';showCta=true;ctaText='Find somewhere';
+  }else if(w.temp<=3){
+    text+=' It’s cold today — make sure you’re dressed warmly.';
+  }
+  const banner=document.getElementById('weather-banner');
+  const textEl=document.getElementById('weather-text');
+  const ctaEl=document.getElementById('weather-cta');
+  if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=text;}
+  if(ctaEl){if(showCta){ctaEl.classList.remove('hidden');ctaEl.textContent=ctaText;}else{ctaEl.classList.add('hidden');}}
+  state.weatherData=w;
+}
+function getWeatherIntroLine(w){
+  if(!w)return'';
+  const wc=WEATHER_CODES[w.code]||{desc:'variable weather'};
+  if(w.code>=51&&w.code<=82)return` The weather today is ${wc.desc} and ${w.temp}°C — you’ll want a jacket, and possibly an umbrella.`;
+  if(w.temp>=24)return` It’s a beautiful warm day today — ${w.temp}°C and ${wc.desc}. Perfect for a walk.`;
+  if(w.temp<=3)return` It’s a cold ${w.temp}°C today, so do make sure you’re dressed warmly.`;
+  return` The weather today is ${wc.desc} and ${w.temp}°C — a fine day for a walk.`;
+}
 
-      state.isPlaying = true;
+// ── EVENTS ────────────────────────────────────────────────
+function getCurrentEventMention(){
+  if(!CONFIG.events||!CONFIG.events.length)return null;
+  const now=new Date();const m=now.getMonth()+1;const d=now.getDate();const y=now.getFullYear();
+  for(const ev of CONFIG.events){
+    if(ev.yearCycle){const offset=(y-ev.nextYear)%ev.yearCycle;if(offset!==0)continue;}
+    const within=m===ev.month;
+    if(within&&d>=ev.dayFrom&&d<=ev.dayTo)return{ev,type:'during'};
+    if(within&&d>ev.dayTo&&d<=ev.dayTo+7)return{ev,type:'recent'};
+    if(within&&d<ev.dayFrom&&d>=ev.dayFrom-10)return{ev,type:'upcoming'};
+    if(m===ev.month-1&&d>=21)return{ev,type:'upcoming'};
+  }
+  return null;
+}
+function showEventBanner(){
+  const mention=getCurrentEventMention();
+  if(!mention)return;
+  const{ev,type}=mention;
+  const banner=document.getElementById('event-banner');
+  const textEl=document.getElementById('event-text');
+  if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=`${ev.emoji} ${ev[type]}`;}
+}
 
-      // Use ElevenLabs or fallback to browser TTS
-      if (state.apiKeys.elevenlabs) {
-        playWithElevenLabs(stop.narration);
-      } else {
-        playWithBrowserTTS(stop.narration);
-      }
-    }
+// ── BUSINESS HOURS (Google Places with 6h cache) ──────────
+const HOURS_CACHE_KEY='harriet_hours_cache';const HOURS_TTL=6*60*60*1000;
+async function checkPlaceHours(placeId){
+  if(!CONFIG.googlePlacesApiKey||CONFIG.googlePlacesApiKey.startsWith('{{'))return null;
+  try{
+    const cache=JSON.parse(localStorage.getItem(HOURS_CACHE_KEY)||'{}');
+    const now=Date.now();
+    if(cache[placeId]&&now-cache[placeId].ts<HOURS_TTL)return cache[placeId].data;
+    const url=`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=opening_hours,name&key=${CONFIG.googlePlacesApiKey}`;
+    const r=await fetch(url);const j=await r.json();
+    const hours=j.result&&j.result.opening_hours||null;
+    cache[placeId]={ts:now,data:hours};
+    localStorage.setItem(HOURS_CACHE_KEY,JSON.stringify(cache));
+    return hours;
+  }catch(e){return null;}
+}
+function openBadgeHtml(hours){
+  if(!hours)return'';
+  const open=hours.open_now;
+  return`<span class="open-badge ${open?'open':'closed'}">${open?'✓ Open now':'✕ Closed'}</span>`;
+}
+async function enrichSponsorCard(sponsorEl,sponsor){
+  if(!sponsor.googlePlaceId||sponsor.googlePlaceId.startsWith('ChIJ_demo'))return;
+  const hours=await checkPlaceHours(sponsor.googlePlaceId);
+  const badge=openBadgeHtml(hours);
+  if(badge){const nameEl=sponsorEl.querySelector('.sponsor-name');if(nameEl)nameEl.insertAdjacentHTML('beforeend',badge);}
+}
 
-    function playWithBrowserTTS(text) {
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        speechSynthesis.speak(utterance);
-      }
-    }
-
-    function playWithElevenLabs(text) {
-      // Placeholder for ElevenLabs integration
-      console.log('Playing with ElevenLabs:', text);
-      playWithBrowserTTS(text); // Fallback
-    }
-
-    // Modals
-    function openTellMeMore() {
-      const stop = CONFIG.stops.find(s => s.id === state.currentStop);
-      if (!stop) return;
-
-      document.getElementById('tell-me-more-content').innerText = stop.narration;
-      document.getElementById('tell-me-more-modal').classList.add('show');
-    }
-
-    function closeTellMeMore() {
-      document.getElementById('tell-me-more-modal').classList.remove('show');
-    }
-
-    function openFindSomething() {
-      document.getElementById('find-something-modal').classList.add('show');
-    }
-
-    function closeFindSomething() {
-      document.getElementById('find-something-modal').classList.remove('show');
-    }
-
-    function searchLocations() {
-      const query = document.getElementById('find-search').value;
-      document.getElementById('find-something-results').innerText = `Searching for: ${query}`;
-    }
-
-    // Overlays
-    function showArrivalOverlay(stopName) {
-      document.getElementById('arrival-message').innerText = `You've reached ${stopName}!`;
-      document.getElementById('arrival-overlay').classList.add('show');
-    }
-
-    function closeArrivalOverlay() {
-      document.getElementById('arrival-overlay').classList.remove('show');
-    }
-
-    function showTourCompleteOverlay() {
-      document.getElementById('tour-complete-overlay').classList.add('show');
-    }
-
-    function playTourCompleteNarration() {
-      const message = `Congratulations! You've completed the Hereford City Tour and collected all ${CONFIG.stops.length} stamps. You've explored the rich history of Hereford and discovered some amazing landmarks. Well done!`;
-      playWithBrowserTTS(message);
-    }
-
-    function closeTourComplete() {
-      document.getElementById('tour-complete-overlay').classList.remove('show');
-    }
-
-    function openTourCompleteAsk() {
-      showTourCompleteOverlay();
-    }
-
-    // API Keys
-    function showKeySetupOverlay() {
-      document.getElementById('key-setup-overlay').classList.add('show');
-    }
-
-    function saveAPIKeys() {
-      state.apiKeys.claude = document.getElementById('claude-key-input').value;
-      state.apiKeys.elevenlabs = document.getElementById('elevenlabs-key-input').value;
-      state.apiKeys.googleplaces = document.getElementById('google-places-key-input').value;
-
-      localStorage.setItem('apiKeys', JSON.stringify(state.apiKeys));
-      document.getElementById('key-setup-overlay').classList.remove('show');
-    }
-
-    // Weather (placeholder)
-    function getWeather() {
-      return 'Partly cloudy, 15°C';
-    }
-
-    // Events (placeholder)
-    function getUpcomingEvents() {
-      return [
-        'Hereford Spring Festival - March 2024',
-        'Cathedral Open Day - Monthly on Saturdays',
-        'Historic Walking Tours - Weekends'
-      ];
-    }
-
-    // Business Hours (placeholder)
-    function getBusinessHours(stopId) {
-      const hours = {
-        1: 'Mon-Sat 10am-5pm, Sun 1pm-5pm',
-        2: 'By appointment only',
-        3: 'Always open (outdoor)',
-        4: 'Always open (outdoor)',
-        5: 'Tue-Sat 10am-5pm, Sun 1pm-4pm',
-        6: 'Mon-Fri 9am-5pm',
-        7: 'Always open (outdoor)',
-        8: 'Wed-Sun 11am-4pm',
-        9: 'Weekdays 9am-5pm',
-        10: 'Always open (outdoor)'
-      };
-      return hours[stopId] || 'See website for hours';
-    }
-
-    // Initialize on load
-    window.addEventListener('load', initApp);
-  </script>
-
-</body>
-
-</html>Add Hereford tour
+init();
+</script>
+  </body>
+</html>
+Replace with full Hereford tour
