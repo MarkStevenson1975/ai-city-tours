@@ -38,7 +38,9 @@
     .harriet-intro-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius);padding:20px;text-align:left;margin-bottom:28px}
     .harriet-intro-card .avatar{width:44px;height:44px;background:var(--color-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:12px}
     .harriet-intro-card p{font-family:var(--font-display);font-size:1.05rem;font-style:italic;line-height:1.6;opacity:.9}
-    .btn-play-intro{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:12px 20px;border-radius:50px;font-size:.9rem;display:flex;align-items:center;gap:8px;margin:0 auto 12px}
+    .btn-play-intro{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:12px 20px;border-radius:50px;font-size:.9rem;display:flex;align-items:center;gap:8px;margin:0 auto 12px;transition:opacity .2s}
+    .btn-play-intro.loading{opacity:.7;cursor:not-allowed}
+    .btn-play-intro:disabled{cursor:not-allowed}
     .btn-start-tour{background:var(--color-accent);color:var(--color-primary);padding:16px 32px;border-radius:50px;font-size:1rem;font-weight:700;width:100%;max-width:280px;display:block;margin:0 auto}
     .splash-small{font-size:.72rem;opacity:.45;margin-top:20px;line-height:1.6}
     .splash-city-image{width:100%;height:160px;border-radius:var(--radius);overflow:hidden;margin-bottom:20px;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.35);flex-shrink:0}
@@ -86,8 +88,14 @@
     .narration-play-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
     .btn-narration-toggle{background:var(--color-primary);color:var(--color-text-light);padding:12px 24px;border-radius:50px;font-size:.95rem;display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:4px}
     .btn-narration-toggle.paused{background:transparent;border:1.5px solid var(--color-primary);color:var(--color-primary)}
-    .detail-stop-img-wrap{width:100%;height:160px;overflow:hidden;flex-shrink:0;position:relative;background:var(--color-primary)}
-    .detail-stop-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+    .detail-stop-img-wrap{width:100%;aspect-ratio:16/10;max-height:38vh;min-height:180px;overflow:hidden;flex-shrink:0;position:relative;background:var(--color-primary);display:none}
+    .detail-stop-img-wrap.loaded{display:block}
+    .detail-stop-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s ease}
+    .detail-stop-img-wrap.loaded img{opacity:1}
+    .detail-stop-img-wrap.is-fallback img{opacity:.85}
+    .detail-stop-img-wrap .img-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--color-text-light);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+    .detail-stop-img-wrap.loaded .img-loading{display:none}
+    .detail-stop-img-wrap .img-loading::before{content:"";display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;margin-right:8px}
     .btn-mark-complete{background:var(--color-visited);color:#fff;padding:5px 12px;border-radius:50px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0}
     .btn-mark-complete.already-done{background:#ccc;color:#666;cursor:default}
     .stoplist-map-wrap{height:200px;flex-shrink:0;background:var(--color-muted);position:relative}
@@ -275,7 +283,7 @@
       <p class="splash-small">No download needed · Works in your browser<br>GPS requested when your walk begins</p>
     </div>
   </div>
-  <div id="screen-headphones" class="screen">
+  <div id="screen-headphones" class="screen active">
     <div class="headphones-icon">🎧</div>
     <h2 class="headphones-title">For the best experience,<br>connect your headphones.</h2>
     <p class="headphones-note">(You can also follow along on screen at any time - all narration appears as text.)</p>
@@ -304,7 +312,8 @@
       <div class="detail-hero-badge" id="detail-stop-badge">Stop 1</div>
     </div>
     <div class="detail-stop-img-wrap" id="detail-stop-img-wrap">
-      <img id="detail-stop-img" src="" alt="" onerror="this.parentElement.style.display='none'">
+      <img id="detail-stop-img" alt="">
+      <div class="img-loading">Loading image</div>
     </div>
     <div class="detail-body">
       <div class="narration-card">
@@ -532,7 +541,43 @@ const state={weatherData:null,currentScreen:'headphones',currentStopIndex:0,visi
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('screen-'+id);if(el)el.classList.add('active');state.currentScreen=id;if(el)el.scrollTop=0;if(id==='stoplist'){renderStopList();initStoplistMap();}if(id==='stamps')renderStamps();}
 function setHeadphones(val){state.headphones=val;showScreen('splash');}
 function renderStopList(){const body=document.getElementById('stoplist-body');if(!body)return;body.innerHTML=CONFIG.stops.map((stop,i)=>{const visited=state.visitedStops.has(stop.id);const dist=state.userLat?formatDist(haversine(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng)):'';return`<div class="stop-card ${visited?'visited':''}" onclick="openStopDetail(${i})"><div class="stop-number">${visited?'✓':stop.id}</div><div class="stop-card-info"><div class="stop-card-name">${stop.name}</div><div class="stop-card-desc">${stop.shortDescription}</div></div>${dist?`<div class="stop-card-distance">${dist}</div>`:''}</div>`;}).join('');const pct=(state.visitedStops.size/CONFIG.maxStops)*100;document.getElementById('stamp-progress-fill').style.width=pct+'%';document.getElementById('stamp-progress-label').textContent=`${state.visitedStops.size} of ${CONFIG.maxStops} stamps collected`;}
-function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;const imgEl=document.getElementById('detail-stop-img');if(imgEl){imgEl.alt=stop.name;imgEl.onerror=()=>{imgEl.onerror=null;imgEl.src=`https://staticmap.openstreetmap.de/staticmap.php?center=${stop.coordinates.lat},${stop.coordinates.lng}&zoom=17&size=400x220&markers=${stop.coordinates.lat},${stop.coordinates.lng},red-pushpin`;imgEl.style.opacity='0.85';};imgEl.src=stop.heroImageUrl||'';}const imgWrap=document.getElementById('detail-stop-img-wrap');if(imgWrap)imgWrap.style.display='';const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const vo=document.getElementById('detail-visited-overlay');vo.classList.toggle('hidden',!state.visitedStops.has(stop.id));const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="I've visited here";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=CONFIG.sponsors.find(s=>s.subscriptionStatus==='active'&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300);sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><button class="btn-sponsor-cta" onclick="navigateToSponsor(${nearSponsor.coordinates.lat},${nearSponsor.coordinates.lng},'${nearSponsor.name}')">${nearSponsor.ctaLabel} →</button></div>`:'';if(nearSponsor)enrichSponsorCard(sponsorEl,nearSponsor);document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';showScreen('detail');}
+function loadStopImage(stop){
+  const imgEl=document.getElementById('detail-stop-img');
+  const imgWrap=document.getElementById('detail-stop-img-wrap');
+  if(!imgEl||!imgWrap)return;
+  imgEl.alt=stop.name||'';
+  // Reset state — show wrap (with loading shimmer), hide image until validated
+  imgWrap.style.display='';
+  imgWrap.classList.remove('loaded','is-fallback');
+  imgEl.removeAttribute('src');
+  const fallbackUrl=`https://staticmap.openstreetmap.de/staticmap.php?center=${stop.coordinates.lat},${stop.coordinates.lng}&zoom=17&size=600x400&markers=${stop.coordinates.lat},${stop.coordinates.lng},red-pushpin`;
+  // Probe an image URL; only commit it to the visible <img> if it actually loads
+  const probe=(url,isFallback)=>new Promise((resolve)=>{
+    if(!url){resolve(false);return;}
+    const test=new Image();
+    let settled=false;
+    const finish=(ok)=>{if(settled)return;settled=true;resolve(ok);};
+    test.onload=()=>{
+      // Reject pixel-thin error responses (some hosts return 1x1 instead of 404)
+      if(test.naturalWidth<40||test.naturalHeight<40){finish(false);return;}
+      imgEl.src=url;
+      imgWrap.classList.add('loaded');
+      if(isFallback)imgWrap.classList.add('is-fallback');
+      finish(true);
+    };
+    test.onerror=()=>finish(false);
+    // Timeout if the image hangs
+    setTimeout(()=>finish(false),8000);
+    test.src=url;
+  });
+  (async()=>{
+    if(stop.heroImageUrl&&await probe(stop.heroImageUrl,false))return;
+    if(await probe(fallbackUrl,true))return;
+    // Both failed — hide the wrap entirely
+    imgWrap.style.display='none';
+  })();
+}
+function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopImage(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const vo=document.getElementById('detail-visited-overlay');vo.classList.toggle('hidden',!state.visitedStops.has(stop.id));const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="I've visited here";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=CONFIG.sponsors.find(s=>s.subscriptionStatus==='active'&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300);sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><button class="btn-sponsor-cta" onclick="navigateToSponsor(${nearSponsor.coordinates.lat},${nearSponsor.coordinates.lng},'${nearSponsor.name}')">${nearSponsor.ctaLabel} →</button></div>`:'';if(nearSponsor)enrichSponsorCard(sponsorEl,nearSponsor);document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';showScreen('detail');}
 function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
 function initNavScreen(toIdx){showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();const stop=CONFIG.stops[toIdx];document.getElementById('nav-destination-label').textContent=stop.name;document.getElementById('nav-turn-main').textContent='Getting your route…';initMap();updateStopMarkers(toIdx);if(state.userLat)fetchAndDrawRoute(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng);startGPSTracking(toIdx);}
@@ -557,11 +602,18 @@ let notifTimeout=null;
 function showNotification(type,title,text,duration=10000,stars=null,ctaLabel=null,ctaUrl=null){if(notifTimeout){clearTimeout(notifTimeout);dismissNotification();}const card=document.getElementById('notification-card');document.getElementById('notif-type').textContent=type==='sponsor'?'Local recommendation':'Harriet says';document.getElementById('notif-type').style.color=type==='sponsor'?'var(--color-primary)':'var(--color-accent)';const titleEl=document.getElementById('notif-title');titleEl.textContent=title||'';titleEl.style.display=title?'':'none';document.getElementById('notif-text').textContent=text;const starsEl=document.getElementById('notif-stars');starsEl.classList.toggle('hidden',!stars);if(stars)starsEl.textContent=stars;const ctaEl=document.getElementById('notif-cta');ctaEl.classList.toggle('hidden',!ctaLabel);if(ctaLabel){ctaEl.textContent=ctaLabel;ctaEl.onclick=()=>{if(ctaUrl&&ctaUrl.startsWith('nav:')){const[,lat,lng,...nameParts]=ctaUrl.split(':');navigateToSponsor(parseFloat(lat),parseFloat(lng),nameParts.join(':'));}else if(ctaUrl&&ctaUrl!=='#'){window.open(ctaUrl,'_blank');}};}card.classList.toggle('sponsor-notif',type==='sponsor');card.classList.add('show');const prog=document.getElementById('notif-progress');prog.style.transition='none';prog.style.width='100%';setTimeout(()=>{prog.style.transition=`width ${duration}ms linear`;prog.style.width='0%';},50);notifTimeout=setTimeout(dismissNotification,duration);}
 function dismissNotification(){document.getElementById('notification-card').classList.remove('show');notifTimeout=null;}
 async function playHarriet(text,label){if(!CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.startsWith('{{')){if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt2=new SpeechSynthesisUtterance(text);utt2.lang='en-GB';utt2.rate=0.88;utt2.pitch=1.05;const voices2=window.speechSynthesis.getVoices();const v2=voices2.find(v=>v.lang==='en-GB')||voices2.find(v=>v.lang.startsWith('en'));if(v2)utt2.voice=v2;utt2.onstart=()=>showAudioBar(label||'Harriet speaking…',false);utt2.onend=()=>{hideAudioBar();state.currentAudio=null;};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;}};window.speechSynthesis.speak(utt2);}else showAudioBar((label||'Speaking…')+' (demo)',true);return;}try{stopAudio();showAudioBar(label||'Speaking…',false);const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${CONFIG.guideVoiceId}`,{method:'POST',headers:{'xi-api-key':CONFIG.elevenlabsApiKey,'Content-Type':'application/json'},body:JSON.stringify({text,model_id:'eleven_turbo_v2',voice_settings:{stability:.5,similarity_boost:.75}})});if(!res.ok)throw new Error('ElevenLabs error');const blob=await res.blob();const url=URL.createObjectURL(blob);state.currentAudio=new Audio(url);state.currentAudio.play();document.getElementById('audio-play-pause-btn').textContent='⏸';state.currentAudio.ontimeupdate=()=>{if(!state.currentAudio.duration)return;document.getElementById('audio-progress-fill').style.width=(state.currentAudio.currentTime/state.currentAudio.duration*100)+'%';};state.currentAudio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;};}catch(e){console.warn('ElevenLabs failed:',e);hideAudioBar();showToast('Audio unavailable - text shown on screen');}}
-function playSplashIntro(){
-  const weatherLine=getWeatherIntroLine(state.weatherData||null);
-  const evMention=getCurrentEventMention();
-  const eventLine=evMention?` Also, ${evMention.ev[evMention.type]}`:'';
-  playHarriet(`Hello, I'm Harriet — your guide for today's walk through Hereford. We've got ten wonderful stops: the Cathedral with its Mappa Mundi, the old castle grounds, the medieval city walls, the timber-framed Old House, and the River Wye — one of England's most beautiful rivers. Along the way I'll share stories, hidden details, and the occasional local secret.${weatherLine}${eventLine} Whenever you're ready, let's begin.`,'Introduction');}
+async function playSplashIntro(){
+  const btn=document.querySelector('.btn-play-intro');
+  const originalHTML=btn?btn.innerHTML:null;
+  if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}
+  try{
+    const weatherLine=getWeatherIntroLine(state.weatherData||null);
+    const evMention=getCurrentEventMention();
+    const eventLine=evMention?` Also, ${evMention.ev[evMention.type]}`:'';
+    await playHarriet(`Hello, I'm Harriet — your guide for today's walk through Hereford. We've got ten wonderful stops: the Cathedral with its Mappa Mundi, the old castle grounds, the medieval city walls, the timber-framed Old House, and the River Wye — one of England's most beautiful rivers. Along the way I'll share stories, hidden details, and the occasional local secret.${weatherLine}${eventLine} Whenever you're ready, let's begin.`,'Introduction');
+  }catch(e){console.warn('Intro playback failed:',e);}
+  finally{if(btn){btn.innerHTML=originalHTML||'<span>▶</span> Play Introduction';btn.classList.remove('loading');btn.disabled=false;}}
+}
 function toggleNarrationExpand(){const el=document.getElementById('detail-narration');const btn=document.getElementById('btn-expand-narration');if(!el||!btn)return;const expanded=el.classList.toggle('expanded');btn.textContent=expanded?'Read less ↑':'Read more ↓';if(!expanded)el.scrollIntoView({behavior:'smooth',block:'nearest'});}function toggleDetailNarration(){const btn=document.getElementById('btn-narration-toggle');if(!state.currentAudio||state.currentAudio.ended){const stop=CONFIG.stops[state.currentStopIndex];if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}playNarrationTrack(stop.narration,stop.name);} else if(state.currentAudio.paused){state.currentAudio.play();if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}} else {state.currentAudio.pause();if(btn){btn.textContent='▶ Resume';btn.classList.add('paused');}}}async function playNarrationTrack(text,label){const btn=document.getElementById('btn-narration-toggle');if(!CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.startsWith('{{')){if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance(text);utt.lang='en-GB';utt.rate=0.88;utt.pitch=1.05;const voices=window.speechSynthesis.getVoices();const v=voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'));if(v)utt.voice=v;utt.onstart=()=>{showAudioBar(label||'Harriet speaking…',false);if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}};utt.onend=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};utt.onerror=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;if(btn)btn.textContent='▶ Resume';},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;if(btn)btn.textContent='⏸ Pause';}};window.speechSynthesis.speak(utt);}else{showAudioBar('No audio available - read the narration text below',true);if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}}return;}try{stopAudio();if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}showAudioBar(label||'Speaking…',false);const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${CONFIG.guideVoiceId}`,{method:'POST',headers:{'xi-api-key':CONFIG.elevenlabsApiKey,'Content-Type':'application/json'},body:JSON.stringify({text,model_id:'eleven_turbo_v2',voice_settings:{stability:.5,similarity_boost:.75}})});if(!res.ok)throw new Error('ElevenLabs error');const blob=await res.blob();const url=URL.createObjectURL(blob);state.currentAudio=new Audio(url);state.currentAudio.play();if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused','loading');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='⏸';state.currentAudio.ontimeupdate=()=>{if(!state.currentAudio.duration)return;document.getElementById('audio-progress-fill').style.width=(state.currentAudio.currentTime/state.currentAudio.duration*100)+'%';};state.currentAudio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};}catch(e){console.warn('ElevenLabs failed:',e);hideAudioBar();showToast('Audio unavailable');if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused','loading');btn.disabled=false;}}}
 
 function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}const vo=document.getElementById('detail-visited-overlay');if(vo)vo.classList.remove('hidden');showToast(`🎫 Stamp collected - ${stop.name}!`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
@@ -713,4 +765,4 @@ init();
 </script>
   </body>
 </html>
-Replace with full Hereford tour 
+Fix duplicated content — clean replace
