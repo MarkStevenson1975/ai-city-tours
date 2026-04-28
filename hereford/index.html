@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harriet - Hereford City Tour</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/osrm@0.1.0/index.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-color: #8B4513;
+      --secondary-color: #D2B48C;
+      --accent-color: #FF6B6B;
+      --background-color: #FFF8DC;
+      --text-color: #333;
+      --border-color: #DDD;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+        'Helvetica Neue',
+        sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Screen displays */
+    .screen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow-y: auto;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* Splash Screen */
+    .splash-screen {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: white;
+      padding: 20px;
+    }
+
+    .splash-screen h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .splash-screen p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      opacity: 0.9;
+    }
+
+    .intro-card {
+      background: white;
+      color: var(--text-color);
+      padding: 2rem;
+      border-radius: 15px;
+      margin: 1rem;
+      box-shadow: var(--shadow-lg);
+      max-width: 500px;
+    }
+
+    .intro-card h2 {
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+
+    .intro-card p {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    /* Buttons */
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      margin: 0.5rem;
+    }
+
+    button:hover {
+      background-color: var(--accent-color);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    /* Headphones Screen */
+    .headphones-screen {
+      background: white;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .headphones-visual {
+      font-size: 5rem;
+      margin: 2rem;
+    }
+
+    .headphones-screen h2 {
+      color: var(--primary-color);
+      margin: 1rem 0;
+    }
+
+    .headphones-screen p {
+      margin: 1rem 0;
+      color: #666;
+      max-width: 400px;
+    }
+
+    /* Stop List Screen */
+    .stoplist-screen {
+      background: var(--background-color);
+      padding: 0;
+      flex-direction: column;
+    }
+
+    .stoplist-header {
+      background: var(--primary-color);
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .stoplist-header h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .stoplist-header p {
+      opacity: 0.9;
+      font-size: 0.9rem;
+    }
+
+    .map-container {
+      height: 250px;
+      background: #e0e0e0;
+      position: relative;
+    }
+
+    #tour-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .stoplist-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem 0;
+    }
+
+    .stop-item {
+      background: white;
+      margin: 0.5rem;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .stop-item:hover {
+      transform: translateX(5px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stop-item-number {
+      display: inline-block;
+      background: var(--primary-color);
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 28px;
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+
+    .stop-item-name {
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .stop-item-distance {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 0.5rem;
+    }
+
+    /* Detail Screen */
+    .detail-screen {
+      background: white;
+      flex-direction: column;
+    }
+
+    .detail-header {
+      background: var(--primary-color);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 0 0 15px 15px;
+    }
+
+    .detail-header h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .detail-header p {
+      opacity: 0.9;
+      font-size: 0.9rem;
+    }
+
+    .detail-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+
+    .detail-content h3 {
+      color: var(--primary-color);
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .detail-content p, .detail-content ul {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+      color: #555;
+    }
+
+    .detail-content ul {
+      margin-left: 1.5rem;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      padding: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Navigation Screen */
+    .nav-screen {
+      padding: 0;
+      flex-direction: column;
+    }
+
+    .nav-header {
+      background: var(--primary-color);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .nav-map-container {
+      flex: 0 0 60%;
+      position: relative;
+      background: #e0e0e0;
+    }
+
+    #nav-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .nav-info {
+      flex: 1;
+      background: white;
+      padding: 1rem;
+      overflow-y: auto;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .nav-distance {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .nav-instruction {
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Stamps Screen */
+    .stamps-screen {
+      background: var(--background-color);
+      padding: 1.5rem;
+      flex-direction: column;
+    }
+
+    .stamps-header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .stamps-header h2 {
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .stamps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .stamp {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      font-size: 2.5rem;
+      background: white;
+      box-shadow: var(--shadow);
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .stamp:hover {
+      transform: scale(1.05);
+    }
+
+    .stamp.collected {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+    }
+
+    .stamp.uncollected {
+      background: #f0f0f0;
+      color: #ccc;
+      opacity: 0.5;
+    }
+
+    /* Keyframes */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    /* Modal Styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal.show {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 15px;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+    }
+
+    .modal-content h2 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
+
+    .modal-content p {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+      color: #555;
+    }
+
+    .close-btn {
+      float: right;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: var(--primary-color);
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .close-btn:hover {
+      color: var(--accent-color);
+      transform: scale(1.2);
+    }
+
+    /* Modal Sheets */
+    .modal-sheet {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-sheet.show {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    .modal-sheet-content {
+      background-color: white;
+      width: 100%;
+      max-width: 500px;
+      padding: 2rem;
+      border-radius: 15px 15px 0 0;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-sheet-content h2 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
+
+    /* Audio Player Bar */
+    .audio-bar {
+      background: var(--primary-color);
+      color: white;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      justify-content: space-between;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .audio-bar.hidden {
+      display: none;
+    }
+
+    .audio-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+    }
+
+    .play-pause-btn {
+      background: white;
+      color: var(--primary-color);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin: 0;
+      padding: 0;
+    }
+
+    .play-pause-btn:hover {
+      background: var(--secondary-color);
+    }
+
+    .audio-progress {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 2px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .audio-progress-bar {
+      height: 100%;
+      background: white;
+      border-radius: 2px;
+      width: 0%;
+    }
+
+    .audio-time {
+      font-size: 0.8rem;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* Notification Overlay */
+    .notification-overlay {
+      display: none;
+      position: fixed;
+      z-index: 1500;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.3);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .notification-overlay.show {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .notification-content {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+    }
+
+    .notification-content h2 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
+
+    .notification-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="app-container">
+
+    <!-- Splash Screen -->
+    <div class="screen splash-screen active" id="splash-screen">
+      <h1>Harriet</h1>
+      <p>Explore Hereford with AI-Guided Tours</p>
+      <div class="intro-card">
+        <h2>Welcome to Harriet</h2>
+        <p>Discover the rich history and hidden gems of Hereford with your personal AI guide, Harriet. Follow GPS-guided routes and collect digital stamps as you explore iconic landmarks.</p>
+        <button onclick="startApp()">Start Tour</button>
+      </div>
+    </div>
+
+    <!-- Headphones Screen -->
+    <div class="screen headphones-screen" id="headphones-screen">
+      <div class="headphones-visual">🎧</div>
+      <h2>Prepare Your Audio</h2>
+      <p>Please ensure your headphones are connected and volume is at a comfortable level.</p>
+      <button onclick="goToStopList()">Ready to Explore</button>
+    </div>
+
+    <!-- Stop List Screen -->
+    <div class="screen stoplist-screen" id="stoplist-screen">
+      <div class="stoplist-header">
+        <h2>Hereford City Tour</h2>
+        <p id="stop-counter">0 of 10 stops</p>
+      </div>
+      <div class="map-container">
+        <div id="tour-map"></div>
+      </div>
+      <div class="stoplist-content" id="stoplist-content">
+        <!-- Stop items generated by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Detail Screen -->
+    <div class="screen detail-screen" id="detail-screen">
+      <div class="detail-header">
+        <h2 id="detail-title">Stop Title</h2>
+        <p id="detail-distance">Distance info</p>
+      </div>
+      <div class="detail-content" id="detail-content">
+        <!-- Content generated by JavaScript -->
+      </div>
+      <div class="detail-actions">
+        <button onclick="playAudio('guide')">Play Guide</button>
+        <button onclick="openTellMeMore()">Tell Me More</button>
+        <button onclick="openFindSomething()">Find Something</button>
+        <button onclick="startNavigation()">Navigate</button>
+        <button onclick="goToStopList()">Back</button>
+      </div>
+    </div>
+
+    <!-- Navigation Screen -->
+    <div class="screen nav-screen" id="nav-screen">
+      <div class="nav-header">
+        <h2>GPS Navigation</h2>
+      </div>
+      <div class="nav-map-container">
+        <div id="nav-map"></div>
+      </div>
+      <div class="nav-info">
+        <div class="nav-distance" id="nav-distance">Distance: calculating...</div>
+        <div class="nav-instruction" id="nav-instruction">Getting your location...</div>
+        <button onclick="goToDetail()">Back to Details</button>
+      </div>
+    </div>
+
+    <!-- Stamps Screen -->
+    <div class="screen stamps-screen" id="stamps-screen">
+      <div class="stamps-header">
+        <h2>Collection Progress</h2>
+        <p>Collect stamps as you visit each stop</p>
+      </div>
+      <div class="stamps-grid" id="stamps-grid">
+        <!-- Stamps generated by JavaScript -->
+      </div>
+      <button onclick="goToStopList()" style="align-self: center;">Back to Tour</button>
+    </div>
+
+  </div>
+
+  <!-- Tell Me More Modal -->
+  <div class="modal-sheet" id="tell-me-more-modal">
+    <div class="modal-sheet-content">
+      <span class="close-btn" onclick="closeTellMeMore()">&times;</span>
+      <h2>Tell Me More</h2>
+      <div id="tell-me-more-content">
+        Loading...
+      </div>
+    </div>
+  </div>
+
+  <!-- Find Something Modal -->
+  <div class="modal-sheet" id="find-something-modal">
+    <div class="modal-sheet-content">
+      <span class="close-btn" onclick="closeFindSomething()">&times;</span>
+      <h2>Find Something</h2>
+      <input type="text" id="find-search" placeholder="What are you looking for?" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px;">
+      <button onclick="searchLocations()" style="width: 100%;">Search</button>
+      <div id="find-something-results" style="margin-top: 1rem;">
+        <!-- Results loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrival Overlay -->
+  <div class="notification-overlay" id="arrival-overlay">
+    <div class="notification-content">
+      <div class="notification-icon">🎉</div>
+      <h2>You've Arrived!</h2>
+      <p id="arrival-message">You've reached the destination.</p>
+      <button onclick="collectStamp()">Collect Stamp</button>
+      <button onclick="closeArrivalOverlay()">Close</button>
+    </div>
+  </div>
+
+  <!-- Tour Complete Overlay -->
+  <div class="notification-overlay" id="tour-complete-overlay">
+    <div class="notification-content">
+      <div class="notification-icon">🏆</div>
+      <h2>Tour Complete!</h2>
+      <p id="tour-complete-message">Congratulations! You've completed the tour.</p>
+      <button onclick="playTourCompleteNarration()">Play Completion Message</button>
+      <button onclick="closeTourComplete()">Close</button>
+    </div>
+  </div>
+
+  <!-- Key Setup Overlay -->
+  <div class="notification-overlay" id="key-setup-overlay">
+    <div class="notification-content">
+      <h2>API Keys Required</h2>
+      <p>This application requires API keys to function properly. Please set them up:</p>
+      <div style="text-align: left; margin: 1rem 0;">
+        <label>
+          Claude API Key:
+          <input type="password" id="claude-key-input" placeholder="sk-..." style="width: 100%; padding: 8px; margin: 0.5rem 0; border: 1px solid var(--border-color); border-radius: 5px;">
+        </label>
+        <label>
+          ElevenLabs API Key:
+          <input type="password" id="elevenlabs-key-input" placeholder="Your ElevenLabs key" style="width: 100%; padding: 8px; margin: 0.5rem 0; border: 1px solid var(--border-color); border-radius: 5px;">
+        </label>
+        <label>
+          Google Places API Key:
+          <input type="password" id="google-places-key-input" placeholder="Your Google key" style="width: 100%; padding: 8px; margin: 0.5rem 0; border: 1px solid var(--border-color); border-radius: 5px;">
+        </label>
+      </div>
+      <button onclick="saveAPIKeys()" style="width: 100%;">Save Keys</button>
+    </div>
+  </div>
+
+  <!-- Audio Player -->
+  <audio id="audio-player"></audio>
+
+  <script>
+    // State management
+    const state = {
+      currentScreen: 'splash',
+      currentStop: null,
+      currentPosition: null,
+      collectedStamps: JSON.parse(localStorage.getItem('collectedStamps')) || [],
+      apiKeys: JSON.parse(localStorage.getItem('apiKeys')) || {},
+      isPlaying: false,
+      currentNarration: ''
+    };
+
+    // Configuration
+    const CONFIG = {
+      city: 'Hereford',
+      centerCoords: [52.0550, -2.7175],
+      stops: [
+        {
+          id: 1,
+          name: 'Hereford Cathedral',
+          coords: [52.0561, -2.7200],
+          narration: 'Welcome to Hereford Cathedral, a stunning example of Norman and later medieval architecture. Construction began in 1110 and the Cathedral has witnessed over 900 years of Hereford history.',
+          facts: [
+            'The Cathedral contains the famous Mappa Mundi, a unique medieval map of the world',
+            'The Chained Library holds one of the most important collections of pre-1700 books in the world',
+            'The Cathedral has been rebuilt and restored many times, with the latest major restoration completed in 1995'
+          ]
+        },
+        {
+          id: 2,
+          name: 'Bishop\'s Palace',
+          coords: [52.0545, -2.7210],
+          narration: 'This is the Bishop\'s Palace, an impressive example of 17th-century architecture. The Bishop\'s residence shows the power and influence of the Church in Hereford\'s history.',
+          facts: [
+            'Built in the 1600s as a residence for the Bishop of Hereford',
+            'The palace features classic Georgian architecture with stunning garden views',
+            'Today it serves as office and administrative space, maintaining its historical significance'
+          ]
+        },
+        {
+          id: 3,
+          name: 'Hereford City Walls',
+          coords: [52.0580, -2.7190],
+          narration: 'You\'re now at the site of the historic City Walls. Built in medieval times, these walls protected Hereford from invasion and remain a crucial part of the city\'s defensive heritage.',
+          facts: [
+            'The walls were built primarily in the 13th century to protect the city',
+            'Originally over 7 meters high and fortified with towers and gates',
+            'Sections of the original walls still stand today and are protected monuments'
+          ]
+        },
+        {
+          id: 4,
+          name: 'Castle Green',
+          coords: [52.0570, -2.7160],
+          narration: 'Welcome to Castle Green, the historic heart of Hereford. This green space marks where Hereford Castle once stood, a Norman fortress that dominated the medieval city.',
+          facts: [
+            'Hereford Castle was built shortly after the Norman Conquest',
+            'The castle was a strategic stronghold during the English Civil War',
+            'Today, Castle Green is a peaceful public space used for markets, events, and gatherings'
+          ]
+        },
+        {
+          id: 5,
+          name: 'Hereford Museum & Art Gallery',
+          coords: [52.0565, -2.7185],
+          narration: 'Here is the Hereford Museum & Art Gallery, a treasure trove of local history and art. The museum tells the story of Hereford from Roman times to the present day.',
+          facts: [
+            'The museum houses artifacts dating back to Roman occupation',
+            'Collections include medieval manuscripts, Civil War documents, and local artwork',
+            'The building itself, Broad Street House, is a Grade II listed property'
+          ]
+        },
+        {
+          id: 6,
+          name: 'All Saints Church',
+          coords: [52.0580, -2.7220],
+          narration: 'This is All Saints Church, one of Hereford\'s finest medieval churches. With its distinctive black and white half-timbered tower, it\'s an iconic landmark visible throughout the city.',
+          facts: [
+            'The church dates back to the 14th century with significant additions in later periods',
+            'The tower is the only half-timbered church tower in Britain',
+            'Inside, you\'ll find beautiful medieval brasses and stained glass windows'
+          ]
+        },
+        {
+          id: 7,
+          name: 'High Town',
+          coords: [52.0560, -2.7195],
+          narration: 'Welcome to High Town, the vibrant commercial heart of Hereford. This historic square has been the center of commerce and community life for centuries.',
+          facts: [
+            'High Town is the oldest marketplace in Hereford, dating back to medieval times',
+            'The square is surrounded by historic buildings spanning several centuries',
+            'Today it\'s a lively hub with shops, restaurants, and regular street markets'
+          ]
+        },
+        {
+          id: 8,
+          name: 'The Old House',
+          coords: [52.0555, -2.7180],
+          narration: 'You\'re now at The Old House, a remarkable building that showcases Hereford\'s architectural heritage. Built in 1621, it\'s the finest timber-framed building in the city.',
+          facts: [
+            'Built in 1621, The Old House features exquisite oak paneling and period furniture',
+            'It survived the English Civil War and subsequent city changes remarkably intact',
+            'Now operated by the National Trust, it provides a window into 17th-century life'
+          ]
+        },
+        {
+          id: 9,
+          name: 'Blackfriars Monastery',
+          coords: [52.0575, -2.7175],
+          narration: 'Here stand the remains of Blackfriars Monastery, a Dominican monastery founded in the 13th century. The ruins tell the story of religious life in medieval Hereford.',
+          facts: [
+            'Founded in 1289 by Edmund Mortimer, an important local nobleman',
+            'The monastery was dissolved in 1538 during Henry VIII\'s Dissolution of the Monasteries',
+            'The remaining buildings now house offices but retain their historical character'
+          ]
+        },
+        {
+          id: 10,
+          name: 'River Wye',
+          coords: [52.0590, -2.7130],
+          narration: 'Finally, we reach the River Wye, the lifeblood of Hereford. This historic waterway has shaped the city\'s geography, economy, and culture for thousands of years.',
+          facts: [
+            'The Wye flows over 130 miles from Wales to join the Severn near Monmouth',
+            'The river was crucial for medieval trade and commerce in Hereford',
+            'Today, the Wye Valley offers beautiful walks and is a center for outdoor activities'
+          ]
+        }
+      ],
+      locationFacts: [
+        'Hereford is known as the "Cattle Capital" due to its historic importance in cattle trading',
+        'The city has a history dating back over 1,200 years',
+        'Famous for producing Hereford cattle, known worldwide in agriculture',
+        'The River Wye is a special area of conservation with diverse wildlife'
+      ]
+    };
+
+    // Initialize the app
+    function initApp() {
+      // Check for stored API keys
+      if (!state.apiKeys.claude) {
+        showKeySetupOverlay();
+      }
+      renderStopList();
+      renderStamps();
+    }
+
+    // Screen navigation
+    function goToScreen(screenName) {
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+      });
+      document.getElementById(`${screenName}-screen`).classList.add('active');
+      state.currentScreen = screenName;
+    }
+
+    function startApp() {
+      goToScreen('headphones');
+    }
+
+    function goToStopList() {
+      goToScreen('stoplist');
+    }
+
+    function goToDetail(stopId) {
+      if (stopId) state.currentStop = stopId;
+      const stop = CONFIG.stops.find(s => s.id === state.currentStop);
+      if (!stop) return;
+
+      document.getElementById('detail-title').innerText = stop.name;
+      document.getElementById('detail-content').innerHTML = `
+        <h3>About this Stop</h3>
+        <p>${stop.narration}</p>
+        <h3>Key Facts</h3>
+        <ul>
+          ${stop.facts.map(fact => `<li>${fact}</li>`).join('')}
+        </ul>
+      `;
+
+      goToScreen('detail');
+    }
+
+    function openStopDetail(stopId) {
+      state.currentStop = stopId;
+      goToDetail(stopId);
+    }
+
+    function goToNavigation() {
+      goToScreen('nav');
+      initNavigation();
+    }
+
+    function startNavigation() {
+      goToNavigation();
+    }
+
+    function goToStamps() {
+      goToScreen('stamps');
+    }
+
+    function goToDetail() {
+      if (state.currentStop) {
+        goToDetail(state.currentStop);
+      } else {
+        goToStopList();
+      }
+    }
+
+    // Stop List Rendering
+    function renderStopList() {
+      const container = document.getElementById('stoplist-content');
+      container.innerHTML = CONFIG.stops.map(stop => `
+        <div class="stop-item" onclick="openStopDetail(${stop.id})">
+          <span class="stop-item-number">${stop.id}</span>
+          <span class="stop-item-name">${stop.name}</span>
+          <div class="stop-item-distance">${state.collectedStamps.includes(stop.id) ? '✓ Visited' : 'Not yet visited'}</div>
+        </div>
+      `).join('');
+
+      updateStopCounter();
+      initTourMap();
+    }
+
+    // Update stop counter
+    function updateStopCounter() {
+      const visited = state.collectedStamps.length;
+      document.getElementById('stop-counter').innerText = `${visited} of ${CONFIG.stops.length} stops`;
+    }
+
+    // Tour Map
+    function initTourMap() {
+      if (window.tourMap) {
+        window.tourMap.remove();
+      }
+
+      window.tourMap = L.map('tour-map').setView(CONFIG.centerCoords, 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(window.tourMap);
+
+      CONFIG.stops.forEach(stop => {
+        const marker = L.circleMarker(stop.coords, {
+          radius: 8,
+          fillColor: state.collectedStamps.includes(stop.id) ? '#FF6B6B' : '#8B4513',
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).addTo(window.tourMap);
+
+        marker.bindPopup(`<strong>${stop.name}</strong><br>Stop ${stop.id}`);
+        marker.on('click', () => openStopDetail(stop.id));
+      });
+    }
+
+    // Navigation
+    function initNavigation() {
+      if (!state.currentStop) return;
+
+      const stop = CONFIG.stops.find(s => s.id === state.currentStop);
+
+      if (window.navMap) {
+        window.navMap.remove();
+      }
+
+      window.navMap = L.map('nav-map').setView(CONFIG.centerCoords, 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(window.navMap);
+
+      // Add destination marker
+      L.marker(stop.coords).addTo(window.navMap);
+
+      // Get user location
+      navigator.geolocation.watchPosition(position => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+
+        state.currentPosition = [userLat, userLng];
+
+        // Remove old user marker if exists
+        if (window.userMarker) {
+          window.navMap.removeLayer(window.userMarker);
+        }
+
+        window.userMarker = L.circleMarker([userLat, userLng], {
+          radius: 6,
+          fillColor: '#8B4513',
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).addTo(window.navMap);
+
+        // Calculate distance
+        const distance = calculateDistance(userLat, userLng, stop.coords[0], stop.coords[1]);
+        document.getElementById('nav-distance').innerText = `Distance: ${distance.toFixed(2)} km`;
+
+        if (distance < 0.05) { // 50 meters
+          showArrivalOverlay(stop.name);
+        }
+      });
+    }
+
+    // Distance calculation
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // Stamps
+    function renderStamps() {
+      const container = document.getElementById('stamps-grid');
+      container.innerHTML = CONFIG.stops.map(stop => `
+        <div class="stamp ${state.collectedStamps.includes(stop.id) ? 'collected' : 'uncollected'}">
+          ${stop.id}
+        </div>
+      `).join('');
+    }
+
+    function collectStamp() {
+      if (state.currentStop && !state.collectedStamps.includes(state.currentStop)) {
+        state.collectedStamps.push(state.currentStop);
+        localStorage.setItem('collectedStamps', JSON.stringify(state.collectedStamps));
+        renderStamps();
+        updateStopCounter();
+        closeArrivalOverlay();
+
+        if (state.collectedStamps.length === CONFIG.stops.length) {
+          showTourCompleteOverlay();
+        }
+      }
+    }
+
+    // Audio
+    function playAudio(type) {
+      const stop = CONFIG.stops.find(s => s.id === state.currentStop);
+      if (!stop) return;
+
+      state.isPlaying = true;
+
+      // Use ElevenLabs or fallback to browser TTS
+      if (state.apiKeys.elevenlabs) {
+        playWithElevenLabs(stop.narration);
+      } else {
+        playWithBrowserTTS(stop.narration);
+      }
+    }
+
+    function playWithBrowserTTS(text) {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        speechSynthesis.speak(utterance);
+      }
+    }
+
+    function playWithElevenLabs(text) {
+      // Placeholder for ElevenLabs integration
+      console.log('Playing with ElevenLabs:', text);
+      playWithBrowserTTS(text); // Fallback
+    }
+
+    // Modals
+    function openTellMeMore() {
+      const stop = CONFIG.stops.find(s => s.id === state.currentStop);
+      if (!stop) return;
+
+      document.getElementById('tell-me-more-content').innerText = stop.narration;
+      document.getElementById('tell-me-more-modal').classList.add('show');
+    }
+
+    function closeTellMeMore() {
+      document.getElementById('tell-me-more-modal').classList.remove('show');
+    }
+
+    function openFindSomething() {
+      document.getElementById('find-something-modal').classList.add('show');
+    }
+
+    function closeFindSomething() {
+      document.getElementById('find-something-modal').classList.remove('show');
+    }
+
+    function searchLocations() {
+      const query = document.getElementById('find-search').value;
+      document.getElementById('find-something-results').innerText = `Searching for: ${query}`;
+    }
+
+    // Overlays
+    function showArrivalOverlay(stopName) {
+      document.getElementById('arrival-message').innerText = `You've reached ${stopName}!`;
+      document.getElementById('arrival-overlay').classList.add('show');
+    }
+
+    function closeArrivalOverlay() {
+      document.getElementById('arrival-overlay').classList.remove('show');
+    }
+
+    function showTourCompleteOverlay() {
+      document.getElementById('tour-complete-overlay').classList.add('show');
+    }
+
+    function playTourCompleteNarration() {
+      const message = `Congratulations! You've completed the Hereford City Tour and collected all ${CONFIG.stops.length} stamps. You've explored the rich history of Hereford and discovered some amazing landmarks. Well done!`;
+      playWithBrowserTTS(message);
+    }
+
+    function closeTourComplete() {
+      document.getElementById('tour-complete-overlay').classList.remove('show');
+    }
+
+    function openTourCompleteAsk() {
+      showTourCompleteOverlay();
+    }
+
+    // API Keys
+    function showKeySetupOverlay() {
+      document.getElementById('key-setup-overlay').classList.add('show');
+    }
+
+    function saveAPIKeys() {
+      state.apiKeys.claude = document.getElementById('claude-key-input').value;
+      state.apiKeys.elevenlabs = document.getElementById('elevenlabs-key-input').value;
+      state.apiKeys.googleplaces = document.getElementById('google-places-key-input').value;
+
+      localStorage.setItem('apiKeys', JSON.stringify(state.apiKeys));
+      document.getElementById('key-setup-overlay').classList.remove('show');
+    }
+
+    // Weather (placeholder)
+    function getWeather() {
+      return 'Partly cloudy, 15°C';
+    }
+
+    // Events (placeholder)
+    function getUpcomingEvents() {
+      return [
+        'Hereford Spring Festival - March 2024',
+        'Cathedral Open Day - Monthly on Saturdays',
+        'Historic Walking Tours - Weekends'
+      ];
+    }
+
+    // Business Hours (placeholder)
+    function getBusinessHours(stopId) {
+      const hours = {
+        1: 'Mon-Sat 10am-5pm, Sun 1pm-5pm',
+        2: 'By appointment only',
+        3: 'Always open (outdoor)',
+        4: 'Always open (outdoor)',
+        5: 'Tue-Sat 10am-5pm, Sun 1pm-4pm',
+        6: 'Mon-Fri 9am-5pm',
+        7: 'Always open (outdoor)',
+        8: 'Wed-Sun 11am-4pm',
+        9: 'Weekdays 9am-5pm',
+        10: 'Always open (outdoor)'
+      };
+      return hours[stopId] || 'See website for hours';
+    }
+
+    // Initialize on load
+    window.addEventListener('load', initApp);
+  </script>
+
+</body>
+
+</html>Add Hereford tour
