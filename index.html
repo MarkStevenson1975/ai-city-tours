@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The SetUp Crew — AI City Tours</title>
+  <meta name="description" content="AI-guided walking tours of British cities, narrated by a local AI guide. Currently in beta in Hereford.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --color-primary:#1B4332;
+      --color-primary-light:#2D6A4F;
+      --color-bg:#F5F0E8;
+      --color-accent:#C9A84C;
+      --color-text:#1A1A1A;
+      --color-text-light:#F5F0E8;
+      --color-muted:#E8E0D0;
+      --color-muted-dark:#B0A898;
+      --font-display:'Cormorant Garamond',Georgia,serif;
+      --font-body:'Lato',sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:var(--color-primary);color:var(--color-text-light);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+    body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:48px 24px 80px;text-align:center}
+    .wrap{max-width:520px;width:100%}
+    .eyebrow{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--color-accent);margin-bottom:20px}
+    h1{font-family:var(--font-display);font-size:3rem;font-weight:600;line-height:1.05;margin-bottom:8px}
+    .tagline{font-family:var(--font-display);font-size:1.25rem;font-style:italic;opacity:.75;margin-bottom:48px}
+    .subtitle{font-family:var(--font-display);font-size:1rem;letter-spacing:.04em;text-transform:uppercase;opacity:.6;margin-bottom:18px;font-weight:500}
+    .city-card{display:block;text-decoration:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:24px 22px;margin-bottom:14px;color:inherit;transition:transform .15s ease,background .15s ease,border-color .15s ease}
+    .city-card.live:hover,.city-card.live:focus{background:rgba(255,255,255,.13);border-color:rgba(201,168,76,.6);transform:translateY(-2px)}
+    .city-card.coming{opacity:.45;cursor:default}
+    .city-row{display:flex;align-items:center;gap:14px;text-align:left}
+    .city-emoji{font-size:1.8rem;flex-shrink:0;width:44px;height:44px;border-radius:50%;background:rgba(201,168,76,.18);display:flex;align-items:center;justify-content:center}
+    .city-info{flex:1;min-width:0}
+    .city-name{font-family:var(--font-display);font-size:1.4rem;font-weight:600;margin-bottom:2px}
+    .city-meta{font-size:.78rem;letter-spacing:.06em;opacity:.65}
+    .city-meta .badge{display:inline-block;background:var(--color-accent);color:var(--color-primary);padding:2px 9px;border-radius:50px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-right:8px;vertical-align:middle}
+    .city-meta .badge.coming{background:rgba(255,255,255,.12);color:var(--color-text-light)}
+    .city-arrow{font-size:1.4rem;opacity:.5;flex-shrink:0}
+    .footer{margin-top:48px;font-size:.78rem;opacity:.45;line-height:1.7}
+    .footer a{color:var(--color-accent);text-decoration:none}
+    .footer a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="eyebrow">The SetUp Crew presents</p>
+    <h1>AI City Tours</h1>
+    <p class="tagline">Walk a city with a local guide who's never wrong about anything important</p>
+
+    <p class="subtitle">Pick a city</p>
+
+    <a class="city-card live" href="/hereford/">
+      <div class="city-row">
+        <div class="city-emoji">⛪</div>
+        <div class="city-info">
+          <div class="city-name">Hereford</div>
+          <div class="city-meta"><span class="badge">Beta</span>Walk with Harriet · 10 stops</div>
+        </div>
+        <div class="city-arrow">→</div>
+      </div>
+    </a>
+
+    <div class="city-card coming">
+      <div class="city-row">
+        <div class="city-emoji">🌿</div>
+        <div class="city-info">
+          <div class="city-name">More cities</div>
+          <div class="city-meta"><span class="badge coming">Soon</span>Worcester · Gloucester · Ludlow</div>
+        </div>
+        <div class="city-arrow">→</div>
+      </div>
+    </div>
+
+    <p class="footer">
+      A speculative product by <a href="https://thesetupcrew.co.uk" target="_blank" rel="noopener">The SetUp Crew</a>.<br>
+      Beta — feedback welcome.
+    </p>
+  </main>
+</body>
+</html>
