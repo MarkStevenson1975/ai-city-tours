@@ -62,6 +62,8 @@
     .stoplist-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
     .stoplist-header h1{font-family:var(--font-display);font-size:1.7rem;font-weight:600}
     .btn-ask-harriet-header{background:rgba(255,255,255,.15);color:var(--color-text-light);border:1px solid rgba(255,255,255,.3);padding:7px 13px;border-radius:50px;font-size:.78rem;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:5px}
+    .btn-where-standing{background:rgba(255,255,255,.18);color:var(--color-text-light);border:1px solid rgba(255,255,255,.35);padding:7px 12px;border-radius:50px;font-size:.72rem;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:4px;max-width:62%}
+    .btn-where-standing:active{background:rgba(255,255,255,.3)}
     .stamp-progress-bar{background:rgba(255,255,255,.1);border-radius:50px;height:8px;margin-bottom:8px;overflow:hidden}
     .stamp-progress-fill{height:100%;background:var(--color-accent);border-radius:50px;transition:width .5s ease}
     .stamp-progress-label{font-size:.78rem;opacity:.7}
@@ -302,7 +304,7 @@
     <div class="stoplist-header">
       <div class="stoplist-header-row">
         <h1>Your Walk</h1>
-        <button class="btn-ask-harriet-header" onclick="openCityAskHarriet()">🔍 Ask Harriet</button>
+        <button class="btn-where-standing" onclick="openWhereAmI()">📍 Curious where you're standing?</button>
       </div>
       <div class="stamp-progress-bar"><div class="stamp-progress-fill" id="stamp-progress-fill" style="width:0%"></div></div>
       <p class="stamp-progress-label" id="stamp-progress-label">0 of 10 stamps collected</p>
@@ -336,12 +338,6 @@
         <button class="btn-expand-narration" id="btn-expand-narration" onclick="toggleNarrationExpand()">Read more ↓</button>
       </div>
       <div class="facts-section"><h3>Interesting Facts</h3><div id="detail-facts"></div></div>
-      <div class="tell-me-more-card" onclick="openTellMeMore()">
-        <div class="tmm-eyebrow">🔍</div>
-        <h3>Curious about where you're standing?</h3>
-        <p>Tap to ask Harriet about the history of this exact spot - the buildings around you, the people who walked here, and the stories most visitors never hear.</p>
-        <span class="btn-ask-harriet">Ask Harriet →</span>
-      </div>
       <div class="find-something-card" onclick="openFindSomething()">
         <div class="fs-eyebrow">🗺️</div>
         <h3>Find me something nearby</h3>
@@ -585,7 +581,35 @@ function startDemoWalk(){if(!state.osrmPath.length)return;state.demoInterval=set
 function isAudioPlaying(){return state.currentAudio&&!state.currentAudio.ended&&!state.currentAudio.paused;}
 function tryPlayFact(fact){if(isAudioPlaying()){state.pendingFact=fact;return false;}showNotification('fact',null,fact.text,10000);playHarriet(fact.text,'Local Fact');return true;}
 function flushPendingFact(){if(!state.pendingFact)return;const f=state.pendingFact;state.pendingFact=null;setTimeout(()=>{if(!isAudioPlaying())tryPlayFact(f);else state.pendingFact=f;},800);}
-function checkProximityFacts(lat,lng){const sorted=[...CONFIG.locationFacts].sort((a,b)=>(a.priority||100)-(b.priority||100));let proxFired=false;for(const fact of sorted){if(state.firedFacts.has(fact.id))continue;const d=haversine(lat,lng,fact.coordinates.lat,fact.coordinates.lng);if(d<fact.radiusMetres){state.firedFacts.add(fact.id);state.lastFactTime=Date.now();proxFired=true;tryPlayFact(fact);break;}}if(!proxFired&&Date.now()-state.lastFactTime>70000){const unfired=sorted.filter(f=>!state.firedFacts.has(f.id));if(unfired.length){const fact=unfired[0];state.firedFacts.add(fact.id);state.lastFactTime=Date.now();tryPlayFact(fact);}}}
+function checkProximityFacts(lat,lng){
+  // Filter out ambient (no-coords) facts — those are reserved for the
+  // where-am-I fallback. Keep priority order.
+  const spatialFacts=(CONFIG.locationFacts||[]).filter(f=>f.coordinates&&typeof f.coordinates.lat==='number'&&typeof f.coordinates.lng==='number');
+  const sorted=[...spatialFacts].sort((a,b)=>(a.priority||100)-(b.priority||100));
+  let proxFired=false;
+  for(const fact of sorted){
+    if(state.firedFacts.has(fact.id))continue;
+    const d=haversine(lat,lng,fact.coordinates.lat,fact.coordinates.lng);
+    if(d<(fact.radiusMetres||30)){
+      state.firedFacts.add(fact.id);
+      markFactPlayed(fact.id);
+      state.lastFactTime=Date.now();
+      proxFired=true;
+      tryPlayFact(fact);
+      break;
+    }
+  }
+  if(!proxFired&&Date.now()-state.lastFactTime>70000){
+    const unfired=sorted.filter(f=>!state.firedFacts.has(f.id));
+    if(unfired.length){
+      const fact=unfired[0];
+      state.firedFacts.add(fact.id);
+      markFactPlayed(fact.id);
+      state.lastFactTime=Date.now();
+      tryPlayFact(fact);
+    }
+  }
+}
 function checkProximitySponsors(lat,lng){CONFIG.sponsors.forEach(sp=>{if(sp.subscriptionStatus!=='active'||state.firedSponsors.has(sp.id))return;const d=haversine(lat,lng,sp.coordinates.lat,sp.coordinates.lng);if(d<sp.proximityRadiusMetres){state.firedSponsors.add(sp.id);triggerSponsorCallout(sp);}});}
 async function triggerSponsorCallout(sponsor){const callout=`Just ahead on your right is ${sponsor.name} - ${sponsor.tagline}. Worth a look if you have a moment - highly rated by locals. Anyway, let's press on.`;const navUrl=`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`;showNotification('sponsor',sponsor.name,callout,12000,'★★★★★',sponsor.ctaLabel,navUrl);playHarriet(callout,sponsor.name);}
 function triggerArrival(toIdx){state.arrivalFired=true;const stop=CONFIG.stops[toIdx];state.visitedStops.add(stop.id);showToast(`🎫 Stamp collected - ${stop.name}!`);playHarriet(`You've arrived at ${stop.name}. Wonderful - tap to find out more about where you're standing.`,'Arrival');document.getElementById('arrival-emoji').textContent=stop.emoji;document.getElementById('arrival-stop-name').textContent=stop.name;document.getElementById('arrival-overlay').classList.add('show');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);if(state.demoInterval){clearInterval(state.demoInterval);state.demoMode=false;}}
@@ -625,6 +649,68 @@ function openFindSomething(){document.getElementById('fs-typing').classList.add(
 function findSomething(query){const stop=CONFIG.stops[state.currentStopIndex];const guideName=CONFIG.guideName||'Harriet';document.querySelectorAll('.find-chip').forEach(c=>c.classList.remove('active'));event.target.classList.add('active');document.getElementById('fs-response').classList.add('hidden');document.getElementById('fs-response').innerHTML='';document.getElementById('fs-typing').classList.remove('hidden');const prompt=`You are ${guideName}, a warm and knowledgeable local guide in ${CONFIG.city}. The visitor is currently near ${stop.name} and is looking for ${query}. Recommend 2 to 3 specific, real options in ${CONFIG.city} that are within easy walking distance. Be specific about names and what makes them worth visiting. Write in a warm, conversational tone, like a knowledgeable local friend giving advice. Keep it to 3 to 4 sentences total.`;let full='';streamClaude(prompt,chunk=>{full+=chunk;const el=document.getElementById('fs-response');document.getElementById('fs-typing').classList.add('hidden');el.classList.remove('hidden');el.innerHTML=full.split('\n\n').map(p=>`<p>${p}</p>`).join('');},()=>{});}
 function openCityAskHarriet(){const guideName=CONFIG.guideName||'Harriet';document.getElementById('tmm-modal-title').textContent=`Ask ${guideName} about ${CONFIG.city}`;document.getElementById('tmm-location-label').textContent=`📍 ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');state.tmmFullText='';const prompt=`You are ${guideName}, a warm, knowledgeable, and quietly witty British walking guide leading a tour of ${CONFIG.city}. The visitor has asked a general question about the area.\n\nGive them a warm, engaging 3 to 4 paragraph overview of what makes ${CONFIG.city} worth knowing. Draw only on established, reliable sources: encyclopaedic history, official heritage records, well-documented cultural and demographic accounts. Cover history, character, geography, and hidden gems.\n\nKeep the tone warm, positive, and factual. Avoid current news, contemporary politics, controversies, or anything with negative or contested framing. If you don't know something with confidence from reliable sources, say so plainly rather than speculate. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
 function closeModal(which){document.getElementById('modal-'+which).classList.remove('open');}
+// ── PLAYED-FACT TRACKING ───────────────────────────────────
+// localStorage key per city. Each fact spoken by the tour — whether
+// triggered by proximity OR by the Curious-where-standing button —
+// goes in this list so it never repeats. Cleared by browser data wipe.
+function getPlayedFactIds(){const k='played-facts-'+(CONFIG.citySlug||'hereford');try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}}
+function markFactPlayed(id){if(!id)return;const k='played-facts-'+(CONFIG.citySlug||'hereford');const list=getPlayedFactIds();if(list.includes(id))return;list.push(id);try{localStorage.setItem(k,JSON.stringify(list));}catch(e){}}
+// ── CURIOUS WHERE YOU'RE STANDING ──────────────────────────
+async function openWhereAmI(){
+  const guideName=CONFIG.guideName||'Harriet';
+  const citySlug=CONFIG.citySlug||'hereford';
+  document.getElementById('tmm-modal-title').textContent=`${guideName} — where you're standing`;
+  document.getElementById('tmm-location-label').textContent='📍 Locating you…';
+  document.getElementById('tmm-typing').style.display='flex';
+  document.getElementById('tmm-response').classList.add('hidden');
+  document.getElementById('tmm-response').innerHTML='';
+  document.getElementById('btn-hear-response').classList.add('hidden');
+  document.getElementById('modal-tellmore').classList.add('open');
+  state.tmmFullText='';
+  // Get GPS — use cached state if available, else request fresh
+  let lat=state.userLat,lng=state.userLng;
+  if(!lat||!lng){
+    if(!navigator.geolocation){
+      whereAmIShow(`I need GPS to know where you're standing, but your browser doesn't support it. Try opening this on a phone with location services enabled.`);
+      return;
+    }
+    try{
+      const pos=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:10000}));
+      lat=pos.coords.latitude;lng=pos.coords.longitude;
+      state.userLat=lat;state.userLng=lng;
+    }catch(err){
+      const msg=err&&err.code===1
+        ?`I'd love to tell you, but I need GPS access to know where you're standing. Tap the location icon in your browser bar and try again.`
+        :`I'm having trouble pinning down your location right now. Wait a moment and tap again — sometimes a fresh fix takes a few seconds.`;
+      whereAmIShow(msg);
+      return;
+    }
+  }
+  document.getElementById('tmm-location-label').textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  // Call the whereami endpoint
+  try{
+    const r=await fetch(`/api/whereami/${citySlug}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({lat,lng,playedFactIds:getPlayedFactIds()})
+    });
+    if(!r.ok)throw new Error('whereami '+r.status);
+    const d=await r.json();
+    if(d.factId)markFactPlayed(d.factId);
+    whereAmIShow(d.content);
+  }catch(e){
+    console.warn('whereami failed:',e);
+    whereAmIShow(`I'm having trouble looking up what's around you right now. Try again in a moment.`);
+  }
+}
+function whereAmIShow(text){
+  state.tmmFullText=text;
+  document.getElementById('tmm-typing').style.display='none';
+  const el=document.getElementById('tmm-response');
+  el.classList.remove('hidden');
+  el.innerHTML=text.split('\n\n').map(p=>`<p>${p}</p>`).join('');
+  document.getElementById('btn-hear-response').classList.remove('hidden');
+}
 async function speakDirection(stepIdx){if(!state.osrmSteps[stepIdx])return;const step=state.osrmSteps[stepIdx];const dist=Math.round(step.distance);const rawInstruction=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);playHarriet(dist>0?`In about ${dist} metres, ${rawInstruction.toLowerCase()}.`:`${rawInstruction}.`,'Direction');}
 function haversine(lat1,lng1,lat2,lng2){const R=6371000,toRad=d=>d*Math.PI/180;const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 function formatDist(m){return m<1000?`${Math.round(m)}m`:`${(m/1000).toFixed(1)}km`;}
@@ -635,7 +721,11 @@ function needsKey(){return !CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.sta
 function saveKey(){const k=document.getElementById('key-input').value.trim();const err=document.getElementById('key-error');if(!k){err.textContent='Please paste your API key above.';return;}if(!k.startsWith('sk_')){err.textContent='That doesn\'t look right - ElevenLabs keys start with sk_';return;}CONFIG.elevenlabsApiKey=k;try{localStorage.setItem('harriet_el_key',k);}catch(e){}document.getElementById('key-setup-overlay').classList.add('hidden');}
 function initStoplistMap(){if(state.stoplistMap){if(state.stoplistMap._leaflet_id)state.stoplistMap.invalidateSize();return;}const mapEl=document.getElementById('stoplist-mini-map');if(!mapEl)return;const firstStop=CONFIG.stops[0].coordinates;state.stoplistMap=L.map('stoplist-mini-map',{zoomControl:true,attributionControl:false,dragging:true,touchZoom:true,scrollWheelZoom:false,tap:true});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.stoplistMap);state.stoplistMap.setView([firstStop.lat,firstStop.lng],15);CONFIG.stops.forEach((stop,i)=>{const visited=state.visitedStops.has(stop.id);const html=visited?'<div class="map-marker-visited">✓</div>':`<div class="map-marker-future">${stop.id}</div>`;L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.stoplistMap).bindPopup(stop.name);});if(state.userLat){addUserDotToStoplistMap(state.userLat,state.userLng);}else if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;addUserDotToStoplistMap(state.userLat,state.userLng);},()=>{},{enableHighAccuracy:true,timeout:8000});}}
 function addUserDotToStoplistMap(lat,lng){if(!state.stoplistMap)return;if(state.stoplistUserMarker)state.stoplistMap.removeLayer(state.stoplistUserMarker);state.stoplistUserMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.stoplistMap);state.stoplistMap.setView([lat,lng],15);}
-function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';initMap();state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];const m=L.marker([lat,lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor" style="background:var(--color-accent);color:var(--color-primary);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">★</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(state.map).bindPopup(name);state.stopMarkers.push(m);if(state.userLat){fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);}else{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.userMarker)state.userMarker.setLatLng([state.userLat,state.userLng]);fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);},()=>{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);},{enableHighAccuracy:true,timeout:8000});}else{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);}}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){applyBrand();applyGuideName();document.getElementById('splash-city-name').textContent=CONFIG.city;renderStamps();showScreen('headphones');renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();}
+function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';initMap();state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];const m=L.marker([lat,lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor" style="background:var(--color-accent);color:var(--color-primary);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">★</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(state.map).bindPopup(name);state.stopMarkers.push(m);if(state.userLat){fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);}else{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.userMarker)state.userMarker.setLatLng([state.userLat,state.userLng]);fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);},()=>{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);},{enableHighAccuracy:true,timeout:8000});}else{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);}}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){applyBrand();applyGuideName();seedFiredFactsFromStorage();document.getElementById('splash-city-name').textContent=CONFIG.city;renderStamps();showScreen('headphones');renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();}
+// Seed in-session firedFacts from localStorage so previously-played
+// facts (including ones used by the where-am-I button on a previous
+// visit) don't refire as the walker passes their proximity zones.
+function seedFiredFactsFromStorage(){try{const list=getPlayedFactIds();list.forEach(id=>state.firedFacts.add(id));}catch(e){}}
 function applyBrand(){const root=document.documentElement;const isHex=v=>typeof v==='string'&&/^#[0-9A-Fa-f]{6}$/.test(v);if(isHex(CONFIG.colorPrimary))root.style.setProperty('--color-primary',CONFIG.colorPrimary);if(isHex(CONFIG.colorAccent))root.style.setProperty('--color-accent',CONFIG.colorAccent);if(isHex(CONFIG.colorBackground))root.style.setProperty('--color-bg',CONFIG.colorBackground);}
 function applyGuideName(){const guide=(CONFIG.guideName||'Harriet').trim();if(!guide||guide==='Harriet')return;const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null);const nodes=[];let n;while((n=walker.nextNode()))if(n.nodeValue&&n.nodeValue.includes('Harriet'))nodes.push(n);nodes.forEach(node=>{node.nodeValue=node.nodeValue.split('Harriet').join(guide);});if(document.title)document.title=document.title.split('Harriet').join(guide);}
 function renderOperatorCredit(){const credit=document.getElementById('operator-credit');const logo=document.getElementById('operator-logo');const attr=document.getElementById('operator-attribution');if(!credit||!logo||!attr)return;const hasLogo=CONFIG.operatorLogoUrl&&!CONFIG.operatorLogoUrl.startsWith('{{');const hasAttr=CONFIG.operatorAttributionText&&!CONFIG.operatorAttributionText.startsWith('{{');if(hasLogo){logo.src=CONFIG.operatorLogoUrl;logo.alt=CONFIG.operatorName||'';logo.style.display='block';}else{logo.style.display='none';}if(hasAttr){attr.textContent=CONFIG.operatorAttributionText;attr.style.display='block';}else{attr.style.display='none';}if(hasLogo||hasAttr)credit.classList.add('visible');else credit.classList.remove('visible');}
