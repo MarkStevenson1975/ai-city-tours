@@ -584,7 +584,31 @@ function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.vis
 function initNavScreen(toIdx){showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();const stop=CONFIG.stops[toIdx];document.getElementById('nav-destination-label').textContent=stop.name;document.getElementById('nav-turn-main').textContent='Getting your route…';initMap();updateStopMarkers(toIdx);if(state.userLat)fetchAndDrawRoute(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng);startGPSTracking(toIdx);}
 function initMap(){if(state.map){state.map.invalidateSize();return;}state.map=L.map('map',{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.map);const hfd=CONFIG.stops[0].coordinates;state.map.setView([hfd.lat,hfd.lng],16);state.userMarker=L.marker([hfd.lat,hfd.lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.map);CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active').forEach(sp=>{L.marker([sp.coordinates.lat,sp.coordinates.lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor">${sp.emoji}</div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(state.map).bindPopup(sp.name);});}
 function updateStopMarkers(destIdx){if(!state.map)return;state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];CONFIG.stops.forEach((stop,i)=>{let html,size;if(i===destIdx){html='<div class="map-marker-current"></div>';size=32;}else if(state.visitedStops.has(stop.id)){html='<div class="map-marker-visited">✓</div>';size=28;}else{html=`<div class="map-marker-future">${stop.id}</div>`;size=28;}const m=L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(state.map).bindPopup(`<b>${stop.name}</b><br><button onclick='initNavScreen(${i})' style='margin-top:6px;padding:6px 12px;background:#1B4332;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:.8rem'>Navigate here →</button>`);state.stopMarkers.push(m);});}
-async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){try{const activeSponsors=CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active');const waySponsors=activeSponsors.filter(s=>haversine(fromLat,fromLng,s.coordinates.lat,s.coordinates.lng)<400||haversine(toLat,toLng,s.coordinates.lat,s.coordinates.lng)<400);const coords=[[fromLng,fromLat],...waySponsors.map(s=>[s.coordinates.lng,s.coordinates.lat]),[toLng,toLat]].map(c=>c.join(',')).join(';');const url=`https://router.project-osrm.org/route/v1/walking/${coords}?overview=full&geometries=geojson&steps=true`;const res=await fetch(url);const data=await res.json();if(!data.routes||!data.routes.length)throw new Error('No route');const route=data.routes[0];state.osrmPath=route.geometry.coordinates.map(c=>[c[1],c[0]]);state.osrmSteps=route.legs[0].steps;state.currentStepIdx=0;if(state.routeLayer)state.map.removeLayer(state.routeLayer);state.routeLayer=L.polyline(state.osrmPath,{color:'#1B4332',weight:4,opacity:.8,dashArray:'8, 6'}).addTo(state.map);updateTurnInstruction(0);updateNavStats(0,route.distance);}catch(e){document.getElementById('nav-turn-main').textContent='Walk towards '+CONFIG.stops[state.currentStopIndex].name;}}
+async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
+  // ALWAYS foot routing. We use the OpenStreetMap community's foot-only
+  // OSRM instance — it actually honours the foot profile (the public
+  // Project-OSRM demo only reliably serves driving, which is why the
+  // map used to follow main roads). No via-points: sponsors are now
+  // narrated at arrival, no need to force walks through their location.
+  try{
+    const coords=`${fromLng},${fromLat};${toLng},${toLat}`;
+    const url=`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}?overview=full&geometries=geojson&steps=true`;
+    const res=await fetch(url);
+    const data=await res.json();
+    if(!data.routes||!data.routes.length)throw new Error('No route');
+    const route=data.routes[0];
+    state.osrmPath=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+    state.osrmSteps=route.legs[0].steps;
+    state.currentStepIdx=0;
+    if(state.routeLayer)state.map.removeLayer(state.routeLayer);
+    state.routeLayer=L.polyline(state.osrmPath,{color:'#1B4332',weight:4,opacity:.8,dashArray:'8, 6'}).addTo(state.map);
+    updateTurnInstruction(0);
+    updateNavStats(0,route.distance);
+  }catch(e){
+    console.warn('Foot route failed:',e);
+    document.getElementById('nav-turn-main').textContent='Walk towards '+CONFIG.stops[state.currentStopIndex].name;
+  }
+}
 function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-icon').textContent=maneuverIcon(step.maneuver.type,step.maneuver.modifier);document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
 function updateNavStats(distToNext,distToDest){document.getElementById('nav-dist-next').textContent=formatDist(distToNext);document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
 function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available - tap Demo Mode to preview');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied - tap Demo Mode');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
