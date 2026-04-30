@@ -610,7 +610,44 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
 function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-icon').textContent=maneuverIcon(step.maneuver.type,step.maneuver.modifier);document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
 function updateNavStats(distToNext,distToDest){document.getElementById('nav-dist-next').textContent=formatDist(distToNext);document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
 function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied — please enable in your browser to use the walk.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
-function onGPSUpdate(lat,lng,toIdx){state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dest=CONFIG.stops[toIdx].coordinates;const distToDest=haversine(lat,lng,dest.lat,dest.lng);if(state.osrmSteps.length&&state.currentStepIdx<state.osrmSteps.length-1){const nextStep=state.osrmSteps[state.currentStepIdx+1];if(nextStep){const sp=nextStep.maneuver.location;const distToStep=haversine(lat,lng,sp[1],sp[0]);if(distToStep<15){state.currentStepIdx++;updateTurnInstruction(state.currentStepIdx);speakDirection(state.currentStepIdx);}updateNavStats(distToStep,distToDest);}}else{updateNavStats(distToDest,distToDest);}if(!state.arrivalFired&&distToDest<20)triggerArrival(toIdx);}
+// Distance thresholds. Bump these here and the whole tour follows.
+const ARRIVAL_RADIUS_M=30;
+const SPONSOR_APPROACH_RADIUS_M=100;
+function onGPSUpdate(lat,lng,toIdx){
+  state.userLat=lat;state.userLng=lng;
+  if(state.userMarker)state.userMarker.setLatLng([lat,lng]);
+  if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});
+  const dest=CONFIG.stops[toIdx].coordinates;
+  const distToDest=haversine(lat,lng,dest.lat,dest.lng);
+  if(state.osrmSteps.length&&state.currentStepIdx<state.osrmSteps.length-1){
+    const nextStep=state.osrmSteps[state.currentStepIdx+1];
+    if(nextStep){
+      const sp=nextStep.maneuver.location;
+      const distToStep=haversine(lat,lng,sp[1],sp[0]);
+      if(distToStep<15){state.currentStepIdx++;updateTurnInstruction(state.currentStepIdx);speakDirection(state.currentStepIdx);}
+      updateNavStats(distToStep,distToDest);
+    }
+  }else{updateNavStats(distToDest,distToDest);}
+  // Approach: fire sponsor once when entering the wider radius around the
+  // destination stop, before arrival itself. Catches users walking into a
+  // large area (Castle Green, parks, squares) before reaching the named pin.
+  if(distToDest<SPONSOR_APPROACH_RADIUS_M)maybeFireSponsorForStop(toIdx,'approach');
+  if(!state.arrivalFired&&distToDest<ARRIVAL_RADIUS_M)triggerArrival(toIdx);
+}
+// Fire the sponsor mention for a stop, once per session, regardless of
+// which path triggered it (selection, approach, or arrival). Returns the
+// sponsor that was fired, or null if none was eligible / already fired.
+function maybeFireSponsorForStop(toIdx,source){
+  const sponsor=pickSponsorForStop(toIdx);
+  if(!sponsor)return null;
+  state.firedSponsors.add(sponsor.id);
+  const callout=(sponsor.narrationText&&sponsor.narrationText.trim())
+    ? sponsor.narrationText.trim()
+    : `And why not visit ${sponsor.name}?${sponsor.tagline?' '+sponsor.tagline:''}`;
+  speakAfterCurrent(callout,`Sponsor: ${sponsor.name}`);
+  showNotification('sponsor',sponsor.name,callout,12000,'',sponsor.ctaLabel||'Take me there',`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`);
+  return sponsor;
+}
 function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}showScreen('stoplist');}
 function isAudioPlaying(){return state.currentAudio&&!state.currentAudio.ended&&!state.currentAudio.paused;}
 function tryPlayFact(fact){if(isAudioPlaying()){state.pendingFact=fact;return false;}showNotification('fact',null,fact.text,10000);playHarriet(fact.text,'Local Fact');return true;}
@@ -656,19 +693,11 @@ function triggerArrival(toIdx){
   document.getElementById('arrival-stop-name').textContent=stop.name;
   document.getElementById('arrival-overlay').classList.add('show');
   if(state.watchId)navigator.geolocation.clearWatch(state.watchId);
-  // After the arrival blurb finishes, queue a sponsor callout if there's
-  // an active sponsor near this stop that the visitor hasn't heard yet.
-  // Operator-authored narration_text wins; otherwise fall back to a
-  // generic template using the tagline.
-  const sponsor=pickSponsorForStop(toIdx);
-  if(sponsor){
-    state.firedSponsors.add(sponsor.id);
-    const callout=(sponsor.narrationText&&sponsor.narrationText.trim())
-      ? sponsor.narrationText.trim()
-      : `And why not visit ${sponsor.name}?${sponsor.tagline?' '+sponsor.tagline:''}`;
-    speakAfterCurrent(callout,`Sponsor: ${sponsor.name}`);
-    showNotification('sponsor',sponsor.name,callout,12000,'',sponsor.ctaLabel||'Take me there',`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`);
-  }
+  // After the arrival blurb finishes, fire the sponsor callout if it
+  // hasn't already been fired by approach (100m) or by selection (the
+  // user playing the stop's narration). Same callout, deduped by
+  // state.firedSponsors inside the helper.
+  maybeFireSponsorForStop(toIdx,'arrival');
 }
 // Pick the closest active, unfired sponsor whose coordinates fall within
 // SPONSOR_NEAR_STOP_M of the arriving stop. Returns null if none qualify.
@@ -729,7 +758,24 @@ async function playSplashIntro(){
   }catch(e){console.warn('Intro playback failed:',e);}
   finally{if(btn){btn.innerHTML=originalHTML||'<span>▶</span> Play Introduction';btn.classList.remove('loading');btn.disabled=false;}}
 }
-function toggleNarrationExpand(){const el=document.getElementById('detail-narration');const btn=document.getElementById('btn-expand-narration');if(!el||!btn)return;const expanded=el.classList.toggle('expanded');btn.textContent=expanded?'Read less ↑':'Read more ↓';if(!expanded)el.scrollIntoView({behavior:'smooth',block:'nearest'});}function toggleDetailNarration(){const btn=document.getElementById('btn-narration-toggle');if(!state.currentAudio||state.currentAudio.ended){const stop=CONFIG.stops[state.currentStopIndex];if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}playNarrationTrack(stop.narration,stop.name);} else if(state.currentAudio.paused){state.currentAudio.play();if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}} else {state.currentAudio.pause();if(btn){btn.textContent='▶ Resume';btn.classList.add('paused');}}}async function playNarrationTrack(text,label){const btn=document.getElementById('btn-narration-toggle');try{stopAudio();if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}showAudioBar(label||'Speaking…',false);const res=await fetch(`/api/tts/${CONFIG.citySlug||'hereford'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,voiceId:CONFIG.guideVoiceId})});if(!res.ok)throw new Error('TTS proxy '+res.status);const blob=await res.blob();const url=URL.createObjectURL(blob);state.currentAudio=new Audio(url);state.currentAudio.play();if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused','loading');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='⏸';state.currentAudio.ontimeupdate=()=>{if(!state.currentAudio.duration)return;document.getElementById('audio-progress-fill').style.width=(state.currentAudio.currentTime/state.currentAudio.duration*100)+'%';};state.currentAudio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};}catch(e){console.warn('Proxy narration failed, falling back to browser TTS:',e);hideAudioBar();if(btn){btn.classList.remove('loading');btn.disabled=false;}if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance(text);utt.lang='en-GB';utt.rate=0.88;utt.pitch=1.05;const voices=window.speechSynthesis.getVoices();const v=voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'));if(v)utt.voice=v;utt.onstart=()=>{showAudioBar(label||'Harriet speaking…',false);if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}};utt.onend=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};utt.onerror=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;if(btn)btn.textContent='▶ Resume';},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;if(btn)btn.textContent='⏸ Pause';}};window.speechSynthesis.speak(utt);}else{showAudioBar('No audio available - read the narration text below',true);if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}}}}
+function toggleNarrationExpand(){const el=document.getElementById('detail-narration');const btn=document.getElementById('btn-expand-narration');if(!el||!btn)return;const expanded=el.classList.toggle('expanded');btn.textContent=expanded?'Read less ↑':'Read more ↓';if(!expanded)el.scrollIntoView({behavior:'smooth',block:'nearest'});}function toggleDetailNarration(){
+  const btn=document.getElementById('btn-narration-toggle');
+  if(!state.currentAudio||state.currentAudio.ended){
+    const stop=CONFIG.stops[state.currentStopIndex];
+    if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}
+    playNarrationTrack(stop.narration,stop.name);
+    // Selection-path sponsor mention: when the user plays a stop's
+    // narration, the sponsor callout follows. Same dedup as approach
+    // and arrival paths via state.firedSponsors.
+    maybeFireSponsorForStop(state.currentStopIndex,'selection');
+  }else if(state.currentAudio.paused){
+    state.currentAudio.play();
+    if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}
+  }else{
+    state.currentAudio.pause();
+    if(btn){btn.textContent='▶ Resume';btn.classList.add('paused');}
+  }
+}async function playNarrationTrack(text,label){const btn=document.getElementById('btn-narration-toggle');try{stopAudio();if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}showAudioBar(label||'Speaking…',false);const res=await fetch(`/api/tts/${CONFIG.citySlug||'hereford'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,voiceId:CONFIG.guideVoiceId})});if(!res.ok)throw new Error('TTS proxy '+res.status);const blob=await res.blob();const url=URL.createObjectURL(blob);state.currentAudio=new Audio(url);state.currentAudio.play();if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused','loading');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='⏸';state.currentAudio.ontimeupdate=()=>{if(!state.currentAudio.duration)return;document.getElementById('audio-progress-fill').style.width=(state.currentAudio.currentTime/state.currentAudio.duration*100)+'%';};state.currentAudio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};}catch(e){console.warn('Proxy narration failed, falling back to browser TTS:',e);hideAudioBar();if(btn){btn.classList.remove('loading');btn.disabled=false;}if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance(text);utt.lang='en-GB';utt.rate=0.88;utt.pitch=1.05;const voices=window.speechSynthesis.getVoices();const v=voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'));if(v)utt.voice=v;utt.onstart=()=>{showAudioBar(label||'Harriet speaking…',false);if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}};utt.onend=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};utt.onerror=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;if(btn)btn.textContent='▶ Resume';},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;if(btn)btn.textContent='⏸ Pause';}};window.speechSynthesis.speak(utt);}else{showAudioBar('No audio available - read the narration text below',true);if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}}}}
 
 function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}const vo=document.getElementById('detail-visited-overlay');if(vo)vo.classList.remove('hidden');showToast(`🎫 Stamp collected - ${stop.name}!`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
 function playFact(text){playHarriet(text,'Interesting Fact');}
