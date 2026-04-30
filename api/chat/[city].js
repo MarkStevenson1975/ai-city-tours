@@ -55,7 +55,9 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        // Use the explicit dated model ID — bare aliases like
+        // "claude-sonnet-4-6" can come back as 400 from the API.
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 1024,
         stream: true,
         messages: [{ role: 'user', content: prompt }],
@@ -64,10 +66,13 @@ export default async function handler(req, res) {
 
     if (!upstream.ok) {
       const detail = await upstream.text().catch(() => '');
-      console.warn('Anthropic upstream error', upstream.status, detail.slice(0, 300));
+      console.warn('Anthropic upstream error', upstream.status, detail.slice(0, 500));
       return res.status(upstream.status).json({
         error: 'Chat upstream error',
         upstream: upstream.status,
+        // Surface the upstream message so the browser console + debugging
+        // can see what Anthropic actually rejected.
+        detail: detail.slice(0, 500),
       });
     }
 
