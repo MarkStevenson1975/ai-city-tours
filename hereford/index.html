@@ -486,6 +486,26 @@
 // ⚠️ REPLACE ALL {{PLACEHOLDER}} VALUES BEFORE DEPLOYING
 let CONFIG = null;
 async function loadConfig() {
+  // Derive city slug from URL path (e.g. /hereford/ → 'hereford')
+  const citySlug = window.location.pathname.split('/').filter(Boolean)[0] || 'hereford';
+
+  // Try the live DB-backed endpoint first. This is what the operator
+  // dashboard publishes to — so any change they Publish appears here
+  // within ~60 seconds (the API's edge cache TTL).
+  try {
+    const apiRes = await fetch('/api/config/' + citySlug);
+    if (apiRes.ok) {
+      CONFIG = await apiRes.json();
+      init();
+      return;
+    }
+    console.warn('API config returned ' + apiRes.status + ', falling back to static config.json');
+  } catch (e) {
+    console.warn('API config fetch failed, falling back to static config.json:', e);
+  }
+
+  // Fallback: the static config.json bundled alongside this HTML.
+  // Keeps the tour working even if the API or Supabase is down.
   try {
     const res = await fetch('./config.json');
     if (!res.ok) throw new Error('Failed to load config (HTTP ' + res.status + ')');
