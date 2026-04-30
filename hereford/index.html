@@ -134,7 +134,6 @@
     .nav-guide-name{font-family:var(--font-display);font-size:1rem;opacity:.8}
     .nav-destination{font-family:var(--font-display);font-size:1.3rem;font-weight:600;color:var(--color-text-light)}
     .nav-back-btn{background:rgba(255,255,255,.15);color:var(--color-text-light);padding:8px 14px;border-radius:50px;font-size:.85rem}
-    .nav-demo-btn{position:absolute;bottom:196px;right:12px;z-index:600;background:rgba(27,67,50,.85);color:var(--color-text-light);padding:8px 12px;border-radius:50px;font-size:.75rem;border:1px solid rgba(255,255,255,.2)}
     .nav-bottom-sheet{position:absolute;bottom:0;left:0;right:0;height:180px;background:var(--color-primary);z-index:500;padding:14px 16px;border-top:2px solid var(--color-accent)}
     .nav-turn-instruction{display:flex;align-items:center;gap:12px;margin-bottom:10px}
     .nav-turn-icon{width:44px;height:44px;background:rgba(255,255,255,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
@@ -370,7 +369,6 @@
       </div>
       <button class="nav-back-btn" onclick="stopNavigation()">✕ Stop</button>
     </div>
-    <button class="nav-demo-btn" id="nav-demo-btn" onclick="toggleDemoMode()">▶ Demo Mode</button>
     <div class="nav-bottom-sheet">
       <div class="nav-turn-instruction">
         <div class="nav-turn-icon" id="nav-turn-icon">↑</div>
@@ -611,11 +609,9 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
 }
 function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-icon').textContent=maneuverIcon(step.maneuver.type,step.maneuver.modifier);document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
 function updateNavStats(distToNext,distToDest){document.getElementById('nav-dist-next').textContent=formatDist(distToNext);document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
-function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available - tap Demo Mode to preview');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied - tap Demo Mode');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
+function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied — please enable in your browser to use the walk.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
 function onGPSUpdate(lat,lng,toIdx){state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dest=CONFIG.stops[toIdx].coordinates;const distToDest=haversine(lat,lng,dest.lat,dest.lng);if(state.osrmSteps.length&&state.currentStepIdx<state.osrmSteps.length-1){const nextStep=state.osrmSteps[state.currentStepIdx+1];if(nextStep){const sp=nextStep.maneuver.location;const distToStep=haversine(lat,lng,sp[1],sp[0]);if(distToStep<15){state.currentStepIdx++;updateTurnInstruction(state.currentStepIdx);speakDirection(state.currentStepIdx);}updateNavStats(distToStep,distToDest);}}else{updateNavStats(distToDest,distToDest);}if(!state.arrivalFired&&distToDest<20)triggerArrival(toIdx);}
-function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}if(state.demoInterval){clearInterval(state.demoInterval);state.demoInterval=null;state.demoMode=false;document.getElementById('nav-demo-btn').textContent='▶ Demo Mode';}showScreen('stoplist');}
-function toggleDemoMode(){if(state.demoMode){clearInterval(state.demoInterval);state.demoInterval=null;state.demoMode=false;document.getElementById('nav-demo-btn').textContent='▶ Demo Mode';return;}state.demoMode=true;state.demoProgress=0;document.getElementById('nav-demo-btn').textContent='⏹ Stop Demo';if(!state.osrmPath.length){const from=CONFIG.stops[0].coordinates;const to=CONFIG.stops[state.currentStopIndex].coordinates;fetchAndDrawRoute(from.lat,from.lng,to.lat,to.lng).then(()=>startDemoWalk());}else{startDemoWalk();}}
-function startDemoWalk(){if(!state.osrmPath.length)return;state.demoInterval=setInterval(()=>{state.demoProgress+=0.008;if(state.demoProgress>=1){state.demoProgress=0.99;clearInterval(state.demoInterval);}const idx=Math.min(Math.floor(state.demoProgress*state.osrmPath.length),state.osrmPath.length-1);const[lat,lng]=state.osrmPath[idx];onGPSUpdate(lat,lng,state.currentStopIndex);},100);}
+function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}showScreen('stoplist');}
 function isAudioPlaying(){return state.currentAudio&&!state.currentAudio.ended&&!state.currentAudio.paused;}
 function tryPlayFact(fact){if(isAudioPlaying()){state.pendingFact=fact;return false;}showNotification('fact',null,fact.text,10000);playHarriet(fact.text,'Local Fact');return true;}
 function flushPendingFact(){if(!state.pendingFact)return;const f=state.pendingFact;state.pendingFact=null;setTimeout(()=>{if(!isAudioPlaying())tryPlayFact(f);else state.pendingFact=f;},800);}
@@ -660,7 +656,6 @@ function triggerArrival(toIdx){
   document.getElementById('arrival-stop-name').textContent=stop.name;
   document.getElementById('arrival-overlay').classList.add('show');
   if(state.watchId)navigator.geolocation.clearWatch(state.watchId);
-  if(state.demoInterval){clearInterval(state.demoInterval);state.demoMode=false;}
   // After the arrival blurb finishes, queue a sponsor callout if there's
   // an active sponsor near this stop that the visitor hasn't heard yet.
   // Operator-authored narration_text wins; otherwise fall back to a
