@@ -28,6 +28,7 @@ export default async function handler(req, res) {
       env: envKey,
     });
   }
+  console.log(`TTS key loaded: ${apiKey.slice(0, 8)}…${apiKey.slice(-4)} (len=${apiKey.length}) for city=${city}`);
 
   // Body is JSON: { text, voiceId }
   let body;
@@ -67,7 +68,8 @@ export default async function handler(req, res) {
 
     if (!upstream.ok) {
       const detail = await upstream.text().catch(() => '');
-      console.warn('ElevenLabs upstream error', upstream.status, detail.slice(0, 200));
+      const keyPreview = apiKey ? `${apiKey.slice(0, 8)}…${apiKey.slice(-4)} (len=${apiKey.length})` : 'EMPTY';
+      console.warn('ElevenLabs upstream error', upstream.status, '| key:', keyPreview, '| voiceId:', voiceId, '| body:', detail);
       return res.status(upstream.status).json({
         error: 'Voice service error',
         upstream: upstream.status,
