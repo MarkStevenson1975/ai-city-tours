@@ -55,9 +55,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        // Use the explicit dated model ID — bare aliases like
-        // "claude-sonnet-4-6" can come back as 400 from the API.
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         stream: true,
         messages: [{ role: 'user', content: prompt }],
