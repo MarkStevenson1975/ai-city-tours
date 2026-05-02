@@ -1,14 +1,12 @@
 // Serverless TTS proxy for AI City Tours.
-// Receives a city slug + text + voiceId, looks up the per-city ElevenLabs key
-// from Vercel env vars (ELEVENLABS_KEY_<CITY>), proxies the request, returns
-// the audio bytes back to the browser.
-//
-// Why a proxy: the ElevenLabs API key never reaches the user's browser, so
-// it can't leak via screenshots / dev tools / browser extensions / etc.
+// Accepts GET requests: /api/tts/[city]?text=...&voiceId=...
+// GET allows Vercel's CDN to cache responses — identical text+voice is
+// served from edge on repeat visits, saving ElevenLabs credits.
+// The ElevenLabs API key never reaches the browser (stored in Vercel env vars).
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -28,16 +26,8 @@ export default async function handler(req, res) {
       env: envKey,
     });
   }
-  console.log(`TTS key loaded: ${apiKey.slice(0, 8)}…${apiKey.slice(-4)} (len=${apiKey.length}) for city=${city}`);
 
-  // Body is JSON: { text, voiceId }
-  let body;
-  try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  } catch (e) {
-    return res.status(400).json({ error: 'Invalid JSON body' });
-  }
-  const { text, voiceId } = body || {};
+  const { text, voiceId } = req.query;
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ error: 'Missing text' });
   }
@@ -68,8 +58,7 @@ export default async function handler(req, res) {
 
     if (!upstream.ok) {
       const detail = await upstream.text().catch(() => '');
-      const keyPreview = apiKey ? `${apiKey.slice(0, 8)}…${apiKey.slice(-4)} (len=${apiKey.length})` : 'EMPTY';
-      console.warn('ElevenLabs upstream error', upstream.status, '| key:', keyPreview, '| voiceId:', voiceId, '| body:', detail);
+      console.warn('ElevenLabs upstream error', upstream.status, '| voiceId:', voiceId, '| body:', detail);
       return res.status(upstream.status).json({
         error: 'Voice service error',
         upstream: upstream.status,
@@ -78,7 +67,9 @@ export default async function handler(req, res) {
 
     const buf = Buffer.from(await upstream.arrayBuffer());
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'private, max-age=0, no-store');
+    // Cache at Vercel's CDN edge for 30 days. Identical text+voice = identical
+    // audio, so this is safe. Cache busts automatically when text changes.
+    res.setHeader('Cache-Control', 'public, s-maxage=2592000, stale-while-revalidate=86400');
     res.setHeader('Content-Length', buf.length);
     return res.status(200).send(buf);
   } catch (e) {
