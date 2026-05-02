@@ -422,7 +422,7 @@
     </div>
     <div class="nav-bottom-sheet">
       <div class="nav-turn-instruction">
-        <div class="nav-turn-icon" id="nav-turn-icon">↑</div>
+        <div class="nav-turn-icon" id="nav-turn-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="rgba(255,255,255,0.85)" xmlns="http://www.w3.org/2000/svg"><circle cx="13.5" cy="3.5" r="1.5"/><path d="M9 7.5l-2.5 5.5H8l1.6-3.5 1 1.4V15h2V9.9L11 8.3l.5-1.2c1.1 1.1 2.5 1.9 4.2 1.9V7.2c-1.4 0-2.6-.8-3.2-2l-.9-1.5c-.3-.5-.9-.9-1.6-.9-.2 0-.5.1-.7.1L6 4.9V8h1.8V6.9L9 7.5z"/><path d="M7.8 14.5l-.5 4H9l.5-3.5-1.7-.5zm4.9 4H14l-1.2-4-1.7.5 1.6 3.5z"/><path d="M11 17l1 2.5-1.5.5L9 17z" opacity=".6"/></svg></div>
         <div class="nav-turn-text">
           <div class="nav-guide-byline">Harriet</div>
           <div class="nav-turn-main" id="nav-turn-main">Getting your route…</div>
@@ -797,7 +797,7 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
     document.getElementById('nav-turn-main').textContent='Walk towards '+CONFIG.stops[state.currentStopIndex].name;
   }
 }
-function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-icon').textContent=maneuverIcon(step.maneuver.type,step.maneuver.modifier);document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
+function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
 function updateNavStats(distToNext,distToDest){document.getElementById('nav-dist-next').textContent=formatDist(distToNext);document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
 function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied — please enable in your browser to use the walk.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
 // Distance thresholds. Bump these here and the whole tour follows.
