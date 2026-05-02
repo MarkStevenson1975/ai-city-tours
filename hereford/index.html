@@ -155,7 +155,9 @@
     .nav-guide-name{font-family:var(--font-display);font-size:1rem;opacity:.8}
     .nav-destination{font-family:var(--font-display);font-size:1.3rem;font-weight:600;color:var(--color-text-light)}
     .nav-back-btn{background:rgba(255,255,255,.15);color:var(--color-text-light);padding:8px 14px;border-radius:50px;font-size:.85rem}
-    .nav-bottom-sheet{position:absolute;bottom:0;left:0;right:0;height:180px;background:var(--color-primary);z-index:500;padding:14px 16px;border-top:2px solid var(--color-accent)}
+    .nav-bottom-sheet{position:absolute;bottom:0;left:0;right:0;height:216px;background:var(--color-primary);z-index:500;padding:14px 16px;border-top:2px solid var(--color-accent)}
+    .btn-im-here{margin-top:10px;width:100%;padding:9px 0;border-radius:50px;font-size:.85rem;font-weight:600;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.45);cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+    .btn-im-here.nearby{background:var(--color-accent);color:var(--color-primary);border-color:var(--color-accent);opacity:1}
     .nav-turn-instruction{display:flex;align-items:center;gap:12px;margin-bottom:10px}
     .nav-turn-icon{width:44px;height:44px;background:rgba(255,255,255,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
     .nav-turn-text{flex:1;color:var(--color-text-light)}
@@ -432,6 +434,7 @@
         <div class="nav-stat"><div class="nav-stat-val" id="nav-dist-dest">–</div><div class="nav-stat-lbl">to destination</div></div>
         <div class="nav-stat"><div class="nav-stat-val" id="nav-eta">–</div><div class="nav-stat-lbl">mins walk</div></div>
       </div>
+      <button class="btn-im-here" id="btn-im-here" onclick="manualArrival()">📍 I'm here</button>
     </div>
   </div>
   <div id="screen-stamps" class="screen">
@@ -766,7 +769,7 @@ function loadStopImage(stop){
 function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopImage(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=CONFIG.sponsors.find(s=>s.subscriptionStatus==='active'&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300);sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><button class="btn-sponsor-cta" onclick="navigateToSponsor(${nearSponsor.coordinates.lat},${nearSponsor.coordinates.lng},'${nearSponsor.name}')">${nearSponsor.ctaLabel} →</button></div>`:'';if(nearSponsor)enrichSponsorCard(sponsorEl,nearSponsor);document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';showScreen('detail');}
 function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
-function initNavScreen(toIdx){showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();const stop=CONFIG.stops[toIdx];document.getElementById('nav-destination-label').textContent=stop.name;document.getElementById('nav-turn-main').textContent='Getting your route…';initMap();updateStopMarkers(toIdx);if(state.userLat)fetchAndDrawRoute(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng);startGPSTracking(toIdx);}
+function initNavScreen(toIdx){showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();const imHereBtn=document.getElementById('btn-im-here');if(imHereBtn)imHereBtn.classList.remove('nearby');const stop=CONFIG.stops[toIdx];document.getElementById('nav-destination-label').textContent=stop.name;document.getElementById('nav-turn-main').textContent='Getting your route…';initMap();updateStopMarkers(toIdx);if(state.userLat)fetchAndDrawRoute(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng);startGPSTracking(toIdx);}
 function initMap(){if(state.map){state.map.invalidateSize();return;}state.map=L.map('map',{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.map);const hfd=CONFIG.stops[0].coordinates;state.map.setView([hfd.lat,hfd.lng],16);state.userMarker=L.marker([hfd.lat,hfd.lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.map);CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active').forEach(sp=>{L.marker([sp.coordinates.lat,sp.coordinates.lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor">${sp.emoji}</div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(state.map).bindPopup(sp.name);});}
 function updateStopMarkers(destIdx){if(!state.map)return;state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];CONFIG.stops.forEach((stop,i)=>{let html,size;if(i===destIdx){html='<div class="map-marker-current"></div>';size=32;}else if(state.visitedStops.has(stop.id)){html='<div class="map-marker-visited">✓</div>';size=28;}else{html=`<div class="map-marker-future">${stop.id}</div>`;size=28;}const m=L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(state.map).bindPopup(`<b>${stop.name}</b><br><button onclick='initNavScreen(${i})' style='margin-top:6px;padding:6px 12px;background:#1B4332;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:.8rem'>Navigate here →</button>`);state.stopMarkers.push(m);});}
 async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
@@ -820,6 +823,9 @@ function onGPSUpdate(lat,lng,toIdx){
   // large area (Castle Green, parks, squares) before reaching the named pin.
   if(distToDest<SPONSOR_APPROACH_RADIUS_M)maybeFireSponsorForStop(toIdx,'approach');
   if(!state.arrivalFired&&distToDest<ARRIVAL_RADIUS_M)triggerArrival(toIdx);
+  // Light up the "I'm here" button when within 100m so users can tap manually if GPS undershoots
+  const imHereBtn=document.getElementById('btn-im-here');
+  if(imHereBtn&&!state.arrivalFired)imHereBtn.classList.toggle('nearby',distToDest<100);
 }
 // Fire the sponsor mention for a stop, once per session, regardless of
 // which path triggered it (selection, approach, or arrival). Returns the
@@ -870,6 +876,10 @@ function checkProximityFacts(lat,lng){
 }
 function checkProximitySponsors(lat,lng){CONFIG.sponsors.forEach(sp=>{if(sp.subscriptionStatus!=='active'||state.firedSponsors.has(sp.id))return;const d=haversine(lat,lng,sp.coordinates.lat,sp.coordinates.lng);if(d<sp.proximityRadiusMetres){state.firedSponsors.add(sp.id);triggerSponsorCallout(sp);}});}
 async function triggerSponsorCallout(sponsor){const callout=`Just ahead on your right is ${sponsor.name} - ${sponsor.tagline}. Worth a look if you have a moment - highly rated by locals. Anyway, let's press on.`;const navUrl=`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`;showNotification('sponsor',sponsor.name,callout,12000,'★★★★★',sponsor.ctaLabel,navUrl);playHarriet(callout,sponsor.name);}
+function manualArrival(){
+  if(state.arrivalFired)return;
+  triggerArrival(state.currentStopIndex);
+}
 function triggerArrival(toIdx){
   state.arrivalFired=true;
   const stop=CONFIG.stops[toIdx];
