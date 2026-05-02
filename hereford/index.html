@@ -78,8 +78,6 @@
     .headphones-icon{font-size:3.2rem;margin-bottom:16px}
     .headphones-title{font-family:var(--font-display);font-size:1.75rem;font-weight:600;margin-bottom:12px;line-height:1.2}
     .headphones-note{font-size:.8rem;font-style:italic;opacity:.55;max-width:300px;margin:0 auto 28px}
-    .btn-headphones-yes{background:var(--color-accent);color:var(--color-primary);padding:15px 24px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;max-width:320px;display:block;margin:0 auto 10px;cursor:pointer}
-    .btn-headphones-no{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:13px 24px;border-radius:50px;font-size:.9rem;width:100%;max-width:320px;display:block;margin:0 auto;opacity:.75;cursor:pointer}
     #screen-stoplist{background:var(--color-bg)}
     .stoplist-header{background:var(--color-primary);color:var(--color-text-light);padding:16px 16px 20px;flex-shrink:0}
     .stoplist-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
@@ -363,8 +361,6 @@
       <div class="headphones-icon">🎧</div>
       <h2 class="headphones-title">For the best experience,<br>connect your headphones.</h2>
       <p class="headphones-note">(You can also follow along on screen at any time.)</p>
-      <button class="btn-headphones-yes" onclick="setHeadphones(true)">🎧 I'm ready with headphones</button>
-      <button class="btn-headphones-no" onclick="setHeadphones(false)">Continue without headphones</button>
     </div>
   </div>
   <div id="screen-stoplist" class="screen">
@@ -600,6 +596,8 @@ function showAuthSignedIn(email) {
   if (form) form.classList.add('hidden');
   if (signedIn) signedIn.classList.remove('hidden');
   if (emailEl) emailEl.textContent = email;
+  // Advance past the headphones/auth screen once signed in
+  if (state.currentScreen === 'headphones') showScreen('splash');
 }
 
 function showAuthError(msg) {
@@ -646,12 +644,7 @@ async function handleGoogleAuth() {
 }
 
 function skipAuth() {
-  const form = document.getElementById('auth-form-panel');
-  if (form) form.classList.add('hidden');
-  const section = document.getElementById('auth-section');
-  if (section) {
-    section.innerHTML = '<p style="font-size:.82rem;opacity:.5;padding:8px 0">Continuing without saving. Your progress will be lost if you close this page.</p>';
-  }
+  showScreen('splash');
 }
 
 async function handleSignOut() {
