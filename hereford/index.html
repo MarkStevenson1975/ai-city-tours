@@ -979,17 +979,17 @@ function buildWeatherBanner(w){
   const wc=WEATHER_CODES[w.code]||{icon:'🌤️',desc:'variable weather'};
   let text=`${wc.icon} It’s ${w.temp}°C in Hereford today with ${wc.desc}.`;
   if(w.code>=51&&w.code<=82){
-    text+=’ You might want an umbrella today.’;
+    text+=` You might want an umbrella today.`;
   }else if(w.temp>=24){
-    text+=’ It\’s warm — you may want to pick up a cold drink before heading off.’;
+    text+=` It's warm - you may want to pick up a cold drink before heading off.`;
   }else if(w.temp<=3){
-    text+=’ It\’s cold today — make sure you\’re dressed warmly.’;
+    text+=` It's cold today - make sure you're dressed warmly.`;
   }
-  const banner=document.getElementById(‘weather-banner’);
-  const textEl=document.getElementById(‘weather-text’);
-  const ctaEl=document.getElementById(‘weather-cta’);
-  if(banner&&textEl){banner.classList.remove(‘hidden’);textEl.textContent=text;}
-  if(ctaEl){ctaEl.classList.add(‘hidden’);}
+  const banner=document.getElementById('weather-banner');
+  const textEl=document.getElementById('weather-text');
+  const ctaEl=document.getElementById('weather-cta');
+  if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=text;}
+  if(ctaEl){ctaEl.classList.add('hidden');}
   state.weatherData=w;
 }
 function getWeatherIntroLine(w){
