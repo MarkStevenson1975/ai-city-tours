@@ -15,6 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     :root{--color-primary:#1B4332;--color-primary-light:#2D6A4F;--color-bg:#F5F0E8;--color-accent:#C9A84C;--color-accent-light:#E8C96A;--color-text:#1A1A1A;--color-text-light:#F5F0E8;--color-muted:#E8E0D0;--color-muted-dark:#B0A898;--color-visited:#40916C;--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Lato',sans-serif;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,.12);--shadow-lg:0 8px 32px rgba(0,0,0,.18);--transition:200ms ease}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -50,13 +51,35 @@
     .splash-city-image{width:100%;height:160px;border-radius:var(--radius);overflow:hidden;margin-bottom:20px;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.35);flex-shrink:0}
     .splash-city-image img{width:100%;height:100%;object-fit:cover;display:block}
     .splash-city-image-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(27,67,50,.45))}
-    #screen-headphones{background:var(--color-primary);color:var(--color-text-light);justify-content:center;align-items:center;text-align:center;padding:48px 28px}
-    .headphones-icon{font-size:4rem;margin-bottom:24px}
-    .headphones-title{font-family:var(--font-display);font-size:1.9rem;font-weight:600;margin-bottom:16px;line-height:1.2}
-    .headphones-body{font-size:.95rem;line-height:1.7;opacity:.8;max-width:340px;margin:0 auto 8px}
-    .headphones-note{font-size:.8rem;font-style:italic;opacity:.55;max-width:300px;margin:0 auto 36px}
-    .btn-headphones-yes{background:var(--color-accent);color:var(--color-primary);padding:16px 24px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;max-width:320px;display:block;margin:0 auto 12px}
-    .btn-headphones-no{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:14px 24px;border-radius:50px;font-size:.9rem;width:100%;max-width:320px;display:block;margin:0 auto;opacity:.75}
+    #screen-headphones{background:var(--color-primary);color:var(--color-text-light);justify-content:flex-start;align-items:center;text-align:center;padding:28px 24px 40px;overflow-y:auto}
+    /* Auth section */
+    .auth-section{width:100%;max-width:380px;margin:0 auto}
+    .auth-welcome-title{font-family:var(--font-display);font-size:2rem;font-weight:600;line-height:1.2;margin-bottom:6px}
+    .auth-welcome-sub{font-size:.88rem;opacity:.7;margin-bottom:22px}
+    .auth-input{width:100%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);border-radius:var(--radius-sm);color:var(--color-text-light);padding:12px 14px;font-size:.95rem;font-family:var(--font-body);margin-bottom:10px;outline:none}
+    .auth-input::placeholder{opacity:.5}.auth-input:focus{border-color:var(--color-accent)}
+    .btn-auth-submit{background:var(--color-accent);color:var(--color-primary);width:100%;padding:14px;border-radius:50px;font-size:.95rem;font-weight:700;margin-bottom:12px;margin-top:4px;cursor:pointer}
+    .auth-divider{display:flex;align-items:center;gap:10px;margin:10px 0;opacity:.4;font-size:.8rem}
+    .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:currentColor}
+    .btn-auth-google{background:#fff;color:#1A1A1A;width:100%;padding:13px;border-radius:50px;font-size:.9rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;cursor:pointer}
+    .auth-error{color:#FFB4AB;font-size:.82rem;margin-bottom:8px;text-align:left}
+    .gdpr-label{display:flex;align-items:flex-start;gap:9px;font-size:.74rem;opacity:.7;text-align:left;margin-bottom:14px;cursor:pointer;line-height:1.5}
+    .gdpr-label input[type=checkbox]{margin-top:2px;flex-shrink:0;width:15px;height:15px;accent-color:var(--color-accent)}
+    .gdpr-label a{color:var(--color-accent);text-decoration:none}
+    .btn-auth-skip{background:transparent;color:var(--color-text-light);font-size:.85rem;opacity:.6;text-decoration:underline;padding:4px;cursor:pointer}
+    .auth-skip-note{font-size:.72rem;opacity:.4;margin-top:4px}
+    .auth-signed-in-box{background:rgba(255,255,255,.1);border-radius:var(--radius);padding:14px 16px;text-align:left;width:100%}
+    .auth-signed-in-msg{font-size:.88rem;margin-bottom:8px}
+    .auth-signed-in-email{font-weight:700;color:var(--color-accent)}
+    .btn-auth-signout{font-size:.8rem;opacity:.6;text-decoration:underline;cursor:pointer}
+    .auth-section-divider{width:100%;border:none;border-top:1px solid rgba(255,255,255,.15);margin:24px 0}
+    /* Headphones section */
+    .headphones-section{width:100%;max-width:380px;margin:0 auto;text-align:center}
+    .headphones-icon{font-size:3.2rem;margin-bottom:16px}
+    .headphones-title{font-family:var(--font-display);font-size:1.75rem;font-weight:600;margin-bottom:12px;line-height:1.2}
+    .headphones-note{font-size:.8rem;font-style:italic;opacity:.55;max-width:300px;margin:0 auto 28px}
+    .btn-headphones-yes{background:var(--color-accent);color:var(--color-primary);padding:15px 24px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;max-width:320px;display:block;margin:0 auto 10px;cursor:pointer}
+    .btn-headphones-no{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:13px 24px;border-radius:50px;font-size:.9rem;width:100%;max-width:320px;display:block;margin:0 auto;opacity:.75;cursor:pointer}
     #screen-stoplist{background:var(--color-bg)}
     .stoplist-header{background:var(--color-primary);color:var(--color-text-light);padding:16px 16px 20px;flex-shrink:0}
     .stoplist-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
@@ -306,11 +329,43 @@
     </div>
   </div>
   <div id="screen-headphones" class="screen active">
-    <div class="headphones-icon">🎧</div>
-    <h2 class="headphones-title">For the best experience,<br>connect your headphones.</h2>
-    <p class="headphones-note">(You can also follow along on screen at any time - all narration appears as text.)</p>
-    <button class="btn-headphones-yes" onclick="setHeadphones(true)">🎧 I'm ready with headphones</button>
-    <button class="btn-headphones-no" onclick="setHeadphones(false)">Continue without headphones</button>
+    <!-- Welcome + auth -->
+    <div class="auth-section" id="auth-section">
+      <h1 class="auth-welcome-title">Welcome to<br><span id="auth-city-name">Hereford</span></h1>
+      <p class="auth-welcome-sub">Sign up to save your progress and pick up where you left off.</p>
+      <!-- Signed-in state -->
+      <div id="auth-signed-in-panel" class="auth-signed-in-box hidden">
+        <p class="auth-signed-in-msg">Progress saving enabled for<br><span class="auth-signed-in-email" id="auth-user-email"></span></p>
+        <button class="btn-auth-signout" onclick="handleSignOut()">Sign out</button>
+      </div>
+      <!-- Sign-up / sign-in form -->
+      <div id="auth-form-panel">
+        <input class="auth-input" id="auth-email" type="email" placeholder="Email address" autocomplete="email" inputmode="email">
+        <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password">
+        <div id="auth-error" class="auth-error hidden"></div>
+        <button class="btn-auth-submit" id="btn-auth-submit" onclick="handleEmailAuth()">Save my progress</button>
+        <div class="auth-divider">or</div>
+        <button class="btn-auth-google" onclick="handleGoogleAuth()">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908C18.619 14.007 17.64 11.698 17.64 9.2z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A9 9 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A9 9 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+          Continue with Google
+        </button>
+        <label class="gdpr-label">
+          <input type="checkbox" id="gdpr-checkbox">
+          <span>I agree to my email being stored to save my tour progress. We will not share your data or send marketing emails. <a href="/privacy" target="_blank">Privacy policy</a></span>
+        </label>
+        <button class="btn-auth-skip" onclick="skipAuth()">Continue without saving</button>
+        <p class="auth-skip-note">Progress will be lost if you close this page.</p>
+      </div>
+    </div>
+    <hr class="auth-section-divider">
+    <!-- Headphones (pushed down) -->
+    <div class="headphones-section">
+      <div class="headphones-icon">🎧</div>
+      <h2 class="headphones-title">For the best experience,<br>connect your headphones.</h2>
+      <p class="headphones-note">(You can also follow along on screen at any time.)</p>
+      <button class="btn-headphones-yes" onclick="setHeadphones(true)">🎧 I'm ready with headphones</button>
+      <button class="btn-headphones-no" onclick="setHeadphones(false)">Continue without headphones</button>
+    </div>
   </div>
   <div id="screen-stoplist" class="screen">
     <div class="stoplist-header">
@@ -496,6 +551,147 @@
     <div class="key-setup-privacy">🔒 Stored locally on this device only</div>
   </div>
 </div>
+// ─── Supabase Auth ──────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://huqqhannmogigihrqikx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1cXFoYW5ubW9naWdpaHJxaWt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTM5MTIsImV4cCI6MjA5MzAyOTkxMn0.iAAhEdjIB388ym6WY3Jm_Cn_Ave2YljKW3n48D9oCrU';
+let sbClient = null;
+let currentUser = null;
+
+function initSupabase() {
+  if (!window.supabase) { console.warn('Supabase JS not loaded'); return; }
+  sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Update city name in auth welcome
+  const cityNameEl = document.getElementById('auth-city-name');
+  if (cityNameEl && CONFIG) cityNameEl.textContent = CONFIG.city || 'Hereford';
+  // Listen for auth state changes (handles OAuth redirects too)
+  sbClient.auth.onAuthStateChange((_event, session) => {
+    currentUser = session ? session.user : null;
+    if (currentUser) {
+      showAuthSignedIn(currentUser.email);
+      saveUserTourRecord();
+      loadProgress();
+    } else {
+      showAuthFormPanel();
+    }
+  });
+  // Check for existing session on page load
+  sbClient.auth.getSession().then(({ data: { session } }) => {
+    currentUser = session ? session.user : null;
+    if (currentUser) {
+      showAuthSignedIn(currentUser.email);
+      saveUserTourRecord();
+      loadProgress();
+    }
+  });
+}
+
+function showAuthFormPanel() {
+  const form = document.getElementById('auth-form-panel');
+  const signedIn = document.getElementById('auth-signed-in-panel');
+  if (form) form.classList.remove('hidden');
+  if (signedIn) signedIn.classList.add('hidden');
+}
+
+function showAuthSignedIn(email) {
+  const form = document.getElementById('auth-form-panel');
+  const signedIn = document.getElementById('auth-signed-in-panel');
+  const emailEl = document.getElementById('auth-user-email');
+  if (form) form.classList.add('hidden');
+  if (signedIn) signedIn.classList.remove('hidden');
+  if (emailEl) emailEl.textContent = email;
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+}
+
+async function handleEmailAuth() {
+  if (!sbClient) { showToast('Auth not available — continuing without saving.'); return; }
+  const emailEl = document.getElementById('auth-email');
+  const passEl = document.getElementById('auth-password');
+  const gdpr = document.getElementById('gdpr-checkbox');
+  const btn = document.getElementById('btn-auth-submit');
+  const errEl = document.getElementById('auth-error');
+  if (errEl) errEl.classList.add('hidden');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const password = passEl ? passEl.value : '';
+  if (!email) { showAuthError('Please enter your email address.'); return; }
+  if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+  if (!gdpr || !gdpr.checked) { showAuthError('Please tick the box to agree to data use.'); return; }
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  // Try sign-in first; if no account, sign up
+  const { error: signInErr } = await sbClient.auth.signInWithPassword({ email, password });
+  if (!signInErr) { if (btn) { btn.textContent = 'Save my progress'; btn.disabled = false; } return; }
+  if (signInErr.message && (signInErr.message.toLowerCase().includes('invalid') || signInErr.message.toLowerCase().includes('credentials'))) {
+    const { error: signUpErr } = await sbClient.auth.signUp({ email, password });
+    if (signUpErr) { showAuthError(signUpErr.message); }
+    else { showToast('Account created — your progress will be saved!'); }
+  } else {
+    showAuthError(signInErr.message);
+  }
+  if (btn) { btn.textContent = 'Save my progress'; btn.disabled = false; }
+}
+
+async function handleGoogleAuth() {
+  if (!sbClient) { showToast('Auth not available.'); return; }
+  const gdpr = document.getElementById('gdpr-checkbox');
+  if (!gdpr || !gdpr.checked) { showAuthError('Please tick the data agreement box first.'); return; }
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname }
+  });
+  if (error) showToast('Google sign-in failed: ' + error.message);
+}
+
+function skipAuth() {
+  const form = document.getElementById('auth-form-panel');
+  if (form) form.classList.add('hidden');
+  const section = document.getElementById('auth-section');
+  if (section) {
+    section.innerHTML = '<p style="font-size:.82rem;opacity:.5;padding:8px 0">Continuing without saving. Your progress will be lost if you close this page.</p>';
+  }
+}
+
+async function handleSignOut() {
+  if (sbClient) await sbClient.auth.signOut();
+  currentUser = null;
+  showAuthFormPanel();
+  showToast('Signed out.');
+}
+
+async function saveUserTourRecord() {
+  if (!sbClient || !currentUser || !CONFIG) return;
+  const slug = CONFIG.citySlug || 'hereford';
+  await sbClient.from('user_tours').upsert(
+    { user_id: currentUser.id, city_slug: slug, last_visited_at: new Date().toISOString() },
+    { onConflict: 'user_id,city_slug' }
+  );
+}
+
+async function saveProgress() {
+  if (!sbClient || !currentUser || !CONFIG) return;
+  const slug = CONFIG.citySlug || 'hereford';
+  const ids = Array.from(state.visitedStops);
+  await sbClient.from('tour_progress').upsert(
+    { user_id: currentUser.id, city_slug: slug, visited_stop_ids: ids, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,city_slug' }
+  );
+}
+
+async function loadProgress() {
+  if (!sbClient || !currentUser || !CONFIG) return;
+  const slug = CONFIG.citySlug || 'hereford';
+  const { data } = await sbClient.from('tour_progress').select('visited_stop_ids').eq('user_id', currentUser.id).eq('city_slug', slug).maybeSingle();
+  if (data && data.visited_stop_ids && data.visited_stop_ids.length) {
+    data.visited_stop_ids.forEach(id => state.visitedStops.add(id));
+    renderStopList();
+    renderStamps();
+    const n = data.visited_stop_ids.length;
+    showToast('Welcome back! ' + n + ' stop' + (n !== 1 ? 's' : '') + ' restored.');
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 <script>
 // ⚠️ REPLACE ALL {{PLACEHOLDER}} VALUES BEFORE DEPLOYING
 let CONFIG = null;
@@ -775,7 +971,7 @@ function toggleNarrationExpand(){const el=document.getElementById('detail-narrat
   }
 }async function playNarrationTrack(text,label){const btn=document.getElementById('btn-narration-toggle');if(!text||!text.trim()){if(btn){btn.textContent='▶ Play narration';btn.classList.remove('loading');btn.disabled=false;}showToast('No narration has been added for this stop yet.');return;}try{stopAudio();if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}try{new Audio().play().catch(()=>{});}catch(e){}showAudioBar(label||'Speaking…',false);const ttsP=new URLSearchParams({text,voiceId:CONFIG.guideVoiceId});const res=await fetch(`/api/tts/${CONFIG.citySlug||'hereford'}?${ttsP}`,{method:'GET'});if(!res.ok)throw new Error('TTS proxy '+res.status);const blob=await res.blob();const url=URL.createObjectURL(blob);state.currentAudio=new Audio(url);const playPromise=state.currentAudio.play();if(playPromise!==undefined){playPromise.then(()=>{if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused','loading');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='⏸';}).catch(err=>{console.warn('Audio autoplay blocked, waiting for user tap:',err);if(btn){btn.textContent='▶ Resume';btn.classList.add('paused');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='▶';});}else{if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused','loading');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='⏸';}state.currentAudio.ontimeupdate=()=>{if(!state.currentAudio.duration)return;document.getElementById('audio-progress-fill').style.width=(state.currentAudio.currentTime/state.currentAudio.duration*100)+'%';};state.currentAudio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};}catch(e){console.warn('Proxy narration failed, falling back to browser TTS:',e);hideAudioBar();if(btn){btn.textContent='▶ Play narration';btn.classList.remove('loading');btn.disabled=false;}if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance(text);utt.lang='en-GB';utt.rate=0.88;utt.pitch=1.05;const voices=window.speechSynthesis.getVoices();const v=voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'));if(v)utt.voice=v;utt.onstart=()=>{showAudioBar(label||'Harriet speaking…',false);if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}};utt.onend=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};utt.onerror=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;if(btn)btn.textContent='▶ Resume';},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;if(btn)btn.textContent='⏸ Pause';}};window.speechSynthesis.speak(utt);}else{showAudioBar('No audio available - read the narration text below',true);if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}}}}
 
-function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`🎫 Stamp collected - ${stop.name}!`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
+function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`🎫 Stamp collected - ${stop.name}!`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
 function playFact(text){playHarriet(text,'Interesting Fact');}
 function showAudioBar(label,demo){document.getElementById('audio-label').textContent=label;document.getElementById('audio-player-bar').classList.add('visible');}
 function hideAudioBar(){document.getElementById('audio-player-bar').classList.remove('visible');document.getElementById('audio-progress-fill').style.width='0%';}
@@ -914,7 +1110,7 @@ function needsKey(){return !CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.sta
 function saveKey(){const k=document.getElementById('key-input').value.trim();const err=document.getElementById('key-error');if(!k){err.textContent='Please paste your API key above.';return;}if(!k.startsWith('sk_')){err.textContent='That doesn\'t look right - ElevenLabs keys start with sk_';return;}CONFIG.elevenlabsApiKey=k;try{localStorage.setItem('harriet_el_key',k);}catch(e){}document.getElementById('key-setup-overlay').classList.add('hidden');}
 function initStoplistMap(){if(state.stoplistMap){if(state.stoplistMap._leaflet_id)state.stoplistMap.invalidateSize();return;}const mapEl=document.getElementById('stoplist-mini-map');if(!mapEl)return;const firstStop=CONFIG.stops[0].coordinates;state.stoplistMap=L.map('stoplist-mini-map',{zoomControl:true,attributionControl:false,dragging:true,touchZoom:true,scrollWheelZoom:false,tap:true});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.stoplistMap);state.stoplistMap.setView([firstStop.lat,firstStop.lng],15);CONFIG.stops.forEach((stop,i)=>{const visited=state.visitedStops.has(stop.id);const html=visited?'<div class="map-marker-visited">✓</div>':`<div class="map-marker-future">${stop.id}</div>`;L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.stoplistMap).bindPopup(stop.name);});if(state.userLat){addUserDotToStoplistMap(state.userLat,state.userLng);}else if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;addUserDotToStoplistMap(state.userLat,state.userLng);},()=>{},{enableHighAccuracy:true,timeout:8000});}}
 function addUserDotToStoplistMap(lat,lng){if(!state.stoplistMap)return;if(state.stoplistUserMarker)state.stoplistMap.removeLayer(state.stoplistUserMarker);state.stoplistUserMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.stoplistMap);state.stoplistMap.setView([lat,lng],15);}
-function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';initMap();state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];const m=L.marker([lat,lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor" style="background:var(--color-accent);color:var(--color-primary);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">★</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(state.map).bindPopup(name);state.stopMarkers.push(m);if(state.userLat){fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);}else{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.userMarker)state.userMarker.setLatLng([state.userLat,state.userLng]);fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);},()=>{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);},{enableHighAccuracy:true,timeout:8000});}else{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);}}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){applyBrand();applyGuideName();seedFiredFactsFromStorage();applyCityFactButtonLabel();applySplashIntro();document.getElementById('splash-city-name').textContent=CONFIG.city;renderStamps();showScreen('headphones');renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();}
+function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';initMap();state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];const m=L.marker([lat,lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor" style="background:var(--color-accent);color:var(--color-primary);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">★</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(state.map).bindPopup(name);state.stopMarkers.push(m);if(state.userLat){fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);}else{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.userMarker)state.userMarker.setLatLng([state.userLat,state.userLng]);fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);},()=>{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);},{enableHighAccuracy:true,timeout:8000});}else{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);}}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){applyBrand();applyGuideName();seedFiredFactsFromStorage();applyCityFactButtonLabel();applySplashIntro();document.getElementById('splash-city-name').textContent=CONFIG.city;const _authCity=document.getElementById('auth-city-name');if(_authCity)_authCity.textContent=CONFIG.city;initSupabase();renderStamps();showScreen('headphones');renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();}
 function applyCityFactButtonLabel(){const btn=document.getElementById('btn-city-fact');if(btn&&CONFIG.city)btn.textContent=`💡 Interesting ${CONFIG.city} fact`;}
 // Returns the welcome paragraph the operator wrote in the dashboard, or a
 // sensible default if blank. Used both to render the splash text on screen
