@@ -1,15 +1,18 @@
 // Google Maps Embed proxy.
 //
-// GET /api/mapsembed/<city>?dest=LAT,LNG
+// GET /api/mapsembed/<city>?origin=LAT,LNG&dest=LAT,LNG
 //
-// Returns a 302 redirect to the Google Maps Embed API "place" URL,
-// keeping the API key server-side (never exposed in page HTML).
-// The iframe follows the redirect and renders an interactive Google Map
-// centred on the destination stop.
+// When both origin and dest are supplied, returns a 302 redirect to the
+// Google Maps Embed API "directions" URL in walking mode — renders a full
+// walking route inside the iframe with no further user interaction needed.
 //
-// Requires GOOGLE_MAPS_API_KEY in Vercel env vars.
-// The key must have the "Maps Embed API" enabled in Google Cloud Console
-// (the same key used for Places Nearby Search may need this added).
+// If only dest is supplied (fallback), uses "place" mode instead.
+//
+// The API key stays server-side and is never exposed in page HTML.
+// Requires GOOGLE_MAPS_API_KEY in Vercel env vars with both
+// "Maps Embed API" and "Places API" enabled in Google Cloud Console.
+
+const COORD_RE = /^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$/;
 
 export default function handler(req, res) {
   if (req.method !== 'GET') {
@@ -17,15 +20,16 @@ export default function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { city } = req.query;
+  const { city, origin, dest } = req.query;
+
   if (!city || !/^[a-z0-9-]{1,40}$/.test(city)) {
     return res.status(400).send('Invalid city slug');
   }
-
-  const { dest } = req.query;
-  // dest must be LAT,LNG — two decimal numbers separated by a comma
-  if (!dest || !/^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$/.test(dest)) {
+  if (!dest || !COORD_RE.test(dest)) {
     return res.status(400).send('Invalid destination — expected lat,lng');
+  }
+  if (origin && !COORD_RE.test(origin)) {
+    return res.status(400).send('Invalid origin — expected lat,lng');
   }
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
@@ -33,13 +37,23 @@ export default function handler(req, res) {
     return res.status(503).send('Maps Embed service not configured');
   }
 
-  // Place mode: pins the destination on an interactive Google Map.
-  // zoom=17 gives a good street-level view for a walking tour.
-  const embedUrl =
-    `https://www.google.com/maps/embed/v1/place` +
-    `?key=${apiKey}` +
-    `&q=${encodeURIComponent(dest)}` +
-    `&zoom=17`;
+  let embedUrl;
+  if (origin) {
+    // Directions mode: draws a walking route from origin to destination
+    embedUrl =
+      `https://www.google.com/maps/embed/v1/directions` +
+      `?key=${apiKey}` +
+      `&origin=${encodeURIComponent(origin)}` +
+      `&destination=${encodeURIComponent(dest)}` +
+      `&mode=walking`;
+  } else {
+    // Fallback: place mode centred on destination
+    embedUrl =
+      `https://www.google.com/maps/embed/v1/place` +
+      `?key=${apiKey}` +
+      `&q=${encodeURIComponent(dest)}` +
+      `&zoom=17`;
+  }
 
   res.setHeader('Cache-Control', 'no-store');
   return res.redirect(302, embedUrl);

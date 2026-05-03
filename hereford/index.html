@@ -150,6 +150,8 @@
     #screen-nav{background:var(--color-primary);overflow:hidden;padding:0}
     .nav-card-area{position:absolute;inset:0;bottom:216px;overflow:hidden}
     .nav-map-iframe{width:100%;height:100%;border:none;display:block}
+    .nav-map-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--color-primary);color:rgba(255,255,255,.7);font-size:.9rem;pointer-events:none;transition:opacity .3s}
+    .nav-map-loading.hidden{opacity:0}
     .nav-top-bar{position:absolute;top:0;left:0;right:0;z-index:500;background:linear-gradient(to bottom,var(--color-primary) 60%,transparent);padding:12px 16px 32px;display:flex;align-items:center;justify-content:space-between}
     .nav-guide{color:var(--color-text-light)}
     .nav-guide-name{font-family:var(--font-display);font-size:1rem;opacity:.8}
@@ -410,6 +412,10 @@
   </div>
   <div id="screen-nav" class="screen">
     <div class="nav-card-area">
+      <div class="nav-map-loading" id="nav-map-loading">
+        <div style="font-size:2.2rem">🚶</div>
+        <div>Getting your location…</div>
+      </div>
       <iframe class="nav-map-iframe" id="nav-map-iframe" src="about:blank"
               allow="geolocation" allowfullscreen title="Map to destination"></iframe>
     </div>
@@ -794,10 +800,13 @@ function initNavScreen(toIdx){
   if(imHereBtn)imHereBtn.classList.remove('nearby');
   const stop=CONFIG.stops[toIdx];
   document.getElementById('nav-destination-label').textContent=stop.name;
-  document.getElementById('nav-turn-main').textContent='GPS tracking active';
-  // Load Google Maps embed for this destination
+  document.getElementById('nav-turn-main').textContent='Getting your location…';
+  // Reset map — directions will load on first GPS fix
+  state.mapLoaded=false;
   const iframe=document.getElementById('nav-map-iframe');
-  if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?dest=${stop.coordinates.lat},${stop.coordinates.lng}`;}
+  if(iframe)iframe.src='about:blank';
+  const loadingDiv=document.getElementById('nav-map-loading');
+  if(loadingDiv)loadingDiv.classList.remove('hidden');
   startGPSTracking(toIdx);
 }
 function initMap(){if(state.map){state.map.invalidateSize();return;}state.map=L.map('map',{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.map);const hfd=CONFIG.stops[0].coordinates;state.map.setView([hfd.lat,hfd.lng],16);state.userMarker=L.marker([hfd.lat,hfd.lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.map);CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active').forEach(sp=>{L.marker([sp.coordinates.lat,sp.coordinates.lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor">${sp.emoji}</div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(state.map).bindPopup(sp.name);});}
@@ -838,6 +847,15 @@ function onGPSUpdate(lat,lng,toIdx){
   const dest=CONFIG.stops[toIdx].coordinates;
   const distToDest=haversine(lat,lng,dest.lat,dest.lng);
   updateNavStats(distToDest);
+  // Load walking directions map on first GPS fix
+  if(!state.mapLoaded){
+    state.mapLoaded=true;
+    document.getElementById('nav-turn-main').textContent='Follow Google Maps to destination';
+    const iframe=document.getElementById('nav-map-iframe');
+    if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}`;}
+    const loadingDiv=document.getElementById('nav-map-loading');
+    if(loadingDiv)loadingDiv.classList.add('hidden');
+  }
   // Approach: fire sponsor once when entering the wider radius around the
   // destination stop, before arrival itself. Catches users walking into a
   // large area (Castle Green, parks, squares) before reaching the named pin.
