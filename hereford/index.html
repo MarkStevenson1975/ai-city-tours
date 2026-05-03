@@ -148,7 +148,12 @@
     .btn-sponsor-cta{background:var(--color-accent);color:var(--color-primary);padding:10px 18px;border-radius:50px;font-size:.85rem;font-weight:700}
     .detail-nav-btn{position:fixed;bottom:16px;left:16px;right:16px;background:var(--color-accent);color:var(--color-primary);padding:18px;border-radius:50px;font-size:1rem;font-weight:700;text-align:center;box-shadow:var(--shadow-lg);z-index:100}
     #screen-nav{background:var(--color-primary);overflow:hidden;padding:0}
-    #map{position:absolute;inset:0;bottom:180px}
+    .nav-card-area{position:absolute;inset:0;bottom:216px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;text-align:center;background:var(--color-primary)}
+    .nav-stop-emoji-lg{font-size:3.5rem;margin-bottom:14px;line-height:1}
+    .nav-stop-name-xl{font-family:var(--font-display);font-size:1.75rem;font-weight:600;color:var(--color-text-light);margin:0 0 8px;line-height:1.2}
+    .nav-walking-hint{font-size:.8rem;color:rgba(255,255,255,.5);margin:0 0 28px;line-height:1.5}
+    .btn-gmaps{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#1a1a1a;padding:13px 22px;border-radius:50px;font-size:.92rem;font-weight:700;text-decoration:none;border:none;cursor:pointer}
+    .btn-gmaps-logo{width:20px;height:20px;flex-shrink:0}
     .nav-top-bar{position:absolute;top:0;left:0;right:0;z-index:500;background:linear-gradient(to bottom,var(--color-primary) 60%,transparent);padding:12px 16px 32px;display:flex;align-items:center;justify-content:space-between}
     .nav-guide{color:var(--color-text-light)}
     .nav-guide-name{font-family:var(--font-display);font-size:1rem;opacity:.8}
@@ -408,7 +413,15 @@
     <button class="detail-nav-btn" id="detail-nav-btn" onclick="openNavToCurrentStop()">Navigate to this stop →</button>
   </div>
   <div id="screen-nav" class="screen">
-    <div id="map"></div>
+    <div class="nav-card-area">
+      <div class="nav-stop-emoji-lg" id="nav-stop-emoji-lg">📍</div>
+      <h2 class="nav-stop-name-xl" id="nav-stop-name-xl">Walking to…</h2>
+      <p class="nav-walking-hint">Harriet is with you — follow Google Maps to walk there</p>
+      <a class="btn-gmaps" id="btn-gmaps" href="#" target="_blank">
+        <svg class="btn-gmaps-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Open in Google Maps
+      </a>
+    </div>
     <div class="nav-top-bar">
       <div class="nav-guide">
         <div class="nav-guide-name">Harriet · Hereford</div>
@@ -426,7 +439,6 @@
         <button class="nav-stamp-btn hidden" id="nav-stamp-btn" onclick="showScreen('stamps')">🎫 Stamps</button>
       </div>
       <div class="nav-stats">
-        <div class="nav-stat"><div class="nav-stat-val" id="nav-dist-next">–</div><div class="nav-stat-lbl">to turn</div></div>
         <div class="nav-stat"><div class="nav-stat-val" id="nav-dist-dest">–</div><div class="nav-stat-lbl">to destination</div></div>
         <div class="nav-stat"><div class="nav-stat-val" id="nav-eta">–</div><div class="nav-stat-lbl">mins walk</div></div>
       </div>
@@ -783,7 +795,23 @@ function loadStopImage(stop){
 function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopImage(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=CONFIG.sponsors.find(s=>s.subscriptionStatus==='active'&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300);sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><button class="btn-sponsor-cta" onclick="navigateToSponsor(${nearSponsor.coordinates.lat},${nearSponsor.coordinates.lng},'${nearSponsor.name}')">${nearSponsor.ctaLabel} →</button></div>`:'';if(nearSponsor)enrichSponsorCard(sponsorEl,nearSponsor);document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';showScreen('detail');}
 function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
-function initNavScreen(toIdx){showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();const imHereBtn=document.getElementById('btn-im-here');if(imHereBtn)imHereBtn.classList.remove('nearby');const stop=CONFIG.stops[toIdx];document.getElementById('nav-destination-label').textContent=stop.name;document.getElementById('nav-turn-main').textContent='Getting your route…';initMap();updateStopMarkers(toIdx);if(state.userLat)fetchAndDrawRoute(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng);startGPSTracking(toIdx);}
+function initNavScreen(toIdx){
+  showScreen('nav');
+  state.arrivalFired=false;
+  state.lastFactTime=Date.now();
+  const imHereBtn=document.getElementById('btn-im-here');
+  if(imHereBtn)imHereBtn.classList.remove('nearby');
+  const stop=CONFIG.stops[toIdx];
+  // Populate card
+  document.getElementById('nav-destination-label').textContent=stop.name;
+  document.getElementById('nav-stop-name-xl').textContent=stop.name;
+  document.getElementById('nav-stop-emoji-lg').textContent=stop.emoji||'📍';
+  document.getElementById('nav-turn-main').textContent='GPS tracking active';
+  // Set Google Maps walking directions link
+  const gmapsUrl=`https://www.google.com/maps/dir/?api=1&destination=${stop.coordinates.lat},${stop.coordinates.lng}&travelmode=walking`;
+  document.getElementById('btn-gmaps').href=gmapsUrl;
+  startGPSTracking(toIdx);
+}
 function initMap(){if(state.map){state.map.invalidateSize();return;}state.map=L.map('map',{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.map);const hfd=CONFIG.stops[0].coordinates;state.map.setView([hfd.lat,hfd.lng],16);state.userMarker=L.marker([hfd.lat,hfd.lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.map);CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active').forEach(sp=>{L.marker([sp.coordinates.lat,sp.coordinates.lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor">${sp.emoji}</div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(state.map).bindPopup(sp.name);});}
 function updateStopMarkers(destIdx){if(!state.map)return;state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];CONFIG.stops.forEach((stop,i)=>{let html,size;if(i===destIdx){html='<div class="map-marker-current"></div>';size=32;}else if(state.visitedStops.has(stop.id)){html='<div class="map-marker-visited">✓</div>';size=28;}else{html=`<div class="map-marker-future">${stop.id}</div>`;size=28;}const m=L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(state.map).bindPopup(`<b>${stop.name}</b><br><button onclick='initNavScreen(${i})' style='margin-top:6px;padding:6px 12px;background:#1B4332;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:.8rem'>Navigate here →</button>`);state.stopMarkers.push(m);});}
 async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
@@ -812,26 +840,16 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
   }
 }
 function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
-function updateNavStats(distToNext,distToDest){document.getElementById('nav-dist-next').textContent=formatDist(distToNext);document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
+function updateNavStats(distToDest){document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
 function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied — please enable in your browser to use the walk.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
 // Distance thresholds. Bump these here and the whole tour follows.
 const ARRIVAL_RADIUS_M=30;
 const SPONSOR_APPROACH_RADIUS_M=100;
 function onGPSUpdate(lat,lng,toIdx){
   state.userLat=lat;state.userLng=lng;
-  if(state.userMarker)state.userMarker.setLatLng([lat,lng]);
-  if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});
   const dest=CONFIG.stops[toIdx].coordinates;
   const distToDest=haversine(lat,lng,dest.lat,dest.lng);
-  if(state.osrmSteps.length&&state.currentStepIdx<state.osrmSteps.length-1){
-    const nextStep=state.osrmSteps[state.currentStepIdx+1];
-    if(nextStep){
-      const sp=nextStep.maneuver.location;
-      const distToStep=haversine(lat,lng,sp[1],sp[0]);
-      if(distToStep<15){state.currentStepIdx++;updateTurnInstruction(state.currentStepIdx);speakDirection(state.currentStepIdx);}
-      updateNavStats(distToStep,distToDest);
-    }
-  }else{updateNavStats(distToDest,distToDest);}
+  updateNavStats(distToDest);
   // Approach: fire sponsor once when entering the wider radius around the
   // destination stop, before arrival itself. Catches users walking into a
   // large area (Castle Green, parks, squares) before reaching the named pin.
