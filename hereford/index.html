@@ -82,8 +82,8 @@
     .stoplist-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
     .stoplist-header h1{font-family:var(--font-display);font-size:1.7rem;font-weight:600}
     .btn-ask-harriet-header{background:rgba(255,255,255,.15);color:var(--color-text-light);border:1px solid rgba(255,255,255,.3);padding:7px 13px;border-radius:50px;font-size:.78rem;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:5px}
-    .btn-where-standing{background:rgba(255,255,255,.18);color:var(--color-text-light);border:1px solid rgba(255,255,255,.35);padding:7px 12px;border-radius:50px;font-size:.72rem;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:4px;max-width:62%}
-    .btn-where-standing:active{background:rgba(255,255,255,.3)}
+    .btn-where-standing{background:var(--color-accent);color:var(--color-primary);border:none;padding:7px 12px;border-radius:50px;font-size:.72rem;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:4px;max-width:62%}
+    .btn-where-standing:active{filter:brightness(.9)}
     .stamp-progress-bar{background:rgba(255,255,255,.1);border-radius:50px;height:8px;margin-bottom:8px;overflow:hidden}
     .stamp-progress-fill{height:100%;background:var(--color-accent);border-radius:50px;transition:width .5s ease}
     .stamp-progress-label{font-size:.78rem;opacity:.7}
@@ -277,8 +277,7 @@
     .btn-narration-toggle.loading{opacity:.7;cursor:not-allowed}
     #tour-complete-overlay{position:fixed;inset:0;z-index:950;background:var(--color-primary);display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0}
     #tour-complete-overlay.show{display:flex}
-    .tour-complete-content{padding:48px 24px 80px;text-align:center;max-width:420px;color:var(--color-text-light)}
-    .tc-icon{font-size:4rem;margin-bottom:20px;animation:stamp-collect .5s ease-out}
+    .tour-complete-content{padding:36px 24px 80px;text-align:center;max-width:420px;color:var(--color-text-light)}
     .tc-title{font-family:var(--font-display);font-size:2.4rem;font-weight:600;margin-bottom:8px}
     .tc-sub{font-family:var(--font-display);font-size:1.1rem;font-style:italic;opacity:.75;margin-bottom:32px}
     .tc-harriet-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius);padding:20px;text-align:left;margin-bottom:20px}
@@ -401,6 +400,12 @@
         <button class="btn-expand-narration" id="btn-expand-narration" onclick="toggleNarrationExpand()">Read more ↓</button>
       </div>
       <div class="facts-section"><h3>Interesting Facts</h3><div id="detail-facts"></div></div>
+      <div class="tell-me-more-card" onclick="openTellMeMore()">
+        <div class="tmm-eyebrow">&#127908;</div>
+        <h3>Ask Harriet about this stop</h3>
+        <p>Harriet will share the history, stories and hidden details of this location.</p>
+        <span class="btn-ask-harriet">Ask Harriet</span>
+      </div>
       <div id="detail-sponsor-card"></div>
       <div class="find-something-card" onclick="openFindSomething()">
         <h3>Find me something nearby</h3>
@@ -525,16 +530,15 @@
 </div>
 <div id="tour-complete-overlay">
   <div class="tour-complete-content">
-    <div class="tc-icon">&#127942;</div>
     <h2 class="tc-title">Walk Complete!</h2>
-    <p class="tc-sub">You've explored all of Hereford with Harriet</p>
+    <p class="tc-sub" id="tc-sub">You've completed the walk</p>
     <div class="tc-harriet-card">
-      <p>&#8220;Well done &#8212; you&#8217;ve done it. Every stop, every story, every stamp. Hereford has shown you what it really is, and I hope it&#8217;s earned a return visit. Before you head off, there&#8217;s one more place I&#8217;d like to point you towards &#8212; somewhere that didn&#8217;t make the tour but absolutely deserves your attention.&#8221;</p>
+      <p id="tc-harriet-text"></p>
     </div>
-    <button class="btn-tc-play" onclick="playTourCompleteNarration()"><span>&#9654;</span> Play Harriet&#8217;s wrap-up</button>
+    <button class="btn-tc-play" onclick="playTourCompleteNarration()"><span>&#9654;</span> Play Harriet's wrap-up</button>
     <div class="tc-suggest">
-      <div class="sug-label">&#10024; Harriet&#8217;s final suggestion</div>
-      <p>The Lichfield Vaults on Church Street &#8212; one of Hereford&#8217;s most atmospheric pubs. Real ales, a fireplace, proper food, and the kind of welcome that makes you stay longer than planned. Five minutes&#8217; walk from here. Or ask me to help find something that suits you.</p>
+      <div class="sug-label">&#10024; Harriet's final suggestion</div>
+      <p id="tc-suggest-text"></p>
     </div>
     <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
     <button class="btn-tc-back" onclick="closeTourComplete()">&#8592; Back to the tour</button>
@@ -614,7 +618,7 @@ function showAuthError(msg) {
 }
 
 async function handleEmailAuth() {
-  if (!sbClient) { showToast('Auth not available — continuing without saving.'); return; }
+  if (!sbClient) { showToast('Auth not available. Continuing without saving.'); return; }
   const emailEl = document.getElementById('auth-email');
   const passEl = document.getElementById('auth-password');
   const btn = document.getElementById('btn-auth-submit');
@@ -838,7 +842,7 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
 }
 function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
 function updateNavStats(distToDest){document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
-function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied — please enable in your browser to use the walk.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
+function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied. Please enable GPS in your browser to use the walk.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
 // Distance thresholds. Bump these here and the whole tour follows.
 const ARRIVAL_RADIUS_M=30;
 const SPONSOR_APPROACH_RADIUS_M=100;
@@ -1180,15 +1184,25 @@ function applyGuideName(){const guide=(CONFIG.guideName||'Harriet').trim();if(!g
 function renderOperatorCredit(){const credit=document.getElementById('operator-credit');const logo=document.getElementById('operator-logo');const attr=document.getElementById('operator-attribution');if(!credit||!logo||!attr)return;const hasLogo=CONFIG.operatorLogoUrl&&!CONFIG.operatorLogoUrl.startsWith('{{');const hasAttr=CONFIG.operatorAttributionText&&!CONFIG.operatorAttributionText.startsWith('{{');if(hasLogo){logo.src=CONFIG.operatorLogoUrl;logo.alt=CONFIG.operatorName||'';logo.style.display='block';}else{logo.style.display='none';}if(hasAttr){attr.textContent=CONFIG.operatorAttributionText;attr.style.display='block';}else{attr.style.display='none';}if(hasLogo||hasAttr)credit.classList.add('visible');else credit.classList.remove('visible');}
 
 // ── TOUR COMPLETE ──────────────────────────────────────────
-const TOUR_COMPLETE_NARRATION="Well done — you’ve done it. Every stop, every story, every stamp. Hereford has shown you what it really is, and I hope it’s earned a return visit. Before you head off, there’s one more place I’d like to point you towards — the Lichfield Vaults on Church Street. One of Hereford’s most atmospheric pubs, real ales, a fireplace, and the kind of welcome that makes you stay longer than planned. Five minutes’ walk from here. Or just tap the button and ask me to find something that suits you better.";
+const TOUR_COMPLETE_NARRATION_FALLBACK="Well done, you’ve done it. Every stop, every story, every stamp. Hereford has shown you what it really is, and I hope it has earned a return visit. Before you head off, there’s one more place I’d like to point you towards. The Lichfield Vaults on Church Street. One of Hereford’s most atmospheric pubs, real ales, a fireplace, and the kind of welcome that makes you stay longer than planned. Five minutes’ walk from here. Or just tap the button and ask me to find something that suits you better.";
 function showTourComplete(){
-  const ov=document.getElementById('tour-complete-overlay');
-  if(ov)ov.classList.add('show');
-  playHarriet(TOUR_COMPLETE_NARRATION,'Tour Complete');
+  const ov=document.getElementById(‘tour-complete-overlay’);
+  if(ov)ov.classList.add(‘show’);
+  const city=CONFIG.city||’the area’;
+  const guide=CONFIG.guideName||’Harriet’;
+  document.getElementById(‘tc-sub’).textContent=`You’ve explored ${city} with ${guide}`;
+  const harrietText=CONFIG.tourCompleteMessage||`Well done, you’ve done it. Every stop, every story, every stamp. ${city} has shown you what it really is. We hope it has earned a return visit.`;
+  document.getElementById(‘tc-harriet-text’).textContent=harrietText;
+  const suggestText=CONFIG.tourCompleteSuggestion||`Why not find somewhere to sit and reflect? Or ask ${guide} to help you find something nearby.`;
+  document.getElementById(‘tc-suggest-text’).textContent=suggestText;
+  const narration=CONFIG.tourCompleteNarration||harrietText;
+  playHarriet(narration,’Tour Complete’);
 }
 function playTourCompleteNarration(){
   stopAudio();
-  playHarriet(TOUR_COMPLETE_NARRATION,'Tour Complete');
+  const harrietText=CONFIG.tourCompleteMessage||TOUR_COMPLETE_NARRATION_FALLBACK;
+  const narration=CONFIG.tourCompleteNarration||harrietText;
+  playHarriet(narration,’Tour Complete’);
 }
 function closeTourComplete(){
   const ov=document.getElementById('tour-complete-overlay');
