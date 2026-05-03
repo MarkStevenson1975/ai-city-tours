@@ -123,7 +123,7 @@
     .detail-stop-img-wrap .img-loading::before{content:"";display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;margin-right:8px}
     .btn-mark-complete{background:var(--color-visited);color:#fff;padding:5px 12px;border-radius:50px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0}
     .btn-mark-complete.already-done{background:#ccc;color:#666;cursor:default}
-    .stoplist-map-wrap{height:200px;flex-shrink:0;background:var(--color-muted);position:relative;pointer-events:none}
+    .stoplist-map-wrap{height:200px;background:var(--color-muted);position:relative;pointer-events:none;margin:-16px -16px 16px}
     #stoplist-mini-map{width:100%;height:100%}
     .facts-section{margin-bottom:14px}
     .facts-section h3{font-family:var(--font-display);font-size:1.1rem;font-weight:600;margin-bottom:10px;color:var(--color-primary)}
@@ -371,8 +371,9 @@
       <div class="stamp-progress-bar"><div class="stamp-progress-fill" id="stamp-progress-fill" style="width:0%"></div></div>
       <p class="stamp-progress-label" id="stamp-progress-label">0 of 10 stamps collected</p>
     </div>
-    <div class="stoplist-map-wrap"><div id="stoplist-mini-map"></div></div>
-    <div class="stoplist-body" id="stoplist-body"></div>
+    <div class="stoplist-body" id="stoplist-body">
+      <div class="stoplist-map-wrap"><div id="stoplist-mini-map"></div></div>
+    </div>
   </div>
   <div id="screen-detail" class="screen">
     <div class="detail-compact-header">
@@ -399,7 +400,6 @@
       </div>
       <div class="facts-section"><h3>Interesting Facts</h3><div id="detail-facts"></div></div>
       <div class="tell-me-more-card" onclick="openTellMeMore()">
-        <div class="tmm-eyebrow">&#127908;</div>
         <h3>Ask Harriet about this stop</h3>
         <p>Harriet will share the history, stories and hidden details of this location.</p>
         <span class="btn-ask-harriet">Ask Harriet</span>
@@ -756,7 +756,7 @@ function showLoadError(e) {
 const state={weatherData:null,currentScreen:'headphones',currentStopIndex:0,visitedStops:new Set(),stoplistMap:null,stoplistUserMarker:null,headphones:false,map:null,userMarker:null,routeLayer:null,stopMarkers:[],osrmPath:[],osrmSteps:[],currentStepIdx:0,watchId:null,demoMode:false,demoInterval:null,demoProgress:0,firedFacts:new Set(),firedSponsors:new Set(),currentAudio:null,lastFactTime:0,tmmStopId:null,tmmFullText:'',arrivalFired:false,userLat:null,userLng:null,pendingFact:null};
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('screen-'+id);if(el)el.classList.add('active');state.currentScreen=id;if(el)el.scrollTop=0;if(id==='stoplist'){renderStopList();initStoplistMap();}if(id==='stamps')renderStamps();}
 function setHeadphones(val){state.headphones=val;showScreen('splash');}
-function renderStopList(){const body=document.getElementById('stoplist-body');if(!body)return;body.innerHTML=CONFIG.stops.map((stop,i)=>{const visited=state.visitedStops.has(stop.id);const dist=state.userLat?formatDist(haversine(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng)):'';return`<div class="stop-card ${visited?'visited':''}" onclick="openStopDetail(${i})"><div class="stop-number">${visited?'✓':stop.id}</div><div class="stop-card-info"><div class="stop-card-name">${stop.name}</div><div class="stop-card-desc">${stop.shortDescription}</div></div>${dist?`<div class="stop-card-distance">${dist}</div>`:''}</div>`;}).join('');const pct=(state.visitedStops.size/CONFIG.maxStops)*100;document.getElementById('stamp-progress-fill').style.width=pct+'%';document.getElementById('stamp-progress-label').textContent=`${state.visitedStops.size} of ${CONFIG.maxStops} stamps collected`;}
+function renderStopList(){const body=document.getElementById('stoplist-body');if(!body)return;let sc=document.getElementById('stops-container');if(!sc){sc=document.createElement('div');sc.id='stops-container';body.appendChild(sc);}sc.innerHTML=CONFIG.stops.map((stop,i)=>{const visited=state.visitedStops.has(stop.id);const dist=state.userLat?formatDist(haversine(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng)):'';return`<div class="stop-card ${visited?'visited':''}" onclick="openStopDetail(${i})"><div class="stop-number">${visited?'✓':stop.id}</div><div class="stop-card-info"><div class="stop-card-name">${stop.name}</div><div class="stop-card-desc">${stop.shortDescription}</div></div>${dist?`<div class="stop-card-distance">${dist}</div>`:''}</div>`;}).join('');const pct=(state.visitedStops.size/CONFIG.maxStops)*100;document.getElementById('stamp-progress-fill').style.width=pct+'%';document.getElementById('stamp-progress-label').textContent=`${state.visitedStops.size} of ${CONFIG.maxStops} stamps collected`;}
 function loadStopImage(stop){
   const imgEl=document.getElementById('detail-stop-img');
   const imgWrap=document.getElementById('detail-stop-img-wrap');
