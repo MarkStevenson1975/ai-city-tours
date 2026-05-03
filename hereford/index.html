@@ -617,20 +617,20 @@ async function handleEmailAuth() {
   if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
   if (btn) { btn.textContent = 'Starting tour…'; btn.disabled = true; }
   // Try sign-in first; if no account exists, sign up
-  const { error: signInErr } = await sbClient.auth.signInWithPassword({ email, password });
+  const { data: signInData, error: signInErr } = await sbClient.auth.signInWithPassword({ email, password });
   if (!signInErr) {
-    currentUser = (await sbClient.auth.getUser()).data.user;
+    currentUser = signInData.user;
     saveUserTourRecord();
     if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
     showScreen('splash');
     return;
   }
   if (signInErr.message && (signInErr.message.toLowerCase().includes('invalid') || signInErr.message.toLowerCase().includes('credentials'))) {
-    const { error: signUpErr } = await sbClient.auth.signUp({ email, password });
+    const { data: signUpData, error: signUpErr } = await sbClient.auth.signUp({ email, password });
     if (signUpErr) {
       showAuthError(signUpErr.message);
     } else {
-      currentUser = (await sbClient.auth.getUser()).data.user;
+      currentUser = signUpData.user;
       saveUserTourRecord();
       showToast('Welcome! Check your email to confirm your account.');
       if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
@@ -898,6 +898,7 @@ function triggerArrival(toIdx){
   state.arrivalFired=true;
   const stop=CONFIG.stops[toIdx];
   state.visitedStops.add(stop.id);
+  saveProgress();
   showToast(`🎫 Stamp collected - ${stop.name}!`);
   playHarriet(`You've arrived at ${stop.name}. Wonderful - tap to find out more about where you're standing.`,'Arrival');
   document.getElementById('arrival-emoji').textContent=stop.emoji;
