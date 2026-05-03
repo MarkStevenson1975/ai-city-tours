@@ -1186,25 +1186,25 @@ function applyGuideName(){const guide=(CONFIG.guideName||'Harriet').trim();if(!g
 function renderOperatorCredit(){const credit=document.getElementById('operator-credit');const logo=document.getElementById('operator-logo');const attr=document.getElementById('operator-attribution');if(!credit||!logo||!attr)return;const hasLogo=CONFIG.operatorLogoUrl&&!CONFIG.operatorLogoUrl.startsWith('{{');const hasAttr=CONFIG.operatorAttributionText&&!CONFIG.operatorAttributionText.startsWith('{{');if(hasLogo){logo.src=CONFIG.operatorLogoUrl;logo.alt=CONFIG.operatorName||'';logo.style.display='block';}else{logo.style.display='none';}if(hasAttr){attr.textContent=CONFIG.operatorAttributionText;attr.style.display='block';}else{attr.style.display='none';}if(hasLogo||hasAttr)credit.classList.add('visible');else credit.classList.remove('visible');}
 
 // ── TOUR COMPLETE ──────────────────────────────────────────
-const TOUR_COMPLETE_NARRATION_FALLBACK="Well done, you’ve done it. Every stop, every story, every stamp. Hereford has shown you what it really is, and I hope it has earned a return visit. Before you head off, there’s one more place I’d like to point you towards. The Lichfield Vaults on Church Street. One of Hereford’s most atmospheric pubs, real ales, a fireplace, and the kind of welcome that makes you stay longer than planned. Five minutes’ walk from here. Or just tap the button and ask me to find something that suits you better.";
+const TOUR_COMPLETE_NARRATION_FALLBACK="Well done, you've done it. Every stop, every story, every stamp. Hereford has shown you what it really is, and I hope it has earned a return visit. Before you head off, there's one more place I'd like to point you towards. The Lichfield Vaults on Church Street. One of Hereford's most atmospheric pubs, real ales, a fireplace, and the kind of welcome that makes you stay longer than planned. Five minutes' walk from here. Or just tap the button and ask me to find something that suits you better.";
 function showTourComplete(){
-  const ov=document.getElementById(‘tour-complete-overlay’);
-  if(ov)ov.classList.add(‘show’);
-  const city=CONFIG.city||’the area’;
-  const guide=CONFIG.guideName||’Harriet’;
-  document.getElementById(‘tc-sub’).textContent=`You’ve explored ${city} with ${guide}`;
-  const harrietText=CONFIG.tourCompleteMessage||`Well done, you’ve done it. Every stop, every story, every stamp. ${city} has shown you what it really is. We hope it has earned a return visit.`;
-  document.getElementById(‘tc-harriet-text’).textContent=harrietText;
+  const ov=document.getElementById('tour-complete-overlay');
+  if(ov)ov.classList.add('show');
+  const city=CONFIG.city||'the area';
+  const guide=CONFIG.guideName||'Harriet';
+  document.getElementById('tc-sub').textContent=`You've explored ${city} with ${guide}`;
+  const harrietText=CONFIG.tourCompleteMessage||`Well done, you've done it. Every stop, every story, every stamp. ${city} has shown you what it really is. We hope it has earned a return visit.`;
+  document.getElementById('tc-harriet-text').textContent=harrietText;
   const suggestText=CONFIG.tourCompleteSuggestion||`Why not find somewhere to sit and reflect? Or ask ${guide} to help you find something nearby.`;
-  document.getElementById(‘tc-suggest-text’).textContent=suggestText;
+  document.getElementById('tc-suggest-text').textContent=suggestText;
   const narration=CONFIG.tourCompleteNarration||harrietText;
-  playHarriet(narration,’Tour Complete’);
+  playHarriet(narration,'Tour Complete');
 }
 function playTourCompleteNarration(){
   stopAudio();
   const harrietText=CONFIG.tourCompleteMessage||TOUR_COMPLETE_NARRATION_FALLBACK;
   const narration=CONFIG.tourCompleteNarration||harrietText;
-  playHarriet(narration,’Tour Complete’);
+  playHarriet(narration,'Tour Complete');
 }
 function closeTourComplete(){
   const ov=document.getElementById('tour-complete-overlay');
@@ -1238,7 +1238,7 @@ async function fetchWeather(){
 function buildWeatherBanner(w){
   if(!w)return;
   const wc=WEATHER_CODES[w.code]||{icon:'🌤️',desc:'variable weather'};
-  let text=`${wc.icon} It’s ${w.temp}°C in Hereford today with ${wc.desc}.`;
+  let text=`${wc.icon} It's ${w.temp}°C in Hereford today with ${wc.desc}.`;
   if(w.code>=51&&w.code<=82){
     text+=` You might want an umbrella today.`;
   }else if(w.temp>=24){
@@ -1256,9 +1256,9 @@ function buildWeatherBanner(w){
 function getWeatherIntroLine(w){
   if(!w)return'';
   const wc=WEATHER_CODES[w.code]||{desc:'variable weather'};
-  if(w.code>=51&&w.code<=82)return` The weather today is ${wc.desc} and ${w.temp}°C — you’ll want a jacket, and possibly an umbrella.`;
-  if(w.temp>=24)return` It’s a beautiful warm day today — ${w.temp}°C and ${wc.desc}. Perfect for a walk.`;
-  if(w.temp<=3)return` It’s a cold ${w.temp}°C today, so do make sure you’re dressed warmly.`;
+  if(w.code>=51&&w.code<=82)return` The weather today is ${wc.desc} and ${w.temp}°C — you'll want a jacket, and possibly an umbrella.`;
+  if(w.temp>=24)return` It's a beautiful warm day today — ${w.temp}°C and ${wc.desc}. Perfect for a walk.`;
+  if(w.temp<=3)return` It's a cold ${w.temp}°C today, so do make sure you're dressed warmly.`;
   return` The weather today is ${wc.desc} and ${w.temp}°C — a fine day for a walk.`;
 }
 
