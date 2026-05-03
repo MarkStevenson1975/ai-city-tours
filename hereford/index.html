@@ -342,11 +342,11 @@
         <input class="auth-input" id="auth-email" type="email" placeholder="Email address" autocomplete="email" inputmode="email">
         <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password">
         <div id="auth-error" class="auth-error hidden"></div>
-        <button class="btn-auth-submit" id="btn-auth-submit" onclick="handleEmailAuth()">Save my progress</button>
+        <button class="btn-auth-submit" id="btn-auth-submit" onclick="handleEmailAuth()">Save my progress and start tour</button>
         <div class="auth-divider">or</div>
         <button class="btn-auth-google" onclick="handleGoogleAuth()">
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908C18.619 14.007 17.64 11.698 17.64 9.2z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A9 9 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A9 9 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
-          Continue with Google
+          Continue with Google and start tour
         </button>
         <p class="auth-consent-note">By saving your progress you agree to your email being stored for this purpose only. We will not share your data or send marketing emails. <a href="/privacy" target="_blank">Privacy policy</a></p>
         <button class="btn-auth-skip" onclick="skipAuth()">Continue without saving</button>
@@ -615,12 +615,13 @@ async function handleEmailAuth() {
   const password = passEl ? passEl.value : '';
   if (!email) { showAuthError('Please enter your email address.'); return; }
   if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
-  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  if (btn) { btn.textContent = 'Starting tour…'; btn.disabled = true; }
   // Try sign-in first; if no account exists, sign up
   const { error: signInErr } = await sbClient.auth.signInWithPassword({ email, password });
   if (!signInErr) {
-    // Signed in — advance immediately rather than waiting for onAuthStateChange
-    if (btn) { btn.textContent = 'Save my progress'; btn.disabled = false; }
+    currentUser = (await sbClient.auth.getUser()).data.user;
+    saveUserTourRecord();
+    if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
     showScreen('splash');
     return;
   }
@@ -629,16 +630,17 @@ async function handleEmailAuth() {
     if (signUpErr) {
       showAuthError(signUpErr.message);
     } else {
-      // Account created — advance straight away; email confirmation happens in background
+      currentUser = (await sbClient.auth.getUser()).data.user;
+      saveUserTourRecord();
       showToast('Welcome! Check your email to confirm your account.');
-      if (btn) { btn.textContent = 'Save my progress'; btn.disabled = false; }
+      if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
       showScreen('splash');
       return;
     }
   } else {
     showAuthError(signInErr.message);
   }
-  if (btn) { btn.textContent = 'Save my progress'; btn.disabled = false; }
+  if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
 }
 
 async function handleGoogleAuth() {
@@ -662,7 +664,15 @@ async function handleSignOut() {
 }
 
 async function saveUserTourRecord() {
-  if (!sbClient || !currentUser || !CONFIG) return;
+  if (!sbClient || !currentUser) return;
+  // CONFIG may not be loaded yet if called at page load — wait up to 3s for it
+  if (!CONFIG) {
+    await new Promise(resolve => {
+      const t = setInterval(() => { if (CONFIG) { clearInterval(t); resolve(); } }, 100);
+      setTimeout(() => { clearInterval(t); resolve(); }, 3000);
+    });
+  }
+  if (!CONFIG) return;
   const slug = CONFIG.citySlug || 'hereford';
   await sbClient.from('user_tours').upsert(
     { user_id: currentUser.id, city_slug: slug, last_visited_at: new Date().toISOString() },
