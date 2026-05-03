@@ -24,13 +24,13 @@
     button{font-family:var(--font-body);cursor:pointer;border:none;outline:none}
     img{display:block;max-width:100%}
     #app{position:fixed;inset:0;overflow:hidden}
-    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--color-bg);opacity:0;pointer-events:none;transition:opacity var(--transition);overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--color-bg);opacity:0;pointer-events:none;transition:opacity var(--transition);overflow:hidden}
     .screen.active{opacity:1;pointer-events:all}
     .harriet-bar{background:var(--color-primary);color:var(--color-text-light);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
     .harriet-bar .guide-name{font-family:var(--font-display);font-size:1.1rem;font-weight:500;opacity:.9}
     .harriet-bar .city-name{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.6}
     .harriet-bar .back-btn{background:transparent;color:var(--color-text-light);font-size:.85rem;padding:6px 10px;border-radius:var(--radius-sm);opacity:.8}
-    #screen-splash{background:var(--color-primary);color:var(--color-text-light);justify-content:flex-start;align-items:center;text-align:center;padding:40px 24px 60px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    #screen-splash{background:var(--color-primary);color:var(--color-text-light);justify-content:flex-start;align-items:center;text-align:center;padding:40px 24px 60px;overflow-y:auto;overscroll-behavior-y:contain}
     .splash-backdrop{position:absolute;inset:0;background:url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Hereford_Cathedral_from_south_side.jpg/640px-Hereford_Cathedral_from_south_side.jpg') center/cover no-repeat;opacity:.30}
     .splash-content{position:relative;z-index:1;max-width:400px}
     .splash-eyebrow{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--color-accent);margin-bottom:12px}
@@ -51,7 +51,7 @@
     .splash-city-image{width:100%;height:160px;border-radius:var(--radius);overflow:hidden;margin-bottom:20px;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.35);flex-shrink:0}
     .splash-city-image img{width:100%;height:100%;object-fit:cover;display:block}
     .splash-city-image-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(27,67,50,.45))}
-    #screen-headphones{background:var(--color-primary);color:var(--color-text-light);justify-content:flex-start;align-items:center;text-align:center;padding:28px 24px 40px;overflow-y:auto}
+    #screen-headphones{background:var(--color-primary);color:var(--color-text-light);justify-content:flex-start;align-items:center;text-align:center;padding:28px 24px 40px;overflow-y:auto;overscroll-behavior-y:contain}
     /* Auth section */
     .auth-section{width:100%;max-width:380px;margin:0 auto}
     .auth-welcome-title{font-family:var(--font-display);font-size:2rem;font-weight:600;line-height:1.2;margin-bottom:6px}
@@ -87,7 +87,7 @@
     .stamp-progress-bar{background:rgba(255,255,255,.1);border-radius:50px;height:8px;margin-bottom:8px;overflow:hidden}
     .stamp-progress-fill{height:100%;background:var(--color-accent);border-radius:50px;transition:width .5s ease}
     .stamp-progress-label{font-size:.78rem;opacity:.7}
-    .stoplist-body{flex:1;overflow-y:auto;padding:16px 16px 100px}
+    .stoplist-body{flex:1;overflow-y:auto;overscroll-behavior-y:contain;padding:16px 16px 100px}
     .stop-card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;transition:transform .15s;border:1.5px solid transparent}
     .stop-card:active{transform:scale(.98)}
     .stop-card.visited{border-color:var(--color-visited)}
@@ -103,7 +103,7 @@
     .detail-compact-title{font-family:var(--font-display);font-size:1.25rem;font-weight:600;color:var(--color-text-light);flex:1;line-height:1.2}
     .detail-hero-badge{background:var(--color-accent);color:var(--color-primary);border-radius:50px;padding:5px 11px;font-size:.72rem;font-weight:700;flex-shrink:0}
     .visited-stamp-overlay{display:inline-flex;align-items:center;font-size:1.1rem;margin-left:4px}
-    .detail-body{flex:1;overflow-y:auto;padding:16px 16px 120px}
+    .detail-body{flex:1;overflow-y:auto;overscroll-behavior-y:contain;padding:16px 16px 120px}
     .narration-card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
     .narration-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
     .narration-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);display:flex;align-items:center;gap:6px}
@@ -178,7 +178,7 @@
     .stamps-header{background:var(--color-primary);color:var(--color-text-light);padding:16px;text-align:center;flex-shrink:0}
     .stamps-header h2{font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:4px}
     .stamps-header p{font-size:.85rem;opacity:.7}
-    .stamps-body{flex:1;overflow-y:auto;padding:20px 16px 80px}
+    .stamps-body{flex:1;overflow-y:auto;overscroll-behavior-y:contain;padding:20px 16px 80px}
     .stamps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
     .stamp-slot{aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--color-muted);border:2px dashed var(--color-muted-dark);transition:all .3s;padding:6px;text-align:center;overflow:hidden}
     .stamp-slot.earned{background:var(--color-primary);border:2px solid var(--color-accent);animation:stamp-collect .4s ease-out}
