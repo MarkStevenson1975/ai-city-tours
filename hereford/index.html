@@ -24,7 +24,7 @@
     button{font-family:var(--font-body);cursor:pointer;border:none;outline:none}
     img{display:block;max-width:100%}
     #app{position:fixed;inset:0;overflow:hidden}
-    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--color-bg);opacity:0;pointer-events:none;transition:opacity var(--transition);overflow:hidden}
+    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--color-bg);opacity:0;pointer-events:none;transition:opacity var(--transition);overflow-y:auto;-webkit-overflow-scrolling:touch}
     .screen.active{opacity:1;pointer-events:all}
     .harriet-bar{background:var(--color-primary);color:var(--color-text-light);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
     .harriet-bar .guide-name{font-family:var(--font-display);font-size:1.1rem;font-weight:500;opacity:.9}
@@ -77,7 +77,7 @@
     .headphones-icon{font-size:3.2rem;margin-bottom:16px}
     .headphones-title{font-family:var(--font-display);font-size:1.75rem;font-weight:600;margin-bottom:12px;line-height:1.2}
     .headphones-note{font-size:.8rem;font-style:italic;opacity:.55;max-width:300px;margin:0 auto 28px}
-    #screen-stoplist{display:block;background:var(--color-bg);overflow-y:auto;overscroll-behavior-y:contain}
+    #screen-stoplist{background:var(--color-bg)}
     .stoplist-header{background:var(--color-primary);color:var(--color-text-light);padding:16px 16px 20px}
     .stoplist-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
     .stoplist-header h1{font-family:var(--font-display);font-size:1.7rem;font-weight:600}
@@ -87,7 +87,7 @@
     .stamp-progress-bar{background:rgba(255,255,255,.1);border-radius:50px;height:8px;margin-bottom:8px;overflow:hidden}
     .stamp-progress-fill{height:100%;background:var(--color-accent);border-radius:50px;transition:width .5s ease}
     .stamp-progress-label{font-size:.78rem;opacity:.7}
-    .stoplist-body{padding:16px 16px 100px}
+    .stoplist-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 100px}
     .stop-card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;transition:transform .15s;border:1.5px solid transparent}
     .stop-card:active{transform:scale(.98)}
     .stop-card.visited{border-color:var(--color-visited)}
@@ -97,13 +97,13 @@
     .stop-card-name{font-family:var(--font-display);font-size:1.1rem;font-weight:600;line-height:1.2;margin-bottom:3px}
     .stop-card-desc{font-size:.8rem;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .stop-card-distance{font-size:.75rem;color:var(--color-accent);font-weight:700;flex-shrink:0}
-    #screen-detail{display:block;background:var(--color-bg);overflow-y:auto;overscroll-behavior-y:contain}
+    #screen-detail{background:var(--color-bg)}
     .detail-compact-header{background:var(--color-primary);color:var(--color-text-light);padding:12px 16px;display:flex;align-items:center;gap:10px;min-height:56px}
     .detail-hero-back{background:transparent;color:var(--color-text-light);font-size:.85rem;padding:4px 0;opacity:.85;flex-shrink:0;white-space:nowrap}
     .detail-compact-title{font-family:var(--font-display);font-size:1.25rem;font-weight:600;color:var(--color-text-light);flex:1;line-height:1.2}
     .detail-hero-badge{background:var(--color-accent);color:var(--color-primary);border-radius:50px;padding:5px 11px;font-size:.72rem;font-weight:700;flex-shrink:0}
     .visited-stamp-overlay{display:inline-flex;align-items:center;font-size:1.1rem;margin-left:4px}
-    .detail-body{padding:16px 16px 120px}
+    .detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 120px}
     .narration-card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
     .narration-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
     .narration-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);display:flex;align-items:center;gap:6px}
@@ -174,11 +174,11 @@
     .map-marker-future{width:28px;height:28px;background:var(--color-primary);border:2px solid rgba(255,255,255,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700}
     .map-marker-user{width:18px;height:18px;background:#4A90E2;border:3px solid #fff;border-radius:50%;animation:pulse-blue 2s infinite}
     .map-marker-sponsor{width:22px;height:22px;background:var(--color-accent);border:2px solid var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem}
-    #screen-stamps{display:block;background:var(--color-bg);overflow-y:auto;overscroll-behavior-y:contain}
+    #screen-stamps{background:var(--color-bg)}
     .stamps-header{background:var(--color-primary);color:var(--color-text-light);padding:16px;text-align:center}
     .stamps-header h2{font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:4px}
     .stamps-header p{font-size:.85rem;opacity:.7}
-    .stamps-body{padding:20px 16px 80px}
+    .stamps-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px 80px}
     .stamps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
     .stamp-slot{aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--color-muted);border:2px dashed var(--color-muted-dark);transition:all .3s;padding:6px;text-align:center;overflow:hidden}
     .stamp-slot.earned{background:var(--color-primary);border:2px solid var(--color-accent);animation:stamp-collect .4s ease-out}
@@ -754,7 +754,7 @@ function showLoadError(e) {
   document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;font-family:Lato,sans-serif;color:#F5F0E8;background:#1B4332"><div style="max-width:360px"><h1 style="font-family:Cormorant Garamond,serif;font-size:2rem;font-weight:600;margin-bottom:16px">Tour unavailable</h1><p style="opacity:.85;line-height:1.6;margin-bottom:24px">We couldn\'t load the tour data. Please check your connection and refresh the page.</p><p style="font-size:.75rem;opacity:.5">' + msg + '</p></div></div>';
 }
 const state={weatherData:null,currentScreen:'headphones',currentStopIndex:0,visitedStops:new Set(),stoplistMap:null,stoplistUserMarker:null,headphones:false,map:null,userMarker:null,routeLayer:null,stopMarkers:[],osrmPath:[],osrmSteps:[],currentStepIdx:0,watchId:null,demoMode:false,demoInterval:null,demoProgress:0,firedFacts:new Set(),firedSponsors:new Set(),currentAudio:null,lastFactTime:0,tmmStopId:null,tmmFullText:'',arrivalFired:false,userLat:null,userLng:null,pendingFact:null};
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('screen-'+id);if(el)el.classList.add('active');state.currentScreen=id;if(el)el.scrollTop=0;if(id==='stoplist'){renderStopList();initStoplistMap();}if(id==='stamps')renderStamps();}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('screen-'+id);if(el){el.classList.add('active');el.scrollTop=0;const body=el.querySelector('.stoplist-body,.detail-body,.stamps-body');if(body)body.scrollTop=0;}state.currentScreen=id;if(id==='stoplist'){renderStopList();initStoplistMap();}if(id==='stamps')renderStamps();}
 function setHeadphones(val){state.headphones=val;showScreen('splash');}
 function renderStopList(){const body=document.getElementById('stoplist-body');if(!body)return;let sc=document.getElementById('stops-container');if(!sc){sc=document.createElement('div');sc.id='stops-container';body.appendChild(sc);}sc.innerHTML=CONFIG.stops.map((stop,i)=>{const visited=state.visitedStops.has(stop.id);const dist=state.userLat?formatDist(haversine(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng)):'';return`<div class="stop-card ${visited?'visited':''}" onclick="openStopDetail(${i})"><div class="stop-number">${visited?'✓':stop.id}</div><div class="stop-card-info"><div class="stop-card-name">${stop.name}</div><div class="stop-card-desc">${stop.shortDescription}</div></div>${dist?`<div class="stop-card-distance">${dist}</div>`:''}</div>`;}).join('');const pct=(state.visitedStops.size/CONFIG.maxStops)*100;document.getElementById('stamp-progress-fill').style.width=pct+'%';document.getElementById('stamp-progress-label').textContent=`${state.visitedStops.size} of ${CONFIG.maxStops} stamps collected`;}
 function loadStopImage(stop){
