@@ -299,29 +299,6 @@
     .open-badge.closed{background:rgba(220,38,38,.2);color:#f87171}
 
   </style>
-  <script>
-    /* iOS scroll-lock fix — blocks overscroll at boundaries of known scroll containers */
-    (function() {
-      var startY = 0;
-      var SCROLLABLE = '.stoplist-body, .detail-body, .stamps-body';
-      document.addEventListener('touchstart', function(e) {
-        startY = e.touches[0].clientY;
-      }, { passive: true });
-      document.addEventListener('touchmove', function(e) {
-        var scrollEl = e.target.closest(SCROLLABLE);
-        if (!scrollEl) {
-          e.preventDefault();
-          return;
-        }
-        var deltaY = e.touches[0].clientY - startY;
-        var atTop = scrollEl.scrollTop <= 0;
-        var atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
-        if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
-          e.preventDefault();
-        }
-      }, { passive: false });
-    })();
-  </script>
 </head>
 <body>
 <div id="app">
