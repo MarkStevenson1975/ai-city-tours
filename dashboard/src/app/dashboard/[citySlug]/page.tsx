@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PublishButton } from './publish-button';
+import { InviteOperatorForm } from './invite-operator-form';
 
 export default async function CityOverview({
   params,
@@ -17,6 +18,13 @@ export default async function CityOverview({
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .single();
+
+  const isAdmin = profile?.role === 'admin';
 
   const [{ data: stops }, sponsorCount, factCount, eventCount, visitorCount] =
     await Promise.all([
@@ -114,6 +122,20 @@ export default async function CityOverview({
           href={`/dashboard/${citySlug}/visitors`}
         />
       </div>
+
+      {isAdmin && (
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-4">Operator access</h2>
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <p className="text-sm text-gray-600 mb-6">
+              Invite the operator who will manage this area. They will receive
+              an email with a link to set their password. They will only have
+              access to this area.
+            </p>
+            <InviteOperatorForm citySlug={citySlug} />
+          </div>
+        </section>
+      )}
 
       <section className="mb-12">
         <div className="flex items-baseline justify-between mb-4">

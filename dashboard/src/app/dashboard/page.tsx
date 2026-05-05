@@ -1,8 +1,20 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardHome() {
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const isAdmin = profile?.role === 'admin';
 
   // RLS scopes this to: admin sees all; operators see only assigned cities.
   const { data: cities, error } = await supabase
@@ -28,7 +40,17 @@ export default async function DashboardHome() {
       <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
         Dashboard
       </p>
-      <h1 className="text-4xl font-semibold mb-8">Areas</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-semibold">Areas</h1>
+        {isAdmin && (
+          <Link
+            href="/dashboard/admin/cities/new"
+            className="px-5 py-2.5 rounded-full bg-primary text-cream text-sm font-bold hover:bg-primary-light transition"
+          >
+            + Add area
+          </Link>
+        )}
+      </div>
 
       {!cities || cities.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center">

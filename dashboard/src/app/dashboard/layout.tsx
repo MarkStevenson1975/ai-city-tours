@@ -34,12 +34,20 @@ export default async function DashboardLayout({
             Areas
           </Link>
           {profile?.role === 'admin' && (
-            <Link
-              href="/dashboard/admin/visitors"
-              className="block px-3 py-2 rounded hover:bg-white/10 transition"
-            >
-              All Visitors
-            </Link>
+            <>
+              <Link
+                href="/dashboard/admin/cities/new"
+                className="block px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                + Add area
+              </Link>
+              <Link
+                href="/dashboard/admin/visitors"
+                className="block px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                All Visitors
+              </Link>
+            </>
           )}
         </nav>
 
