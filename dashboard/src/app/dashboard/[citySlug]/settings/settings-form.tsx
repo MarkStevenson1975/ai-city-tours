@@ -21,6 +21,10 @@ interface City {
   guide_voice_id: string | null;
   tour_complete_message: string | null;
   tour_complete_suggestion: string | null;
+  tc_sponsor_name: string | null;
+  tc_sponsor_logo_url: string | null;
+  tc_sponsor_url: string | null;
+  tc_sponsor_tagline: string | null;
 }
 
 const TYPE_OPTIONS = [
@@ -69,6 +73,12 @@ export function SettingsForm({ city }: { city: City }) {
   const [tourCompleteMessage, setTourCompleteMessage] = useState(city.tour_complete_message ?? '');
   const [tourCompleteSuggestion, setTourCompleteSuggestion] = useState(city.tour_complete_suggestion ?? '');
 
+  // Completion screen sponsor
+  const [tcSponsorName, setTcSponsorName] = useState(city.tc_sponsor_name ?? '');
+  const [tcSponsorLogoUrl, setTcSponsorLogoUrl] = useState(city.tc_sponsor_logo_url ?? '');
+  const [tcSponsorUrl, setTcSponsorUrl] = useState(city.tc_sponsor_url ?? '');
+  const [tcSponsorTagline, setTcSponsorTagline] = useState(city.tc_sponsor_tagline ?? '');
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -92,6 +102,10 @@ export function SettingsForm({ city }: { city: City }) {
         guide_voice_id: guideVoiceId,
         tour_complete_message: tourCompleteMessage,
         tour_complete_suggestion: tourCompleteSuggestion,
+        tc_sponsor_name: tcSponsorName,
+        tc_sponsor_logo_url: tcSponsorLogoUrl,
+        tc_sponsor_url: tcSponsorUrl,
+        tc_sponsor_tagline: tcSponsorTagline,
       });
       if (!result.ok) {
         setError(result.error);
@@ -291,6 +305,66 @@ export function SettingsForm({ city }: { city: City }) {
               rows={3}
               maxLength={400}
               placeholder={`Why not find somewhere to sit and reflect? Or ask ${guideName || 'your guide'} to help you find something nearby.`}
+              className={inputCls}
+            />
+          </Field>
+        </div>
+      </Section>
+
+      {/* COMPLETION SCREEN SPONSOR */}
+      <Section title="Completion screen sponsor">
+        <div className="bg-white rounded-xl p-8 shadow-sm space-y-6">
+          <p className="text-sm text-gray-500">
+            Optional. If a sponsor name is set, a branded sponsor block will appear on the
+            tour completion screen. Leave all fields blank to hide the block entirely.
+          </p>
+          <Field
+            label="Sponsor name"
+            hint="The organisation sponsoring this tour. Shown prominently on the completion screen."
+          >
+            <input
+              type="text"
+              value={tcSponsorName}
+              onChange={(e) => setTcSponsorName(e.target.value)}
+              placeholder="e.g. Hereford Building Society"
+              maxLength={100}
+              className={inputCls}
+            />
+          </Field>
+          <Field
+            label="Sponsor logo URL"
+            hint="Direct link to the sponsor's logo image (JPEG, PNG, SVG). Wide rectangular logos work best."
+          >
+            <input
+              type="url"
+              value={tcSponsorLogoUrl}
+              onChange={(e) => setTcSponsorLogoUrl(e.target.value)}
+              placeholder="https://example.com/logo.png"
+              className={inputCls}
+            />
+          </Field>
+          <Field
+            label="Sponsor website URL"
+            hint="Optional. If set, the sponsor block becomes a clickable link."
+          >
+            <input
+              type="url"
+              value={tcSponsorUrl}
+              onChange={(e) => setTcSponsorUrl(e.target.value)}
+              placeholder="https://sponsor-website.co.uk"
+              className={inputCls}
+            />
+          </Field>
+          <Field
+            label="Sponsor tagline"
+            hint="Optional short line shown below the sponsor name (e.g. 'Supporting Hereford since 1892')."
+          >
+            <input
+              type="text"
+              value={tcSponsorTagline}
+              onChange={(e) => setTcSponsorTagline(e.target.value)}
+              placeholder="Supporting Hereford since 1892"
+              maxLength={120}
               className={inputCls}
             />
           </Field>

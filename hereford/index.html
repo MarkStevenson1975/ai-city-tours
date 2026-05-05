@@ -115,7 +115,7 @@
     .btn-narration-toggle.paused{background:transparent;border:1.5px solid var(--color-primary);color:var(--color-primary)}
     .detail-stop-img-wrap{width:100%;aspect-ratio:2/1;max-height:30vh;min-height:140px;overflow:hidden;flex-shrink:0;position:relative;background:var(--color-primary);display:none}
     .detail-stop-img-wrap.loaded{display:block}
-    .detail-stop-img-wrap img{width:100%;height:100%;object-fit:contain;display:block;opacity:0;transition:opacity .25s ease}
+    .detail-stop-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s ease}
     .detail-stop-img-wrap.loaded img{opacity:1}
     .detail-stop-img-wrap.is-fallback img{opacity:.85}
     .detail-stop-img-wrap .img-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--color-text-light);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
@@ -297,6 +297,12 @@
     .btn-tc-play:hover{background:rgba(255,255,255,.08)}
     .btn-tc-ask{background:var(--color-accent);color:var(--color-primary);padding:16px 28px;border-radius:50px;font-size:1rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
     .btn-tc-back{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;width:100%;display:flex;align-items:center;justify-content:center}
+    .tc-sponsor-block{background:#fff;border-radius:var(--radius);padding:20px 20px 16px;margin-bottom:20px;text-align:center}
+    .tc-sponsor-label{font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#888;margin-bottom:12px}
+    .tc-sponsor-inner{display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--color-primary)}
+    .tc-sponsor-logo{max-height:56px;max-width:180px;object-fit:contain;display:block}
+    .tc-sponsor-name{font-size:1.05rem;font-weight:700;color:var(--color-primary)}
+    .tc-sponsor-tagline{font-size:.82rem;color:#666;font-style:italic;line-height:1.4}
     .weather-banner{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:.85rem;line-height:1.45;text-align:left}
     .weather-icon-lrg{font-size:1.6rem;flex-shrink:0}
     .weather-text{flex:1;opacity:.88}
@@ -535,6 +541,14 @@
     <div class="tc-suggest">
       <div class="sug-label">&#10024; Harriet's final suggestion</div>
       <p id="tc-suggest-text"></p>
+    </div>
+    <div id="tc-sponsor-block" class="tc-sponsor-block" style="display:none">
+      <div class="tc-sponsor-label">This tour is sponsored by</div>
+      <a class="tc-sponsor-inner" id="tc-sponsor-link" href="#" target="_blank" rel="noopener">
+        <img class="tc-sponsor-logo" id="tc-sponsor-logo" alt="" style="display:none">
+        <div class="tc-sponsor-name" id="tc-sponsor-name"></div>
+        <div class="tc-sponsor-tagline" id="tc-sponsor-tagline" style="display:none"></div>
+      </a>
     </div>
     <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
     <button class="btn-tc-back" onclick="closeTourComplete()">&#8592; Back to the tour</button>
@@ -1055,13 +1069,14 @@ async function findSomething(query,chipEl){
         lat=pos.coords.latitude;lng=pos.coords.longitude;
         state.userLat=lat;state.userLng=lng;
       }catch(err){
-        document.getElementById('fs-typing').classList.add('hidden');
-        showFsMessage(`I need GPS to find what's nearby. Tap the location icon in your browser bar and try again.`);
-        return;
+        // GPS denied or timed out — fall back to current stop coords or first stop (city centre proxy)
+        const stop=CONFIG.stops&&(CONFIG.stops[state.currentStopIndex]||CONFIG.stops[0]);
+        if(stop&&stop.coordinates){lat=stop.coordinates.lat;lng=stop.coordinates.lng;}
+        else{document.getElementById('fs-typing').classList.add('hidden');showFsMessage(`I need your location to find what's nearby. Enable GPS in your browser settings and try again.`);return;}
       }
     }else{
       // Fallback: use the current stop's coords if we have them
-      const stop=CONFIG.stops&&CONFIG.stops[state.currentStopIndex];
+      const stop=CONFIG.stops&&(CONFIG.stops[state.currentStopIndex]||CONFIG.stops[0]);
       if(stop&&stop.coordinates){lat=stop.coordinates.lat;lng=stop.coordinates.lng;}
       else{document.getElementById('fs-typing').classList.add('hidden');showFsMessage('I need GPS to find what is near you.');return;}
     }
@@ -1196,6 +1211,22 @@ function showTourComplete(){
   const harrietText=CONFIG.tourCompleteMessage||`Well done, you've done it. Every stop, every story, every stamp. ${city} has shown you what it really is. We hope it has earned a return visit.`;
   const narration=CONFIG.tourCompleteNarration||harrietText;
   playHarriet(narration,'Tour Complete');
+  // Sponsor block
+  const sponsorBlock=document.getElementById('tc-sponsor-block');
+  if(sponsorBlock){
+    if(CONFIG.tcSponsorName){
+      document.getElementById('tc-sponsor-name').textContent=CONFIG.tcSponsorName;
+      const logoEl=document.getElementById('tc-sponsor-logo');
+      if(CONFIG.tcSponsorLogoUrl){logoEl.src=CONFIG.tcSponsorLogoUrl;logoEl.style.display='';}else{logoEl.style.display='none';}
+      const taglineEl=document.getElementById('tc-sponsor-tagline');
+      if(CONFIG.tcSponsorTagline){taglineEl.textContent=CONFIG.tcSponsorTagline;taglineEl.style.display='';}else{taglineEl.style.display='none';}
+      const linkEl=document.getElementById('tc-sponsor-link');
+      if(CONFIG.tcSponsorUrl){linkEl.href=CONFIG.tcSponsorUrl;linkEl.style.cursor='pointer';}else{linkEl.removeAttribute('href');}
+      sponsorBlock.style.display='';
+    }else{
+      sponsorBlock.style.display='none';
+    }
+  }
 }
 function playTourCompleteNarration(){
   stopAudio();

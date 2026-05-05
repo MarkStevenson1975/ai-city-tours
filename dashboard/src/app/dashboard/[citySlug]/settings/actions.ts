@@ -24,6 +24,11 @@ interface SaveSettingsInput {
   // Tour completion
   tour_complete_message: string;
   tour_complete_suggestion: string;
+  // Completion screen sponsor
+  tc_sponsor_name: string;
+  tc_sponsor_logo_url: string;
+  tc_sponsor_url: string;
+  tc_sponsor_tagline: string;
 }
 
 const VALID_TYPES = ['bid', 'tourist_board', 'council', 'dmo', 'other'];
@@ -75,6 +80,11 @@ export async function saveSettings(input: SaveSettingsInput) {
       // Tour completion
       tour_complete_message: input.tour_complete_message.trim() || null,
       tour_complete_suggestion: input.tour_complete_suggestion.trim() || null,
+      // Completion screen sponsor
+      tc_sponsor_name: input.tc_sponsor_name.trim() || null,
+      tc_sponsor_logo_url: input.tc_sponsor_logo_url.trim() || null,
+      tc_sponsor_url: input.tc_sponsor_url.trim() || null,
+      tc_sponsor_tagline: input.tc_sponsor_tagline.trim() || null,
       draft_updated_at: new Date().toISOString(),
     })
     .eq('id', input.cityId);
