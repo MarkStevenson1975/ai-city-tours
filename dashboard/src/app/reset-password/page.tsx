@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -13,11 +12,15 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const email = String(formData.get('email') ?? '').trim();
     const password = String(formData.get('password') ?? '');
+    const confirm = String(formData.get('confirm') ?? '');
 
-    if (!email || !password) {
-      setError('Please enter your email and password.');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.');
       return;
     }
 
@@ -25,12 +28,12 @@ export default function LoginPage() {
     setError(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.updateUser({ password });
 
     setLoading(false);
 
     if (error) {
-      setError('Incorrect email or password. Please try again.');
+      setError(error.message);
     } else {
       router.push('/dashboard');
       router.refresh();
@@ -43,39 +46,41 @@ export default function LoginPage() {
         <p className="text-xs uppercase tracking-widest text-accent font-bold mb-3">
           Storied
         </p>
-        <h1 className="text-4xl font-semibold mb-2">Sign in</h1>
+        <h1 className="text-4xl font-semibold mb-2">Choose a new password</h1>
         <p className="text-sm text-gray-600 mb-8">
-          Operator and admin access only.
+          Pick something secure. You will use this to sign in from now on.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-bold mb-2">
-              Email address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="you@example.co.uk"
-              autoComplete="email"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          <div>
             <label htmlFor="password" className="block text-sm font-bold mb-2">
-              Password
+              New password
             </label>
             <input
               id="password"
               name="password"
               type="password"
               required
-              placeholder="••••••••"
-              autoComplete="current-password"
+              minLength={8}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirm" className="block text-sm font-bold mb-2">
+              Confirm password
+            </label>
+            <input
+              id="confirm"
+              name="confirm"
+              type="password"
+              required
+              minLength={8}
+              placeholder="Repeat your password"
+              autoComplete="new-password"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 "
             />
           </div>
 
@@ -90,17 +95,8 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Saving…' : 'Save new password'}
           </button>
-
-          <p className="text-sm text-center text-gray-500">
-            <Link
-              href="/forgot-password"
-              className="text-primary font-bold hover:underline"
-            >
-              Forgot your password?
-            </Link>
-          </p>
         </form>
       </div>
     </main>
