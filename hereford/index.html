@@ -300,27 +300,25 @@
 
   </style>
   <script>
-    /* iOS scroll-lock fix — prevents elastic bounce locking at scroll boundaries */
+    /* iOS scroll-lock fix — blocks overscroll at boundaries of known scroll containers */
     (function() {
       var startY = 0;
+      var SCROLLABLE = '.stoplist-body, .detail-body, .stamps-body';
       document.addEventListener('touchstart', function(e) {
-        startY = e.touches[0].pageY;
+        startY = e.touches[0].clientY;
       }, { passive: true });
       document.addEventListener('touchmove', function(e) {
-        var el = e.target;
-        while (el && el !== document.body) {
-          var style = window.getComputedStyle(el);
-          var overflow = style.overflowY;
-          if ((overflow === 'auto' || overflow === 'scroll') && el.scrollHeight > el.clientHeight) {
-            var atTop = el.scrollTop === 0;
-            var atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
-            var goingUp = e.touches[0].pageY > startY;
-            var goingDown = e.touches[0].pageY < startY;
-            if ((!atTop || goingDown) && (!atBottom || goingUp)) return;
-          }
-          el = el.parentNode;
+        var scrollEl = e.target.closest(SCROLLABLE);
+        if (!scrollEl) {
+          e.preventDefault();
+          return;
         }
-        e.preventDefault();
+        var deltaY = e.touches[0].clientY - startY;
+        var atTop = scrollEl.scrollTop <= 0;
+        var atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+        if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
+          e.preventDefault();
+        }
       }, { passive: false });
     })();
   </script>
