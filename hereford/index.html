@@ -299,6 +299,31 @@
     .open-badge.closed{background:rgba(220,38,38,.2);color:#f87171}
 
   </style>
+  <script>
+    /* iOS scroll-lock fix — prevents elastic bounce locking at scroll boundaries */
+    (function() {
+      var startY = 0;
+      document.addEventListener('touchstart', function(e) {
+        startY = e.touches[0].pageY;
+      }, { passive: true });
+      document.addEventListener('touchmove', function(e) {
+        var el = e.target;
+        while (el && el !== document.body) {
+          var style = window.getComputedStyle(el);
+          var overflow = style.overflowY;
+          if ((overflow === 'auto' || overflow === 'scroll') && el.scrollHeight > el.clientHeight) {
+            var atTop = el.scrollTop === 0;
+            var atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+            var goingUp = e.touches[0].pageY > startY;
+            var goingDown = e.touches[0].pageY < startY;
+            if ((!atTop || goingDown) && (!atBottom || goingUp)) return;
+          }
+          el = el.parentNode;
+        }
+        e.preventDefault();
+      }, { passive: false });
+    })();
+  </script>
 </head>
 <body>
 <div id="app">
