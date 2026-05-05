@@ -115,7 +115,7 @@
     .btn-narration-toggle.paused{background:transparent;border:1.5px solid var(--color-primary);color:var(--color-primary)}
     .detail-stop-img-wrap{width:100%;aspect-ratio:2/1;max-height:30vh;min-height:140px;overflow:hidden;flex-shrink:0;position:relative;background:var(--color-primary);display:none}
     .detail-stop-img-wrap.loaded{display:block}
-    .detail-stop-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s ease}
+    .detail-stop-img-wrap img{width:100%;height:100%;object-fit:contain;display:block;opacity:0;transition:opacity .25s ease}
     .detail-stop-img-wrap.loaded img{opacity:1}
     .detail-stop-img-wrap.is-fallback img{opacity:.85}
     .detail-stop-img-wrap .img-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--color-text-light);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
@@ -129,7 +129,7 @@
     .btn-ask-harriet-stoplist{background:var(--color-primary);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;box-shadow:var(--shadow);border:none;cursor:pointer}
     .btn-ask-harriet-stoplist:active{opacity:.85}
     .skip-stop-wrap{text-align:center;padding:4px 0 20px;margin-top:4px}
-    .btn-skip-stop{background:none;border:none;color:var(--color-muted-dark);font-size:.75rem;text-decoration:underline;cursor:pointer;padding:6px 12px;opacity:.65;letter-spacing:.02em}
+    .btn-skip-stop{background:none;border:none;color:var(--color-primary);font-size:.75rem;text-decoration:underline;cursor:pointer;padding:6px 12px;opacity:.8;letter-spacing:.02em}
     .btn-skip-stop:active{opacity:.4}
     .tour-complete-banner{background:var(--color-primary);color:var(--color-text-light);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px;box-shadow:var(--shadow)}
     .tour-complete-banner span{font-family:var(--font-display);font-size:1rem;font-weight:600}
