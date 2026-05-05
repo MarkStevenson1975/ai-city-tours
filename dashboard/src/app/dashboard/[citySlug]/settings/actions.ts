@@ -21,6 +21,9 @@ interface SaveSettingsInput {
   // Guide
   guide_name: string;
   guide_voice_id: string;
+  // Tour completion
+  tour_complete_message: string;
+  tour_complete_suggestion: string;
 }
 
 const VALID_TYPES = ['bid', 'tourist_board', 'council', 'dmo', 'other'];
@@ -69,6 +72,9 @@ export async function saveSettings(input: SaveSettingsInput) {
       // Guide
       guide_name: input.guide_name.trim() || 'Guide',
       guide_voice_id: input.guide_voice_id.trim() || null,
+      // Tour completion
+      tour_complete_message: input.tour_complete_message.trim() || null,
+      tour_complete_suggestion: input.tour_complete_suggestion.trim() || null,
       draft_updated_at: new Date().toISOString(),
     })
     .eq('id', input.cityId);

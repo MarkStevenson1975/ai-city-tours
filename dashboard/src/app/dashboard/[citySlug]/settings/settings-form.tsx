@@ -19,6 +19,8 @@ interface City {
   color_background: string | null;
   guide_name: string | null;
   guide_voice_id: string | null;
+  tour_complete_message: string | null;
+  tour_complete_suggestion: string | null;
 }
 
 const TYPE_OPTIONS = [
@@ -63,6 +65,10 @@ export function SettingsForm({ city }: { city: City }) {
   const [guideName, setGuideName] = useState(city.guide_name ?? '');
   const [guideVoiceId, setGuideVoiceId] = useState(city.guide_voice_id ?? '');
 
+  // Tour completion
+  const [tourCompleteMessage, setTourCompleteMessage] = useState(city.tour_complete_message ?? '');
+  const [tourCompleteSuggestion, setTourCompleteSuggestion] = useState(city.tour_complete_suggestion ?? '');
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -84,6 +90,8 @@ export function SettingsForm({ city }: { city: City }) {
         color_background: colorBackground,
         guide_name: guideName,
         guide_voice_id: guideVoiceId,
+        tour_complete_message: tourCompleteMessage,
+        tour_complete_suggestion: tourCompleteSuggestion,
       });
       if (!result.ok) {
         setError(result.error);
@@ -252,6 +260,38 @@ export function SettingsForm({ city }: { city: City }) {
               onChange={(e) => setGuideVoiceId(e.target.value)}
               placeholder="NTqGiNK8P02i66yY2GOH"
               className={`${inputCls} font-mono text-sm`}
+            />
+          </Field>
+        </div>
+      </Section>
+
+      {/* TOUR COMPLETION */}
+      <Section title="Tour completion screen">
+        <div className="bg-white rounded-xl p-8 shadow-sm space-y-6">
+          <Field
+            label="Completion narration"
+            hint="What the guide says (and Harriet speaks aloud) when the visitor finishes all stops. Leave blank for a sensible default."
+          >
+            <textarea
+              value={tourCompleteMessage}
+              onChange={(e) => setTourCompleteMessage(e.target.value)}
+              rows={5}
+              maxLength={800}
+              placeholder={`Well done, you've done it. Every stop, every story, every stamp. ${cityName || 'Your city'} has shown you what it really is. We hope it has earned a return visit.`}
+              className={inputCls}
+            />
+          </Field>
+          <Field
+            label="Final suggestion text"
+            hint="The recommendation shown on the completion screen (e.g. a nearby pub or cafe). Leave blank for a sensible default."
+          >
+            <textarea
+              value={tourCompleteSuggestion}
+              onChange={(e) => setTourCompleteSuggestion(e.target.value)}
+              rows={3}
+              maxLength={400}
+              placeholder={`Why not find somewhere to sit and reflect? Or ask ${guideName || 'your guide'} to help you find something nearby.`}
+              className={inputCls}
             />
           </Field>
         </div>
