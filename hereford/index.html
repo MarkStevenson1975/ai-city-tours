@@ -631,7 +631,7 @@ function initSupabase() {
   const cityNameEl = document.getElementById('auth-city-name');
   if (cityNameEl && CONFIG) cityNameEl.textContent = CONFIG.city || 'Hereford';
   // Listen for auth state changes (handles OAuth redirects too)
-  sbClient.auth.onAuthStateChange(async (_event, session) => {
+  sbClient.auth.onAuthStateChange((_event, session) => {
     if (_event === 'PASSWORD_RECOVERY') {
       // User clicked the reset link in their email — show the new-password form
       showResetPasswordPanel();
@@ -641,22 +641,22 @@ function initSupabase() {
     if (currentUser) {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
-      await loadProgress();
-      await saveProgress(); // flush any stops visited before sign-in
-      if (state.currentScreen === 'headphones') showScreen('stoplist');
+      loadProgress().then(() => {
+        if (state.currentScreen === 'headphones') showScreen('stoplist');
+      });
     } else {
       showAuthFormPanel();
     }
   });
   // Check for existing session on page load
-  sbClient.auth.getSession().then(async ({ data: { session } }) => {
+  sbClient.auth.getSession().then(({ data: { session } }) => {
     currentUser = session ? session.user : null;
     if (currentUser) {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
-      await loadProgress();
-      await saveProgress(); // flush any stops visited before sign-in
-      if (state.currentScreen === 'headphones') showScreen('stoplist');
+      loadProgress().then(() => {
+        if (state.currentScreen === 'headphones') showScreen('stoplist');
+      });
     }
   });
 }
