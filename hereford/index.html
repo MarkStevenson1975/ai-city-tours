@@ -777,10 +777,11 @@ async function handleEmailAuth() {
     return;
   }
 
-  // Step 2: sign-in failed — try creating an account
-  // This handles: no account yet, email not yet confirmed, etc.
+  // Step 2: sign-in failed — try creating a new account
   const { data: signUpData, error: signUpErr } = await sbClient.auth.signUp({ email, password });
-  if (!signUpErr) {
+
+  // New account created and session returned — success
+  if (!signUpErr && signUpData.session) {
     currentUser = signUpData.user;
     saveUserTourRecord();
     await loadProgress();
@@ -790,10 +791,16 @@ async function handleEmailAuth() {
     return;
   }
 
-  // Both failed — show the most useful error message
-  // If sign-up says "already registered", the original sign-in error (wrong password) is more helpful
-  const alreadyExists = signUpErr.message && signUpErr.message.toLowerCase().includes('already');
-  showAuthError(alreadyExists ? 'Incorrect password. Please try again.' : (signUpErr.message || signInErr.message));
+  // signUp returned a user but no session — email already registered, password was wrong
+  if (!signUpErr && signUpData.user && !signUpData.session) {
+    showAuthError('This email is already registered. Please check your password, or use the Forgot password link below.');
+    if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
+    return;
+  }
+
+  // Both failed — show the most useful error
+  const alreadyExists = signUpErr && signUpErr.message && signUpErr.message.toLowerCase().includes('already');
+  showAuthError(alreadyExists ? 'This email is already registered. Please check your password, or use the Forgot password link below.' : ((signUpErr && signUpErr.message) || signInErr.message));
   if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
 }
 
