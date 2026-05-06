@@ -1059,7 +1059,7 @@ function triggerArrival(toIdx){
   const stop=CONFIG.stops[toIdx];
   state.visitedStops.add(stop.id);
   saveProgress();
-  showToast(`🎫 Stamp collected - ${stop.name}!`);
+  showToast(`Visited - ${stop.name}`);
   playHarriet(`You've arrived at ${stop.name}. Wonderful - tap to find out more about where you're standing.`,'Arrival');
   document.getElementById('arrival-emoji').textContent=stop.emoji;
   document.getElementById('arrival-stop-name').textContent=stop.name;
@@ -1158,7 +1158,7 @@ audio.src=url;audio.load();const playPromise=audio.play();if(playPromise!==undef
 function saveSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'hereford');try{localStorage.setItem(k,JSON.stringify([...state.skippedStops]));}catch(e){}}
 function loadSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'hereford');try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}}
 function skipStop(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id)){showScreen('stoplist');return;}state.visitedStops.add(stop.id);state.skippedStops.add(stop.id);saveProgress();saveSkippedStops();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display='none';if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,600);}showScreen('stoplist');}
-function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`🎫 Stamp collected - ${stop.name}!`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
+function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`Visited - ${stop.name}`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
 function playFact(text){playHarriet(text,'Interesting Fact');}
 function showAudioBar(label,demo){document.getElementById('audio-label').textContent=label;document.getElementById('audio-player-bar').classList.add('visible');}
 function hideAudioBar(){document.getElementById('audio-player-bar').classList.remove('visible');document.getElementById('audio-progress-fill').style.width='0%';}
