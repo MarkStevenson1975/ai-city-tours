@@ -297,7 +297,14 @@
     .btn-tc-play{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:14px 22px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
     .btn-tc-play:hover{background:rgba(255,255,255,.08)}
     .btn-tc-ask{background:var(--color-accent);color:var(--color-primary);padding:16px 28px;border-radius:50px;font-size:1rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-tc-share{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-tc-share:active{background:rgba(255,255,255,.08)}
     .btn-tc-back{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;width:100%;display:flex;align-items:center;justify-content:center}
+    .btn-forgot-password{background:none;border:none;color:var(--color-primary);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:2px 0 8px;display:block;opacity:.7}
+    .auth-forgot-panel,.auth-reset-panel{display:none}
+    .auth-forgot-panel.visible,.auth-reset-panel.visible{display:block}
+    .auth-reset-title{font-size:1rem;font-weight:700;color:var(--color-primary);margin-bottom:6px}
+    .auth-reset-note{font-size:.82rem;color:#666;margin-bottom:14px;line-height:1.5}
     .tc-operator-block{border-top:1px solid rgba(255,255,255,.15);padding-top:24px;margin-top:8px;margin-bottom:24px;text-align:center}
     .tc-operator-label{font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:12px}
     .tc-operator-logo{max-height:48px;max-width:160px;object-fit:contain;display:block;margin:0 auto 8px;opacity:.9}
@@ -362,6 +369,7 @@
       <div id="auth-form-panel">
         <input class="auth-input" id="auth-email" type="email" placeholder="Email address" autocomplete="email" inputmode="email">
         <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password">
+        <button class="btn-forgot-password" type="button" onclick="showForgotPassword()">Forgot password?</button>
         <div id="auth-error" class="auth-error hidden"></div>
         <button class="btn-auth-submit" id="btn-auth-submit" onclick="handleEmailAuth()">Save my progress and start tour</button>
         <div class="auth-divider">or</div>
@@ -369,9 +377,26 @@
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908C18.619 14.007 17.64 11.698 17.64 9.2z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A9 9 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A9 9 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
           Continue with Google and start tour
         </button>
-        <p class="auth-consent-note">By saving your progress you agree to your email being stored for this purpose only. We will not share your data or send marketing emails. <a href="/privacy" target="_blank">Privacy policy</a></p>
+        <p class="auth-consent-note">By saving your progress, you agree to your email being stored for this purpose only. We will not share your data. <a href="/privacy" target="_blank">Privacy policy</a></p>
         <button class="btn-auth-skip" onclick="skipAuth()">Continue without saving</button>
         <p class="auth-skip-note">Progress will be lost if you close this page.</p>
+      </div>
+      <!-- Forgot password panel -->
+      <div class="auth-forgot-panel" id="auth-forgot-panel">
+        <p class="auth-reset-title">Reset your password</p>
+        <p class="auth-reset-note">Enter your email address and we'll send you a link to reset your password.</p>
+        <input class="auth-input" id="auth-forgot-email" type="email" placeholder="Email address" autocomplete="email" inputmode="email">
+        <div id="auth-forgot-error" class="auth-error hidden"></div>
+        <button class="btn-auth-submit" id="btn-send-reset" onclick="sendPasswordReset()">Send reset email</button>
+        <button class="btn-auth-skip" onclick="showAuthFormPanel()">&#8592; Back to sign in</button>
+      </div>
+      <!-- New password panel (shown after clicking email reset link) -->
+      <div class="auth-reset-panel" id="auth-reset-panel">
+        <p class="auth-reset-title">Set your new password</p>
+        <p class="auth-reset-note">Choose a new password for your account. You'll be taken straight into the tour once it's set.</p>
+        <input class="auth-input" id="auth-new-password" type="password" placeholder="New password (min. 6 characters)" autocomplete="new-password">
+        <div id="auth-reset-error" class="auth-error hidden"></div>
+        <button class="btn-auth-submit" id="btn-save-new-password" onclick="saveNewPassword()">Set new password and start tour</button>
       </div>
     </div>
     <hr class="auth-section-divider">
@@ -564,6 +589,7 @@
       <div class="tc-operator-name" id="tc-operator-name"></div>
     </div>
     <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
+    <button class="btn-tc-share" onclick="shareAchievement()">&#128279; Share your achievement</button>
     <button class="btn-tc-back" onclick="closeTourComplete()">&#8592; Back to the tour</button>
   </div>
 </div>
@@ -597,6 +623,11 @@ function initSupabase() {
   if (cityNameEl && CONFIG) cityNameEl.textContent = CONFIG.city || 'Hereford';
   // Listen for auth state changes (handles OAuth redirects too)
   sbClient.auth.onAuthStateChange((_event, session) => {
+    if (_event === 'PASSWORD_RECOVERY') {
+      // User clicked the reset link in their email — show the new-password form
+      showResetPasswordPanel();
+      return;
+    }
     currentUser = session ? session.user : null;
     if (currentUser) {
       showAuthSignedIn(currentUser.email);
@@ -620,8 +651,77 @@ function initSupabase() {
 function showAuthFormPanel() {
   const form = document.getElementById('auth-form-panel');
   const signedIn = document.getElementById('auth-signed-in-panel');
+  const forgot = document.getElementById('auth-forgot-panel');
+  const reset = document.getElementById('auth-reset-panel');
   if (form) form.classList.remove('hidden');
   if (signedIn) signedIn.classList.add('hidden');
+  if (forgot) forgot.classList.remove('visible');
+  if (reset) reset.classList.remove('visible');
+  const err = document.getElementById('auth-error');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+}
+function showForgotPassword() {
+  const form = document.getElementById('auth-form-panel');
+  const forgot = document.getElementById('auth-forgot-panel');
+  if (form) form.classList.add('hidden');
+  if (forgot) forgot.classList.add('visible');
+  const err = document.getElementById('auth-error');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+}
+function showResetPasswordPanel() {
+  const form = document.getElementById('auth-form-panel');
+  const signedIn = document.getElementById('auth-signed-in-panel');
+  const forgot = document.getElementById('auth-forgot-panel');
+  const reset = document.getElementById('auth-reset-panel');
+  if (form) form.classList.add('hidden');
+  if (signedIn) signedIn.classList.add('hidden');
+  if (forgot) forgot.classList.remove('visible');
+  if (reset) reset.classList.add('visible');
+  if (state.currentScreen !== 'headphones') showScreen('headphones');
+}
+function showForgotError(msg) { const el = document.getElementById('auth-forgot-error'); if (el) { el.textContent = msg; el.classList.remove('hidden'); } }
+function showResetError(msg) { const el = document.getElementById('auth-reset-error'); if (el) { el.textContent = msg; el.classList.remove('hidden'); } }
+async function sendPasswordReset() {
+  if (!sbClient) { showForgotError('Auth not available.'); return; }
+  const emailEl = document.getElementById('auth-forgot-email');
+  const email = emailEl ? emailEl.value.trim() : '';
+  if (!email) { showForgotError('Please enter your email address.'); return; }
+  const btn = document.getElementById('btn-send-reset');
+  if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
+  const { error } = await sbClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+  if (error) {
+    showForgotError(error.message);
+    if (btn) { btn.textContent = 'Send reset email'; btn.disabled = false; }
+  } else {
+    const panel = document.getElementById('auth-forgot-panel');
+    if (panel) panel.innerHTML = '<p class="auth-reset-title">Check your email</p><p class="auth-reset-note">A password reset link has been sent. It may take a few minutes to arrive. Click the link in the email and you\'ll be brought straight back here to set your new password.</p><button class="btn-auth-skip" onclick="showAuthFormPanel()">&#8592; Back to sign in</button>';
+  }
+}
+async function saveNewPassword() {
+  if (!sbClient) { showResetError('Auth not available.'); return; }
+  const pwdEl = document.getElementById('auth-new-password');
+  const pwd = pwdEl ? pwdEl.value.trim() : '';
+  if (!pwd || pwd.length < 6) { showResetError('Password must be at least 6 characters.'); return; }
+  const btn = document.getElementById('btn-save-new-password');
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  const { error } = await sbClient.auth.updateUser({ password: pwd });
+  if (error) {
+    showResetError(error.message);
+    if (btn) { btn.textContent = 'Set new password and start tour'; btn.disabled = false; }
+  } else {
+    showScreen('stoplist');
+  }
+}
+async function shareAchievement() {
+  const city = (CONFIG && CONFIG.city) || 'the city';
+  const guide = (CONFIG && CONFIG.guideName) || 'Harriet';
+  const url = window.location.origin + window.location.pathname;
+  const shareData = { title: `I completed the ${city} walking tour!`, text: `I just completed the ${city} walking tour with ${guide}. A brilliant walk through the streets of ${city}.`, url };
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch(e) { /* user cancelled — do nothing */ }
+  } else {
+    try { await navigator.clipboard.writeText(url); showToast('Link copied to clipboard!'); } catch(e) { showToast('Tour link: ' + url); }
+  }
 }
 
 function showAuthSignedIn(email) {
