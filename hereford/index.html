@@ -222,7 +222,10 @@
     #modal-tellmore.open,#modal-findsomething.open{display:flex}
     .modal-sheet{background:var(--color-bg);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:0 0 40px}
     .modal-handle{width:40px;height:4px;background:var(--color-muted-dark);border-radius:2px;margin:12px auto 0}
-    .modal-header{padding:16px 16px 0;display:flex;align-items:flex-start;justify-content:space-between}
+    .modal-sticky-top{position:sticky;top:0;background:var(--color-bg);z-index:10;padding-top:12px;border-radius:var(--radius) var(--radius) 0 0}
+    .modal-sticky-top .modal-handle{margin-top:0}
+    .modal-header{padding:16px 16px 8px;display:flex;align-items:flex-start;justify-content:space-between}
+    .btn-fs-close{width:100%;padding:14px;border-radius:50px;border:1.5px solid var(--color-primary);background:transparent;color:var(--color-primary);font-size:.9rem;font-weight:700;margin-top:16px;cursor:pointer;font-family:var(--font-body)}
     .modal-header h3{font-family:var(--font-display);font-size:1.4rem;font-weight:600;color:var(--color-primary);flex:1}
     .modal-close{background:var(--color-muted);color:var(--color-text);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
     .modal-body{padding:16px}
@@ -524,8 +527,10 @@
 </div>
 <div id="modal-tellmore">
   <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-header"><h3 id="tmm-modal-title">Harriet on…</h3><button class="modal-close" onclick="closeModal('tellmore')">✕</button></div>
+    <div class="modal-sticky-top">
+      <div class="modal-handle"></div>
+      <div class="modal-header"><h3 id="tmm-modal-title">Harriet on…</h3><button class="modal-close" onclick="closeModal('tellmore')">✕</button></div>
+    </div>
     <div class="modal-body">
       <div class="modal-location-label" id="tmm-location-label">📍 Loading…</div>
       <div class="typing-indicator" id="tmm-typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
@@ -536,8 +541,10 @@
 </div>
 <div id="modal-findsomething">
   <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-header"><h3>Find me something</h3><button class="modal-close" onclick="closeModal('findsomething')">✕</button></div>
+    <div class="modal-sticky-top">
+      <div class="modal-handle"></div>
+      <div class="modal-header"><h3>Find me something</h3><button class="modal-close" onclick="closeModal('findsomething')">✕</button></div>
+    </div>
     <div class="modal-body">
       <p style="font-family:var(--font-display);font-style:italic;color:#666;margin-bottom:16px;">What are you looking for?</p>
       <div style="display:flex;gap:8px;margin-bottom:14px;">
@@ -1219,7 +1226,7 @@ function showFsMessage(text){
 }
 function renderFsResults(results){
   const r=document.getElementById('fs-results');
-  if(!results.length){r.innerHTML='<div class="fs-empty">Nothing close enough to suggest right now — try a different chip or walk a few minutes and tap again.</div>';r.classList.remove('hidden');r.classList.add('visible');return;}
+  if(!results.length){r.innerHTML='<div class="fs-empty">Nothing close enough to suggest right now — try a different chip or walk a few minutes and tap again.</div><button class="btn-fs-close" onclick="closeModal(\'findsomething\')">Close</button>';r.classList.remove('hidden');r.classList.add('visible');return;}
   const cards=results.map(p=>{
     const dist=p.distance<1000?`${p.distance} m away`:`${(p.distance/1000).toFixed(1)} km away`;
     const rating=p.rating?`<span class="fs-card-rating">★ ${p.rating.toFixed(1)}</span>`:'';
@@ -1228,7 +1235,7 @@ function renderFsResults(results){
     const safeAddr=String(p.address||'').replace(/</g,'&lt;');
     return `<div class="fs-card"><div class="fs-card-body"><div class="fs-card-name">${safeName.replace(/</g,'&lt;')}</div><div class="fs-card-meta"><span>${dist}</span>${rating}${open}</div>${safeAddr?`<div class="fs-card-address">${safeAddr}</div>`:''}</div><button class="fs-card-nav" onclick="navigateToPlace(${p.lat},${p.lng},&quot;${safeName}&quot;)">Take me there</button></div>`;
   }).join('');
-  r.innerHTML=cards;
+  r.innerHTML=cards+'<button class="btn-fs-close" onclick="closeModal(\'findsomething\')">Close</button>';
   r.classList.remove('hidden');
   r.classList.add('visible');
 }
