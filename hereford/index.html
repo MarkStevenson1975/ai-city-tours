@@ -835,25 +835,26 @@ async function saveUserTourRecord() {
 }
 
 async function saveProgress() {
-  if (!sbClient) { showToast('DEBUG: no Supabase client'); return; }
-  if (!currentUser) { showToast('DEBUG: not signed in — progress not saved'); return; }
-  if (!CONFIG) { showToast('DEBUG: config missing'); return; }
+  if (!sbClient || !CONFIG) return;
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (!session) return;
   const slug = CONFIG.citySlug || 'hereford';
   const ids = Array.from(state.visitedStops);
   const { error } = await sbClient.from('tour_progress').upsert(
-    { user_id: currentUser.id, city_slug: slug, visited_stop_ids: ids, updated_at: new Date().toISOString() },
+    { user_id: session.user.id, city_slug: slug, visited_stop_ids: ids, updated_at: new Date().toISOString() },
     { onConflict: 'user_id,city_slug' }
   );
   if (error) {
-    showToast('DEBUG save failed: ' + error.message);
     console.error('saveProgress failed:', error);
   }
 }
 
 async function loadProgress() {
-  if (!sbClient || !currentUser || !CONFIG) return;
+  if (!sbClient || !CONFIG) return;
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (!session) return;
   const slug = CONFIG.citySlug || 'hereford';
-  const { data } = await sbClient.from('tour_progress').select('visited_stop_ids').eq('user_id', currentUser.id).eq('city_slug', slug).maybeSingle();
+  const { data } = await sbClient.from('tour_progress').select('visited_stop_ids').eq('user_id', session.user.id).eq('city_slug', slug).maybeSingle();
   if (data && data.visited_stop_ids && data.visited_stop_ids.length) {
     data.visited_stop_ids.forEach(id => state.visitedStops.add(id));
     renderStopList();
