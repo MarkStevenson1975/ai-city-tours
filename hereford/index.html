@@ -631,7 +631,7 @@ function initSupabase() {
   const cityNameEl = document.getElementById('auth-city-name');
   if (cityNameEl && CONFIG) cityNameEl.textContent = CONFIG.city || 'Hereford';
   // Listen for auth state changes (handles OAuth redirects too)
-  sbClient.auth.onAuthStateChange((_event, session) => {
+  sbClient.auth.onAuthStateChange(async (_event, session) => {
     if (_event === 'PASSWORD_RECOVERY') {
       // User clicked the reset link in their email — show the new-password form
       showResetPasswordPanel();
@@ -641,18 +641,20 @@ function initSupabase() {
     if (currentUser) {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
-      loadProgress();
+      await loadProgress();
+      if (state.currentScreen === 'headphones') showScreen('stoplist');
     } else {
       showAuthFormPanel();
     }
   });
   // Check for existing session on page load
-  sbClient.auth.getSession().then(({ data: { session } }) => {
+  sbClient.auth.getSession().then(async ({ data: { session } }) => {
     currentUser = session ? session.user : null;
     if (currentUser) {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
-      loadProgress();
+      await loadProgress();
+      if (state.currentScreen === 'headphones') showScreen('stoplist');
     }
   });
 }
@@ -740,8 +742,7 @@ function showAuthSignedIn(email) {
   if (form) form.classList.add('hidden');
   if (signedIn) signedIn.classList.remove('hidden');
   if (emailEl) emailEl.textContent = email;
-  // Advance past the headphones/auth screen once signed in
-  if (state.currentScreen === 'headphones') showScreen('stoplist');
+  // Navigation to stoplist is handled by the caller after loadProgress resolves
 }
 
 function showAuthError(msg) {
