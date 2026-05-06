@@ -71,7 +71,6 @@ export default async function SettingsPage({
       </section>
 
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-3">Operator details</h2>
         <SettingsForm city={city} />
       </section>
     </div>
