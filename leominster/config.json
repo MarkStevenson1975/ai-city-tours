@@ -1,0 +1,16 @@
+{
+  "city": "Leominster",
+  "citySlug": "leominster",
+  "postcodeArea": "HR6",
+  "guideName": "Harriet",
+  "guideVoiceId": "NTqGiNK8P02i66yY2GOH",
+  "maxStops": 10,
+  "colorPrimary": "#1B4332",
+  "colorBackground": "#F5F0E8",
+  "colorAccent": "#C9A84C",
+  "operatorName": "Leominster",
+  "stops": [],
+  "locationFacts": [],
+  "sponsors": [],
+  "events": []
+}

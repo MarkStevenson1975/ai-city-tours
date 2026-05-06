@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Explore Leominster with Harriet</title>
+  <!--
+  HARRIET GUIDED WALK HEREFORD - v2.0 · The SetUp Crew
+  BEFORE DEPLOYING: Replace all {{PLACEHOLDER}} values in CONFIG.
+  TO DEPLOY FOR A NEW CITY: Update only the CONFIG object.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    :root{--color-primary:#1B4332;--color-primary-light:#2D6A4F;--color-bg:#F5F0E8;--color-accent:#C9A84C;--color-accent-light:#E8C96A;--color-text:#1A1A1A;--color-text-light:#F5F0E8;--color-muted:#E8E0D0;--color-muted-dark:#B0A898;--color-visited:#40916C;--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Lato',sans-serif;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,.12);--shadow-lg:0 8px 32px rgba(0,0,0,.18);--transition:200ms ease}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden;background:var(--color-primary)}
+    body{font-family:var(--font-body);color:var(--color-text)}
+    button{font-family:var(--font-body);cursor:pointer;border:none;outline:none}
+    img{display:block;max-width:100%}
+    #app{position:fixed;inset:0;overflow:hidden}
+    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--color-bg);opacity:0;pointer-events:none;transition:opacity var(--transition);overflow:hidden}
+    .screen.active{opacity:1;pointer-events:all}
+    .harriet-bar{background:var(--color-primary);color:var(--color-text-light);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .harriet-bar .guide-name{font-family:var(--font-display);font-size:1.1rem;font-weight:500;opacity:.9}
+    .harriet-bar .city-name{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.6}
+    .harriet-bar .back-btn{background:transparent;color:var(--color-text-light);font-size:.85rem;padding:6px 10px;border-radius:var(--radius-sm);opacity:.8}
+    #screen-splash{background:var(--color-primary);color:var(--color-text-light);justify-content:flex-start;align-items:center;text-align:center;padding:40px 24px 60px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+    .splash-backdrop{position:absolute;inset:0;background:url('https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Leominster_Priory_from_the_south-east.jpg/640px-Leominster_Priory_from_the_south-east.jpg') center/cover no-repeat;opacity:.30}
+    .splash-content{position:relative;z-index:1;max-width:400px}
+    .splash-eyebrow{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--color-accent);margin-bottom:12px}
+    .splash-city{font-family:var(--font-display);font-size:3.8rem;font-weight:600;line-height:1.05;margin-bottom:8px}
+    .splash-tagline{font-family:var(--font-display);font-size:1.2rem;font-style:italic;opacity:.75;margin-bottom:32px}
+    .harriet-intro-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius);padding:20px;text-align:left;margin-bottom:28px}
+    .harriet-intro-card .avatar{width:44px;height:44px;background:var(--color-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:12px}
+    .harriet-intro-card p{font-family:var(--font-display);font-size:1.05rem;font-style:italic;line-height:1.6;opacity:.9}
+    .btn-play-intro{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:12px 20px;border-radius:50px;font-size:.9rem;display:flex;align-items:center;gap:8px;margin:0 auto 12px;transition:opacity .2s}
+    .btn-play-intro.loading{opacity:.7;cursor:not-allowed}
+    .btn-play-intro:disabled{cursor:not-allowed}
+    .btn-start-tour{background:var(--color-accent);color:var(--color-primary);padding:16px 32px;border-radius:50px;font-size:1rem;font-weight:700;width:100%;max-width:280px;display:block;margin:0 auto}
+    .splash-small{font-size:.72rem;opacity:.45;margin-top:20px;line-height:1.6}
+    .operator-credit{margin-top:36px;padding-top:24px;border-top:1px solid rgba(255,255,255,.15);text-align:center;display:none}
+    .operator-credit.visible{display:block}
+    .operator-credit img{max-width:240px;max-height:72px;width:auto;height:auto;margin:0 auto 10px;opacity:.92;display:block}
+    .operator-attribution{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--color-accent);opacity:.85;font-weight:700}
+    .splash-city-image{width:100%;height:160px;border-radius:var(--radius);overflow:hidden;margin-bottom:20px;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.35);flex-shrink:0}
+    .splash-city-image img{width:100%;height:100%;object-fit:cover;display:block}
+    .splash-city-image-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(27,67,50,.45))}
+    #screen-headphones{background:var(--color-primary);color:var(--color-text-light);justify-content:flex-start;align-items:center;text-align:center;padding:28px 24px 40px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+    /* Auth section */
+    .auth-section{width:100%;max-width:380px;margin:0 auto}
+    .auth-welcome-title{font-family:var(--font-display);font-size:2rem;font-weight:600;line-height:1.2;margin-bottom:6px}
+    .auth-welcome-sub{font-size:.88rem;opacity:.7;margin-bottom:22px}
+    .auth-input{width:100%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);border-radius:var(--radius-sm);color:var(--color-text-light);padding:12px 14px;font-size:.95rem;font-family:var(--font-body);margin-bottom:10px;outline:none}
+    .auth-input::placeholder{opacity:.5}.auth-input:focus{border-color:var(--color-accent)}
+    .btn-auth-submit{background:var(--color-accent);color:var(--color-primary);width:100%;padding:14px;border-radius:50px;font-size:.95rem;font-weight:700;margin-bottom:12px;margin-top:4px;cursor:pointer}
+    .auth-divider{display:flex;align-items:center;gap:10px;margin:10px 0;opacity:.4;font-size:.8rem}
+    .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:currentColor}
+    .btn-auth-google{background:#fff;color:#1A1A1A;width:100%;padding:13px;border-radius:50px;font-size:.9rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;cursor:pointer}
+    .auth-error{color:#FFB4AB;font-size:.82rem;margin-bottom:8px;text-align:left}
+    .auth-consent-note{font-size:.72rem;opacity:.6;text-align:center;line-height:1.5;margin:0 0 14px}
+    .auth-consent-note a{color:var(--color-accent);text-decoration:none}
+    .btn-auth-skip{background:transparent;color:var(--color-text-light);font-size:.85rem;opacity:.6;text-decoration:underline;padding:4px;cursor:pointer}
+    .auth-skip-note{font-size:.72rem;opacity:.4;margin-top:4px}
+    .auth-signed-in-box{background:rgba(255,255,255,.1);border-radius:var(--radius);padding:14px 16px;text-align:left;width:100%}
+    .auth-signed-in-msg{font-size:.88rem;margin-bottom:8px}
+    .auth-signed-in-email{font-weight:700;color:var(--color-accent)}
+    .btn-auth-signout{font-size:.8rem;opacity:.6;text-decoration:underline;cursor:pointer}
+    .auth-section-divider{width:100%;border:none;border-top:1px solid rgba(255,255,255,.15);margin:24px 0}
+    /* Headphones section */
+    .headphones-section{width:100%;max-width:380px;margin:0 auto;text-align:center}
+    .headphones-icon{font-size:3.2rem;margin-bottom:16px}
+    .headphones-title{font-family:var(--font-display);font-size:1.75rem;font-weight:600;margin-bottom:12px;line-height:1.2}
+    .headphones-note{font-size:.8rem;font-style:italic;opacity:.55;max-width:300px;margin:0 auto 28px}
+    #screen-stoplist{background:var(--color-bg)}
+    .stoplist-header{background:var(--color-primary);color:var(--color-text-light);padding:16px 16px 20px;flex-shrink:0}
+    .stoplist-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+    .stoplist-header h1{font-family:var(--font-display);font-size:1.7rem;font-weight:600}
+    .btn-ask-harriet-header{background:rgba(255,255,255,.15);color:var(--color-text-light);border:1px solid rgba(255,255,255,.3);padding:7px 13px;border-radius:50px;font-size:.78rem;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:5px}
+    .btn-where-standing{background:var(--color-accent);color:var(--color-primary);border:none;padding:7px 12px;border-radius:50px;font-size:.72rem;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:4px;max-width:62%}
+    .btn-where-standing:active{filter:brightness(.9)}
+    .stamp-progress-bar{background:rgba(255,255,255,.1);border-radius:50px;height:8px;margin-bottom:8px;overflow:hidden}
+    .stamp-progress-fill{height:100%;background:var(--color-accent);border-radius:50px;transition:width .5s ease}
+    .stamp-progress-label{font-size:.78rem;opacity:.7}
+    .stoplist-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:16px 16px 100px}
+    .stop-card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;transition:transform .15s;border:1.5px solid transparent}
+    .stop-card:active{transform:scale(.98)}
+    .stop-card.visited{border-color:var(--color-visited)}
+    .stop-number{width:40px;height:40px;border-radius:50%;background:var(--color-primary);color:var(--color-text-light);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0}
+    .stop-card.visited .stop-number{background:var(--color-visited)}
+    .stop-card.skipped .stop-number{font-size:1.1rem;line-height:1}
+    .stop-card-info{flex:1;min-width:0}
+    .stop-card-name{font-family:var(--font-display);font-size:1.1rem;font-weight:600;line-height:1.2;margin-bottom:3px}
+    .stop-card-desc{font-size:.8rem;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .stop-card-distance{font-size:.75rem;color:var(--color-accent);font-weight:700;flex-shrink:0}
+    #screen-detail{background:var(--color-bg)}
+    .detail-compact-header{background:var(--color-primary);color:var(--color-text-light);padding:12px 16px;display:flex;align-items:center;gap:10px;min-height:56px;flex-shrink:0}
+    .detail-hero-back{background:transparent;color:var(--color-text-light);font-size:.85rem;padding:4px 0;opacity:.85;flex-shrink:0;white-space:nowrap}
+    .detail-compact-title{font-family:var(--font-display);font-size:1.25rem;font-weight:600;color:var(--color-text-light);flex:1;line-height:1.2}
+    .detail-hero-badge{background:var(--color-accent);color:var(--color-primary);border-radius:50px;padding:5px 11px;font-size:.72rem;font-weight:700;flex-shrink:0}
+    .visited-stamp-overlay{display:inline-flex;align-items:center;font-size:1.1rem;margin-left:4px}
+    .detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:16px 16px 120px}
+    .narration-card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .narration-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .narration-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);display:flex;align-items:center;gap:6px}
+    .narration-text{font-family:var(--font-display);font-size:1.05rem;line-height:1.75;max-height:3.8em;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,black 55%,transparent 100%);mask-image:linear-gradient(to bottom,black 55%,transparent 100%)}
+    .narration-text.expanded{max-height:none;-webkit-mask-image:none;mask-image:none}
+    .btn-expand-narration{font-size:.8rem;color:var(--color-accent);background:none;border:none;padding:4px 0 8px;cursor:pointer;font-weight:700;display:block}
+    .narration-play-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+    .btn-narration-toggle{background:var(--color-primary);color:var(--color-text-light);padding:12px 24px;border-radius:50px;font-size:.95rem;display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:4px}
+    .btn-narration-toggle.paused{background:transparent;border:1.5px solid var(--color-primary);color:var(--color-primary)}
+    .detail-stop-img-wrap{width:100%;max-height:60vh;overflow:hidden;flex-shrink:0;position:relative;background:var(--color-primary);display:none}
+    .detail-stop-img-wrap.loaded{display:block}
+    .detail-stop-img-wrap img{width:100%;height:auto;display:block;opacity:0;transition:opacity .25s ease}
+    .detail-stop-img-wrap.loaded img{opacity:1}
+    .detail-stop-img-wrap.is-fallback img{opacity:.85}
+    .detail-stop-img-wrap .img-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--color-text-light);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+    .detail-stop-img-wrap.loaded .img-loading{display:none}
+    .detail-stop-img-wrap .img-loading::before{content:"";display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;margin-right:8px}
+    .btn-mark-complete{background:var(--color-visited);color:#fff;padding:5px 12px;border-radius:50px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .btn-mark-complete.already-done{background:#ccc;color:#666;cursor:default}
+    .stoplist-map-wrap{height:200px;background:var(--color-muted);position:relative;touch-action:none;overflow:hidden;flex-shrink:0}
+    #stoplist-mini-map{width:100%;height:100%;touch-action:none}
+    .ask-harriet-stoplist-wrap{padding:12px 0 8px;text-align:center}
+    .stoplist-signout-wrap{padding:2px 0 8px;text-align:left}
+    .btn-stoplist-signout{background:none;border:none;color:var(--color-primary);font-size:.82rem;font-weight:600;cursor:pointer;padding:4px 0;text-decoration:underline;font-family:var(--font-body);letter-spacing:.01em}
+    .btn-ask-harriet-stoplist{background:var(--color-primary);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;box-shadow:var(--shadow);border:none;cursor:pointer}
+    .btn-ask-harriet-stoplist:active{opacity:.85}
+    .skip-stop-wrap{text-align:center;padding:4px 0 20px;margin-top:4px}
+    .btn-skip-stop{background:none;border:none;color:var(--color-primary);font-size:.75rem;text-decoration:underline;cursor:pointer;padding:6px 12px;opacity:.8;letter-spacing:.02em}
+    .btn-skip-stop:active{opacity:.4}
+    .tour-complete-banner{background:var(--color-primary);color:var(--color-text-light);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px;box-shadow:var(--shadow)}
+    .tour-complete-banner span{font-family:var(--font-display);font-size:1rem;font-weight:600}
+    .btn-return-complete{background:var(--color-accent);color:var(--color-primary);padding:8px 14px;border-radius:50px;font-size:.78rem;font-weight:700;white-space:nowrap;flex-shrink:0}
+    .facts-section{margin-bottom:14px}
+    .facts-section h3{font-family:var(--font-display);font-size:1.1rem;font-weight:600;margin-bottom:10px;color:var(--color-primary)}
+    .fact-card{background:var(--color-muted);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+    .fact-icon{font-size:1.1rem;flex-shrink:0}
+    .fact-text{font-size:.88rem;line-height:1.55}
+    .tell-me-more-card{background:var(--color-primary);color:var(--color-text-light);border-radius:var(--radius);padding:20px;margin-bottom:14px;cursor:pointer}
+    .tell-me-more-card .tmm-eyebrow{font-size:1.4rem;margin-bottom:8px}
+    .tell-me-more-card h3{font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:8px}
+    .tell-me-more-card p{font-family:var(--font-display);font-size:.95rem;font-style:italic;opacity:.8;line-height:1.5;margin-bottom:14px}
+    .btn-ask-harriet{background:var(--color-accent);color:var(--color-primary);padding:12px 20px;border-radius:50px;font-size:.9rem;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+    .find-something-card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:14px;cursor:pointer;border:1.5px solid var(--color-muted);box-shadow:0 1px 4px rgba(0,0,0,.05)}
+    .find-something-card .fs-eyebrow{font-size:1.2rem;margin-bottom:8px}
+    .find-something-card h3{font-family:var(--font-display);font-size:1.15rem;font-weight:600;margin-bottom:6px;color:var(--color-primary)}
+    .find-something-card p{font-size:.85rem;color:#666;line-height:1.5;margin-bottom:14px}
+    .btn-find-something{background:var(--color-primary);color:var(--color-text-light);padding:12px 20px;border-radius:50px;font-size:.9rem;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+    .sponsor-card{background:linear-gradient(135deg,var(--color-primary),var(--color-primary-light));color:var(--color-text-light);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+    .sponsor-card .sponsor-label{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;opacity:.55;margin-bottom:10px}
+    .sponsor-card .sponsor-name{font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:4px}
+    .sponsor-card .sponsor-tagline{font-size:.85rem;opacity:.75;margin-bottom:14px}
+    .btn-sponsor-cta{background:var(--color-accent);color:var(--color-primary);padding:10px 18px;border-radius:50px;font-size:.85rem;font-weight:700}
+    .detail-nav-btn{position:fixed;bottom:16px;left:16px;right:16px;background:var(--color-accent);color:var(--color-primary);padding:12px 24px;border-radius:50px;font-size:.95rem;font-weight:700;text-align:center;box-shadow:var(--shadow-lg);z-index:100}
+    #screen-nav{background:var(--color-primary);overflow:hidden;padding:0}
+    .nav-card-area{position:absolute;inset:0;bottom:216px;overflow:hidden}
+    .nav-map-iframe{width:100%;height:100%;border:none;display:block}
+    .nav-map-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--color-primary);color:rgba(255,255,255,.7);font-size:.9rem;pointer-events:none;transition:opacity .3s}
+    .nav-map-loading.hidden{opacity:0}
+    .nav-top-bar{position:absolute;top:0;left:0;right:0;z-index:500;background:linear-gradient(to bottom,var(--color-primary) 60%,transparent);padding:12px 16px 32px;display:flex;align-items:center;justify-content:space-between}
+    .nav-guide{color:var(--color-text-light)}
+    .nav-guide-name{font-family:var(--font-display);font-size:1rem;opacity:.8}
+    .nav-destination{font-family:var(--font-display);font-size:1.3rem;font-weight:600;color:var(--color-text-light)}
+    .nav-back-btn{background:rgba(255,255,255,.15);color:var(--color-text-light);padding:8px 14px;border-radius:50px;font-size:.85rem}
+    .nav-bottom-sheet{position:absolute;bottom:0;left:0;right:0;height:216px;background:var(--color-primary);z-index:500;padding:14px 16px;border-top:2px solid var(--color-accent)}
+    .btn-im-here{margin-top:10px;width:100%;padding:9px 0;border-radius:50px;font-size:.85rem;font-weight:600;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.45);cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+    .btn-im-here.nearby{background:var(--color-accent);color:var(--color-primary);border-color:var(--color-accent);opacity:1}
+    .nav-turn-instruction{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+    .nav-turn-icon{width:44px;height:44px;background:rgba(255,255,255,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+    .nav-turn-text{flex:1;color:var(--color-text-light)}
+    .nav-guide-byline{font-size:.7rem;color:var(--color-accent);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px}
+    .nav-turn-main{font-family:var(--font-display);font-size:1.15rem;font-weight:600;line-height:1.3}
+    .nav-stats{display:flex;gap:20px}
+    .nav-stat{color:rgba(245,240,232,.65)}
+    .nav-stat-val{font-size:1.05rem;font-weight:700;color:var(--color-text-light)}
+    .nav-stat-lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em}
+    .nav-stamp-btn{margin-left:auto;background:rgba(201,168,76,.2);border:1.5px solid var(--color-accent);color:var(--color-accent);padding:8px 14px;border-radius:50px;font-size:.8rem;font-weight:700}
+    .map-marker-current{width:32px;height:32px;background:var(--color-accent);border:3px solid #fff;border-radius:50%;animation:pulse-gold 2s infinite}
+    .map-marker-visited{width:28px;height:28px;background:var(--color-visited);border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem}
+    .map-marker-future{width:28px;height:28px;background:var(--color-primary);border:2px solid rgba(255,255,255,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700}
+    .map-marker-user{width:18px;height:18px;background:#4A90E2;border:3px solid #fff;border-radius:50%;animation:pulse-blue 2s infinite}
+    .map-marker-sponsor{width:22px;height:22px;background:var(--color-accent);border:2px solid var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem}
+    #screen-stamps{background:var(--color-bg)}
+    .stamps-header{background:var(--color-primary);color:var(--color-text-light);padding:16px;text-align:center;flex-shrink:0}
+    .stamps-header h2{font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:4px}
+    .stamps-header p{font-size:.85rem;opacity:.7}
+    .stamps-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:20px 16px 80px}
+    .stamps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
+    .stamp-slot{aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--color-muted);border:2px dashed var(--color-muted-dark);transition:all .3s;padding:6px;text-align:center;overflow:hidden}
+    .stamp-slot.earned{background:var(--color-primary);border:2px solid var(--color-accent);animation:stamp-collect .4s ease-out}
+    .stamp-slot .stamp-name{font-family:var(--font-display);font-size:.72rem;font-weight:600;line-height:1.15;color:var(--color-muted-dark);word-break:break-word;hyphens:auto}
+    .stamp-slot.earned .stamp-name{color:var(--color-text-light)}
+    .completion-card{background:var(--color-primary);color:var(--color-text-light);border-radius:var(--radius);padding:28px 20px;text-align:center;display:none}
+    .completion-card.visible{display:block}
+    .completion-card .comp-icon{font-size:3rem;margin-bottom:16px}
+    .completion-card h3{font-family:var(--font-display);font-size:1.8rem;font-weight:600;margin-bottom:8px}
+    .completion-card p{opacity:.8;margin-bottom:24px;line-height:1.6}
+    .btn-share{background:var(--color-accent);color:var(--color-primary);padding:14px 28px;border-radius:50px;font-size:.95rem;font-weight:700}
+    #audio-player-bar{position:fixed;bottom:0;left:0;right:0;background:var(--color-primary);color:var(--color-text-light);padding:10px 16px;z-index:1000;display:none;align-items:center;gap:12px;border-top:2px solid var(--color-accent)}
+    #audio-player-bar.visible{display:flex}
+    .audio-info{flex:1;min-width:0}
+    .audio-guide-name{font-size:.65rem;color:var(--color-accent);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .audio-label{font-family:var(--font-display);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .audio-progress-wrap{height:3px;background:rgba(255,255,255,.15);border-radius:3px;margin-top:5px;overflow:hidden}
+    .audio-progress-fill{height:100%;background:var(--color-accent);border-radius:3px;transition:width .1s linear;width:0%}
+    .audio-btn{background:rgba(255,255,255,.1);color:var(--color-text-light);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+    #notification-overlay{position:fixed;bottom:16px;left:16px;right:16px;z-index:900;pointer-events:none}
+    .notification-card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-lg);border-left:4px solid var(--color-accent);pointer-events:all;transform:translateY(120%);transition:transform .35s cubic-bezier(.34,1.2,.64,1);overflow:hidden;position:relative}
+    .notification-card.show{transform:translateY(0)}
+    .notification-card.sponsor-notif{border-left-color:var(--color-primary)}
+    .notif-type{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:6px}
+    .notif-title{font-family:var(--font-display);font-size:1.05rem;font-weight:600;margin-bottom:4px;color:var(--color-primary)}
+    .notif-text{font-family:var(--font-display);font-size:.95rem;font-style:italic;color:#444;line-height:1.5;margin-bottom:8px}
+    .notif-stars{color:var(--color-accent);font-size:.8rem;margin-bottom:6px}
+    .notif-cta{background:var(--color-primary);color:var(--color-text-light);padding:8px 14px;border-radius:50px;font-size:.8rem;font-weight:700}
+    .notif-progress{position:absolute;bottom:0;left:0;height:3px;background:var(--color-accent)}
+    #modal-tellmore,#modal-findsomething{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.6);display:none;align-items:flex-end}
+    #modal-tellmore.open,#modal-findsomething.open{display:flex}
+    .modal-sheet{background:var(--color-bg);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:0 0 40px}
+    .modal-handle{width:40px;height:4px;background:var(--color-muted-dark);border-radius:2px;margin:12px auto 0}
+    .modal-sticky-top{position:sticky;top:0;background:var(--color-bg);z-index:10;padding-top:12px;border-radius:var(--radius) var(--radius) 0 0}
+    .modal-sticky-top .modal-handle{margin-top:0}
+    .modal-header{padding:16px 16px 8px;display:flex;align-items:flex-start;justify-content:space-between}
+    .btn-fs-close{width:100%;padding:14px;border-radius:50px;border:1.5px solid var(--color-primary);background:transparent;color:var(--color-primary);font-size:.9rem;font-weight:700;margin-top:16px;cursor:pointer;font-family:var(--font-body)}
+    .modal-header h3{font-family:var(--font-display);font-size:1.4rem;font-weight:600;color:var(--color-primary);flex:1}
+    .modal-close{background:var(--color-muted);color:var(--color-text);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .modal-body{padding:16px}
+    .modal-location-label{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent);margin-bottom:14px}
+    .typing-indicator{display:flex;align-items:center;gap:4px;padding:16px 0}
+    .typing-dot{width:8px;height:8px;background:var(--color-primary);border-radius:50%;opacity:.4;animation:typing-bounce 1.2s infinite}
+    .typing-dot:nth-child(2){animation-delay:.2s}
+    .typing-dot:nth-child(3){animation-delay:.4s}
+    .modal-response{font-family:var(--font-display);font-size:1.05rem;line-height:1.75}
+    .modal-response p{margin-bottom:1em}
+    .btn-hear-response{background:var(--color-primary);color:var(--color-text-light);padding:14px 20px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px}
+    .find-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+    .find-chip{background:var(--color-muted);color:var(--color-text);padding:8px 14px;border-radius:50px;font-size:.85rem;cursor:pointer;transition:all .15s;border:1.5px solid transparent}
+    .find-chip:active{background:var(--color-primary);color:var(--color-text-light)}
+    .find-chip.active{background:var(--color-primary);color:var(--color-text-light);border-color:var(--color-primary)}
+    #fs-results{display:none}
+    #fs-results.visible{display:block}
+    .fs-card{background:#fff;border:1px solid #eee;border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start}
+    .fs-card-body{flex:1;min-width:0}
+    .fs-card-name{font-weight:700;font-size:1rem;margin-bottom:2px;color:var(--color-text)}
+    .fs-card-meta{font-size:.78rem;color:#666;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .fs-card-rating{color:#b58a00;font-weight:700}
+    .fs-card-open{color:#1c7c3a;font-weight:700;font-size:.7rem;text-transform:uppercase}
+    .fs-card-closed{color:#a04040;font-weight:700;font-size:.7rem;text-transform:uppercase}
+    .fs-card-address{font-size:.8rem;color:#444;line-height:1.4}
+    .fs-card-nav{background:var(--color-primary);color:var(--color-text-light);border:none;border-radius:50px;padding:8px 14px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-top:4px}
+    .fs-empty{padding:18px 8px;text-align:center;font-style:italic;color:#666;font-size:.9rem}
+    #arrival-overlay{position:fixed;inset:0;z-index:700;background:rgba(27,67,50,.92);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--color-text-light);padding:40px}
+    #arrival-overlay.show{display:flex}
+    .arrival-stamp{font-size:4rem;animation:stamp-collect .5s ease-out;margin-bottom:20px}
+    .arrival-title{font-family:var(--font-display);font-size:2rem;font-weight:600;margin-bottom:8px}
+    .arrival-stop-name{font-size:1.1rem;opacity:.8;margin-bottom:28px}
+    .btn-arrival-explore{background:var(--color-accent);color:var(--color-primary);padding:16px 32px;border-radius:50px;font-size:1rem;font-weight:700}
+    #toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--color-primary);color:var(--color-text-light);padding:12px 20px;border-radius:50px;font-size:.88rem;font-weight:700;z-index:1100;transition:transform .3s ease;white-space:nowrap;box-shadow:var(--shadow-lg);border:1px solid var(--color-accent)}
+    #toast.show{transform:translateX(-50%) translateY(0)}
+    @keyframes pulse-gold{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.5)}50%{box-shadow:0 0 0 10px rgba(201,168,76,0)}}
+    @keyframes pulse-blue{0%,100%{box-shadow:0 0 0 0 rgba(74,144,226,.5)}50%{box-shadow:0 0 0 12px rgba(74,144,226,0)}}
+    @keyframes stamp-collect{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+    @keyframes typing-bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+    .hidden{display:none!important}
+    .leaflet-container{font-family:var(--font-body)}
+    /* Key setup overlay */
+    #key-setup-overlay{position:fixed;inset:0;background:rgba(27,67,50,0.97);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
+    #key-setup-overlay.hidden{display:none!important}
+    .key-setup-card{background:#F5F0E8;border-radius:16px;padding:36px 28px;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.4)}
+    .key-setup-logo{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-bottom:8px}
+    .key-setup-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:2rem;font-weight:600;color:#1B4332;margin-bottom:8px}
+    .key-setup-body{font-size:14px;color:#555;line-height:1.6;margin-bottom:24px}
+    .key-setup-label{font-size:12px;font-weight:700;color:#333;margin-bottom:6px;display:block}
+    .key-setup-input{width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:'SF Mono','Fira Code',monospace;background:white;outline:none;color:#1a1a1a;margin-bottom:6px}
+    .key-setup-input:focus{border-color:#1B4332}
+    .key-setup-hint{font-size:11px;color:#999;margin-bottom:20px}
+    .key-setup-hint a{color:#1B4332}
+    .key-setup-btn{width:100%;padding:14px;background:#1B4332;color:#F5F0E8;font-size:15px;font-weight:700;border:none;border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif}
+    .key-setup-btn:hover{background:#14532d}
+    .key-setup-error{font-size:12px;color:#dc2626;margin-top:8px;min-height:16px}
+    .key-setup-privacy{font-size:11px;color:#aaa;text-align:center;margin-top:14px}
+
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle;margin-right:6px}
+    .btn-narration-toggle.loading{opacity:.7;cursor:not-allowed}
+    #tour-complete-overlay{position:fixed;inset:0;z-index:950;background:var(--color-primary);display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0}
+    #tour-complete-overlay.show{display:flex}
+    .tour-complete-content{padding:36px 24px 80px;text-align:center;max-width:420px;color:var(--color-text-light)}
+    .tc-title{font-family:var(--font-display);font-size:2.4rem;font-weight:600;margin-bottom:8px}
+    .tc-sub{font-family:var(--font-display);font-size:1.1rem;font-style:italic;opacity:.75;margin-bottom:32px}
+    .tc-harriet-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius);padding:20px;text-align:left;margin-bottom:20px}
+    .tc-harriet-card p{font-family:var(--font-display);font-size:1.05rem;font-style:italic;line-height:1.7;opacity:.9}
+    .tc-suggest{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.35);border-radius:var(--radius);padding:18px;text-align:left;margin-bottom:28px}
+    .tc-suggest .sug-label{font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--color-accent);margin-bottom:8px}
+    .tc-suggest p{font-family:var(--font-display);font-size:1rem;line-height:1.6;opacity:.88}
+    .btn-tc-play{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:14px 22px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+    .btn-tc-play:hover{background:rgba(255,255,255,.08)}
+    .btn-tc-ask{background:var(--color-accent);color:var(--color-primary);padding:16px 28px;border-radius:50px;font-size:1rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-tc-share{background:#fff;border:1.5px solid #fff;color:var(--color-primary);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center}
+    .btn-tc-share:active{opacity:.85}
+    .btn-tc-back{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center}
+    .btn-forgot-password{background:none;border:none;color:var(--color-text-light);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:2px 0 8px;display:block;opacity:.65;font-family:var(--font-body)}
+    .auth-forgot-panel,.auth-reset-panel{display:none}
+    .auth-forgot-panel.visible,.auth-reset-panel.visible{display:block}
+    .auth-reset-title{font-size:1rem;font-weight:700;color:var(--color-primary);margin-bottom:6px}
+    .auth-reset-note{font-size:.82rem;color:#666;margin-bottom:14px;line-height:1.5}
+    .tc-operator-block{border-top:1px solid rgba(255,255,255,.15);padding-top:24px;margin-top:8px;margin-bottom:24px;text-align:center}
+    .tc-operator-label{font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:12px}
+    .tc-operator-logo{max-height:48px;max-width:160px;object-fit:contain;display:block;margin:0 auto 8px;opacity:.9}
+    .tc-operator-name{font-size:.88rem;color:var(--color-text-light);opacity:.75}
+    .tc-sponsor-block{background:#fff;border-radius:var(--radius);padding:20px 20px 16px;margin-bottom:20px;text-align:center}
+    .tc-sponsor-label{font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#888;margin-bottom:12px}
+    .tc-sponsor-inner{display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--color-primary)}
+    .tc-sponsor-logo{max-height:56px;max-width:180px;object-fit:contain;display:block}
+    .tc-sponsor-name{font-size:1.05rem;font-weight:700;color:var(--color-primary)}
+    .tc-sponsor-tagline{font-size:.82rem;color:#666;font-style:italic;line-height:1.4}
+    .weather-banner{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:.85rem;line-height:1.45;text-align:left}
+    .weather-icon-lrg{font-size:1.6rem;flex-shrink:0}
+    .weather-text{flex:1;opacity:.88}
+    .weather-cta{background:var(--color-accent);color:var(--color-primary);border:none;border-radius:50px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .event-banner{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:.85rem;line-height:1.5;text-align:left}
+    .event-banner .ev-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:4px}
+    .open-badge{display:inline-flex;align-items:center;gap:3px;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:50px;vertical-align:middle;margin-left:6px}
+    .open-badge.open{background:rgba(64,145,108,.25);color:#6fcf97}
+    .open-badge.closed{background:rgba(220,38,38,.2);color:#f87171}
+
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="screen-splash" class="screen">
+    <div class="splash-backdrop"></div>
+    <div class="splash-content">
+      <div class="splash-city-image" id="splash-city-image">
+        <img id="splash-city-img" onerror="this.parentElement.style.display='none'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Leominster_Priory_from_the_south-east.jpg/320px-Leominster_Priory_from_the_south-east.jpg" alt="Leominster">
+        <div class="splash-city-image-overlay"></div>
+      </div>
+      <p class="splash-eyebrow">Guided walk</p>
+      <h1 class="splash-city" id="splash-city-name">Leominster</h1>
+      <p class="splash-tagline">with Harriet</p>
+      <div class="harriet-intro-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="avatar" style="margin-bottom:0;">🎙️</div>
+          <button class="btn-play-intro" onclick="playSplashIntro()" style="margin:0;"><span>▶</span> Play Introduction</button>
+        </div>
+        <p id="splash-intro-text"></p>
+      </div>
+      <div id="weather-banner" class="weather-banner hidden"><span class="weather-icon-lrg" id="weather-icon">&#127780;&#65039;</span><span class="weather-text" id="weather-text"></span><button class="weather-cta hidden" id="weather-cta" onclick="openFindSomething()">Ask Harriet</button></div><div id="event-banner" class="event-banner hidden"><div class="ev-label">&#128197; Happening in Leominster</div><div id="event-text"></div></div>
+      <button class="btn-start-tour" onclick="showScreen('stoplist')">Start the Tour</button>
+      <p class="splash-small">No download needed · Works in your browser<br>GPS requested when your walk begins</p>
+      <div class="operator-credit" id="operator-credit">
+        <img id="operator-logo" alt="" onerror="this.style.display='none'">
+        <p class="operator-attribution" id="operator-attribution"></p>
+      </div>
+    </div>
+  </div>
+  <div id="screen-headphones" class="screen active">
+    <!-- Welcome + auth -->
+    <div class="auth-section" id="auth-section">
+      <h1 class="auth-welcome-title">Welcome to<br><span id="auth-city-name">Leominster</span></h1>
+      <p class="auth-welcome-sub">Sign up to save your progress and pick up where you left off.</p>
+      <!-- Signed-in state -->
+      <div id="auth-signed-in-panel" class="auth-signed-in-box hidden">
+        <p class="auth-signed-in-msg">Progress saving enabled for<br><span class="auth-signed-in-email" id="auth-user-email"></span></p>
+        <button class="btn-auth-signout" onclick="handleSignOut()">Sign out</button>
+      </div>
+      <!-- Sign-up / sign-in form -->
+      <div id="auth-form-panel">
+        <input class="auth-input" id="auth-email" type="email" placeholder="Email address" autocomplete="email" inputmode="email">
+        <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password">
+        <button class="btn-forgot-password" type="button" onclick="showForgotPassword()">Forgot password?</button>
+        <div id="auth-error" class="auth-error hidden"></div>
+        <button class="btn-auth-submit" id="btn-auth-submit" onclick="handleEmailAuth()">Save my progress and start tour</button>
+        <div class="auth-divider">or</div>
+        <button class="btn-auth-google" onclick="handleGoogleAuth()">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908C18.619 14.007 17.64 11.698 17.64 9.2z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A9 9 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A9 9 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+          Continue with Google and start tour
+        </button>
+        <p class="auth-consent-note">By saving your progress, you agree to your email being stored for this purpose only. We will not share your data. <a href="/privacy" target="_blank">Privacy policy</a></p>
+        <button class="btn-auth-skip" onclick="skipAuth()">Continue without saving</button>
+        <p class="auth-skip-note">Progress will be lost if you close this page.</p>
+      </div>
+      <!-- Forgot password panel -->
+      <div class="auth-forgot-panel" id="auth-forgot-panel">
+        <p class="auth-reset-title">Reset your password</p>
+        <p class="auth-reset-note">Enter your email address and we'll send you a link to reset your password.</p>
+        <input class="auth-input" id="auth-forgot-email" type="email" placeholder="Email address" autocomplete="email" inputmode="email">
+        <div id="auth-forgot-error" class="auth-error hidden"></div>
+        <button class="btn-auth-submit" id="btn-send-reset" onclick="sendPasswordReset()">Send reset email</button>
+        <button class="btn-auth-skip" onclick="showAuthFormPanel()">&#8592; Back to sign in</button>
+      </div>
+      <!-- New password panel (shown after clicking email reset link) -->
+      <div class="auth-reset-panel" id="auth-reset-panel">
+        <p class="auth-reset-title">Set your new password</p>
+        <p class="auth-reset-note">Choose a new password for your account. You'll be taken straight into the tour once it's set.</p>
+        <input class="auth-input" id="auth-new-password" type="password" placeholder="New password (min. 6 characters)" autocomplete="new-password">
+        <div id="auth-reset-error" class="auth-error hidden"></div>
+        <button class="btn-auth-submit" id="btn-save-new-password" onclick="saveNewPassword()">Set new password and start tour</button>
+      </div>
+    </div>
+    <hr class="auth-section-divider">
+    <!-- Headphones (pushed down) -->
+    <div class="headphones-section">
+      <div class="headphones-icon">🎧</div>
+      <h2 class="headphones-title">For the best experience,<br>connect your headphones.</h2>
+      <p class="headphones-note">(You can also follow along on screen at any time.)</p>
+    </div>
+  </div>
+  <div id="screen-stoplist" class="screen">
+    <div class="stoplist-header">
+      <div class="stoplist-header-row">
+        <h1>Your Walk</h1>
+        <button class="btn-where-standing" onclick="giveMeACityFact()" id="btn-city-fact">💡 Interesting Leominster fact</button>
+      </div>
+      <div class="stamp-progress-bar"><div class="stamp-progress-fill" id="stamp-progress-fill" style="width:0%"></div></div>
+      <p class="stamp-progress-label" id="stamp-progress-label">0 of 10 stamps collected</p>
+    </div>
+    <div class="stoplist-map-wrap"><div id="stoplist-mini-map"></div></div>
+    <div class="stoplist-body" id="stoplist-body">
+    </div>
+  </div>
+  <div id="screen-detail" class="screen">
+    <div class="detail-compact-header">
+      
+<button class="detail-hero-back" onclick="stopAudio();showScreen('stoplist')">← Tour</button>
+      <span class="detail-compact-title" id="detail-stop-name">Stop Name</span>
+      <button class="btn-mark-complete" id="btn-mark-complete" onclick="markStopComplete()">Log visit</button>
+    </div>
+    <div class="detail-stop-img-wrap" id="detail-stop-img-wrap">
+      <img id="detail-stop-img" alt="">
+      <div class="img-loading">Loading image</div>
+    </div>
+    <div class="detail-body">
+      <div class="narration-card">
+        <div class="narration-label-row">
+          <div class="narration-label">🎙️ Harriet says</div>
+          <div class="detail-hero-badge" id="detail-stop-badge">Stop 1</div>
+        </div>
+        <div class="narration-play-row">
+          <button class="btn-narration-toggle" id="btn-narration-toggle" onclick="toggleDetailNarration()">▶ Play narration</button>
+        </div>
+        <p class="narration-text" id="detail-narration"></p>
+        <button class="btn-expand-narration" id="btn-expand-narration" onclick="toggleNarrationExpand()">Read more ↓</button>
+      </div>
+      <div class="facts-section"><h3>Interesting Facts</h3><div id="detail-facts"></div></div>
+      <div id="detail-sponsor-card"></div>
+      <div class="ask-harriet-stoplist-wrap">
+        <button class="btn-ask-harriet-stoplist" onclick="openFindSomething()">&#128269; Ask Harriet to find something nearby</button>
+      </div>
+      <div class="skip-stop-wrap">
+        <button class="btn-skip-stop" id="btn-skip-stop" onclick="skipStop()">Skip this stop</button>
+      </div>
+    </div>
+    <button class="detail-nav-btn" id="detail-nav-btn" onclick="openNavToCurrentStop()">Navigate to this stop →</button>
+  </div>
+  <div id="screen-nav" class="screen">
+    <div class="nav-card-area">
+      <div class="nav-map-loading" id="nav-map-loading">
+        <div style="font-size:2.2rem">🚶</div>
+        <div>Getting your location…</div>
+      </div>
+      <iframe class="nav-map-iframe" id="nav-map-iframe" src="about:blank"
+              allow="geolocation" allowfullscreen title="Map to destination"></iframe>
+    </div>
+    <div class="nav-top-bar">
+      <div class="nav-guide">
+        <div class="nav-guide-name">Harriet · Leominster</div>
+        <div class="nav-destination" id="nav-destination-label">Walking to…</div>
+      </div>
+      <button class="nav-back-btn" onclick="stopNavigation()">Exit map</button>
+    </div>
+    <div class="nav-bottom-sheet">
+      <div class="nav-turn-instruction">
+        <div class="nav-turn-icon" id="nav-turn-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="rgba(255,255,255,0.85)" xmlns="http://www.w3.org/2000/svg"><circle cx="13.5" cy="3.5" r="1.5"/><path d="M9 7.5l-2.5 5.5H8l1.6-3.5 1 1.4V15h2V9.9L11 8.3l.5-1.2c1.1 1.1 2.5 1.9 4.2 1.9V7.2c-1.4 0-2.6-.8-3.2-2l-.9-1.5c-.3-.5-.9-.9-1.6-.9-.2 0-.5.1-.7.1L6 4.9V8h1.8V6.9L9 7.5z"/><path d="M7.8 14.5l-.5 4H9l.5-3.5-1.7-.5zm4.9 4H14l-1.2-4-1.7.5 1.6 3.5z"/><path d="M11 17l1 2.5-1.5.5L9 17z" opacity=".6"/></svg></div>
+        <div class="nav-turn-text">
+          <div class="nav-guide-byline">Harriet</div>
+          <div class="nav-turn-main" id="nav-turn-main">Getting your route…</div>
+        </div>
+        <button class="nav-stamp-btn hidden" id="nav-stamp-btn" onclick="showScreen('stamps')">🎫 Stamps</button>
+      </div>
+      <div class="nav-stats">
+        <div class="nav-stat"><div class="nav-stat-val" id="nav-dist-dest">–</div><div class="nav-stat-lbl">to destination</div></div>
+        <div class="nav-stat"><div class="nav-stat-val" id="nav-eta">–</div><div class="nav-stat-lbl">mins walk</div></div>
+      </div>
+      <button class="btn-im-here" id="btn-im-here" onclick="manualArrival()">📍 I'm here</button>
+    </div>
+  </div>
+  <div id="screen-stamps" class="screen">
+    <div class="harriet-bar">
+      <div><div class="guide-name">Harriet</div><div class="city-name">Leominster Walk</div></div>
+      <button class="back-btn" onclick="stopAudio();showScreen('stoplist')">← Tour</button>
+    </div>
+    <div class="stamps-header"><h2>Your Stamp Card</h2><p id="stamps-subtitle">Collect all stamps to complete the tour</p></div>
+    <div class="stamps-body">
+      <div class="stamps-grid" id="stamps-grid"></div>
+      <div class="completion-card" id="completion-card">
+        <div class="comp-icon">🏆</div>
+        <h3>Tour Complete!</h3>
+        <p>You've explored the very best of Leominster. Harriet hopes you've loved every step.</p>
+        <button class="btn-share" onclick="shareCompletion()">🔗 Share your achievement</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="audio-player-bar">
+  <div class="audio-info">
+    <div class="audio-guide-name">Harriet</div>
+    <div class="audio-label" id="audio-label">Playing…</div>
+    <div class="audio-progress-wrap"><div class="audio-progress-fill" id="audio-progress-fill"></div></div>
+  </div>
+  <button class="audio-btn" id="audio-play-pause-btn" onclick="toggleAudioPlayPause()">⏸</button>
+  <button class="audio-btn" onclick="stopAudio()">✕</button>
+</div>
+<div id="notification-overlay">
+  <div class="notification-card" id="notification-card">
+    <div class="notif-type" id="notif-type">Harriet says</div>
+    <div class="notif-title" id="notif-title"></div>
+    <div class="notif-text" id="notif-text"></div>
+    <div class="notif-stars hidden" id="notif-stars"></div>
+    <button class="notif-cta hidden" id="notif-cta"></button>
+    <div class="notif-progress" id="notif-progress"></div>
+  </div>
+</div>
+<div id="modal-tellmore">
+  <div class="modal-sheet">
+    <div class="modal-sticky-top">
+      <div class="modal-handle"></div>
+      <div class="modal-header"><h3 id="tmm-modal-title">Harriet on…</h3><button class="modal-close" onclick="closeModal('tellmore')">✕</button></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-location-label" id="tmm-location-label">📍 Loading…</div>
+      <div class="typing-indicator" id="tmm-typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+      <div class="modal-response hidden" id="tmm-response"></div>
+      <button class="btn-hear-response hidden" id="btn-hear-response" onclick="hearTellMeMore()">▶ Hear this</button>
+    </div>
+  </div>
+</div>
+<div id="modal-findsomething">
+  <div class="modal-sheet">
+    <div class="modal-sticky-top">
+      <div class="modal-handle"></div>
+      <div class="modal-header"><h3>Find me something</h3><button class="modal-close" onclick="closeModal('findsomething')">✕</button></div>
+    </div>
+    <div class="modal-body">
+      <p style="font-family:var(--font-display);font-style:italic;color:#666;margin-bottom:16px;">What are you looking for?</p>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input type="text" id="fs-custom-input" placeholder="e.g. toilet, wildlife area, playground…"
+          style="flex:1;padding:12px 14px;border:1.5px solid #ddd;border-radius:50px;font-size:.9rem;font-family:inherit;outline:none;"
+          onkeydown="if(event.key==='Enter'){findSomethingCustom();}" />
+        <button onclick="findSomethingCustom()"
+          style="background:var(--color-primary);color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap;">Ask →</button>
+      </div>
+      <div class="find-chips">
+        <button class="find-chip" onclick="findSomething('eat',this)">🍽️ Eat</button>
+        <button class="find-chip" onclick="findSomething('drink',this)">🍺 Drink</button>
+        <button class="find-chip" onclick="findSomething('coffee',this)">☕ Coffee</button>
+        <button class="find-chip" onclick="findSomething('explore',this)">🏛️ Explore</button>
+        <button class="find-chip" onclick="findSomething('sit',this)">🪑 Sit</button>
+        <button class="find-chip" onclick="findSomething('photo',this)">📸 Photo</button>
+      </div>
+      <div class="typing-indicator hidden" id="fs-typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+      <div class="modal-response hidden" id="fs-response"></div>
+      <div id="fs-results"></div>
+    </div>
+  </div>
+</div>
+<div id="arrival-overlay">
+  <div class="arrival-stamp" id="arrival-emoji">⛪</div>
+  <h2 class="arrival-title">You've arrived!</h2>
+  <p class="arrival-stop-name" id="arrival-stop-name">Stop Name</p>
+  <button class="btn-arrival-explore" onclick="closeArrivalOverlay()">Find out more →</button>
+</div>
+<div id="tour-complete-overlay">
+  <div class="tour-complete-content">
+    <h2 class="tc-title">Walk Complete!</h2>
+    <p class="tc-sub" id="tc-sub">You've completed the walk</p>
+    <div class="tc-suggest">
+      <div class="sug-label">&#10024; Harriet's final suggestion</div>
+      <p id="tc-suggest-text"></p>
+    </div>
+    <div id="tc-sponsor-block" class="tc-sponsor-block" style="display:none">
+      <div class="tc-sponsor-label">This tour is sponsored by</div>
+      <a class="tc-sponsor-inner" id="tc-sponsor-link" href="#" target="_blank" rel="noopener">
+        <img class="tc-sponsor-logo" id="tc-sponsor-logo" alt="" style="display:none">
+        <div class="tc-sponsor-name" id="tc-sponsor-name"></div>
+        <div class="tc-sponsor-tagline" id="tc-sponsor-tagline" style="display:none"></div>
+      </a>
+    </div>
+    <div id="tc-operator-block" class="tc-operator-block" style="display:none">
+      <div class="tc-operator-label">Brought to you by</div>
+      <img class="tc-operator-logo" id="tc-operator-logo" alt="" style="display:none">
+      <div class="tc-operator-name" id="tc-operator-name"></div>
+    </div>
+    <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
+    <button class="btn-tc-share" onclick="shareAchievement()">Share your achievement</button>
+    <button class="btn-tc-back" onclick="closeTourComplete()">&#8592; Back to the tour</button>
+  </div>
+</div>
+<div id="toast"></div>
+<!-- Key setup overlay - shown when no valid ElevenLabs key is found -->
+<div id="key-setup-overlay" class="hidden">
+  <div class="key-setup-card">
+    <div class="key-setup-logo">The SetUp Crew</div>
+    <div class="key-setup-title">Welcome to Harriet</div>
+    <p class="key-setup-body">To hear Harriet's voice, paste your ElevenLabs API key below. It's saved on this device only - never sent to any server.</p>
+    <label class="key-setup-label">ElevenLabs API Key</label>
+    <input class="key-setup-input" type="password" id="key-input" placeholder="sk_..." autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveKey()" />
+    <div class="key-setup-hint">Get your key free at <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank">elevenlabs.io → Settings → API Keys</a></div>
+    <button class="key-setup-btn" onclick="saveKey()">Save &amp; Start the Tour →</button>
+    <div class="key-setup-error" id="key-error"></div>
+    <div class="key-setup-privacy">🔒 Stored locally on this device only</div>
+  </div>
+</div>
+<script>
+// ─── Supabase Auth ──────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://huqqhannmogigihrqikx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1cXFoYW5ubW9naWdpaHJxaWt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTM5MTIsImV4cCI6MjA5MzAyOTkxMn0.iAAhEdjIB388ym6WY3Jm_Cn_Ave2YljKW3n48D9oCrU';
+let sbClient = null;
+let currentUser = null;
+
+function initSupabase() {
+  if (!window.supabase) { console.warn('Supabase JS not loaded'); return; }
+  sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Update city name in auth welcome
+  const cityNameEl = document.getElementById('auth-city-name');
+  if (cityNameEl && CONFIG) cityNameEl.textContent = CONFIG.city || 'Leominster';
+  // Listen for auth state changes (handles OAuth redirects too)
+  sbClient.auth.onAuthStateChange((_event, session) => {
+    if (_event === 'PASSWORD_RECOVERY') {
+      // User clicked the reset link in their email — show the new-password form
+      showResetPasswordPanel();
+      return;
+    }
+    currentUser = session ? session.user : null;
+    if (currentUser) {
+      showAuthSignedIn(currentUser.email);
+      saveUserTourRecord();
+      loadProgress().then(() => {
+        if (state.currentScreen === 'headphones') showScreen('splash');
+      });
+    } else {
+      showAuthFormPanel();
+    }
+  });
+  // Check for existing session on page load
+  sbClient.auth.getSession().then(({ data: { session } }) => {
+    currentUser = session ? session.user : null;
+    if (currentUser) {
+      showAuthSignedIn(currentUser.email);
+      saveUserTourRecord();
+      loadProgress().then(() => {
+        if (state.currentScreen === 'headphones') showScreen('splash');
+      });
+    }
+  });
+}
+
+function showAuthFormPanel() {
+  const form = document.getElementById('auth-form-panel');
+  const signedIn = document.getElementById('auth-signed-in-panel');
+  const forgot = document.getElementById('auth-forgot-panel');
+  const reset = document.getElementById('auth-reset-panel');
+  if (form) form.classList.remove('hidden');
+  if (signedIn) signedIn.classList.add('hidden');
+  if (forgot) forgot.classList.remove('visible');
+  if (reset) reset.classList.remove('visible');
+  const err = document.getElementById('auth-error');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+}
+function showForgotPassword() {
+  const form = document.getElementById('auth-form-panel');
+  const forgot = document.getElementById('auth-forgot-panel');
+  if (form) form.classList.add('hidden');
+  if (forgot) forgot.classList.add('visible');
+  const err = document.getElementById('auth-error');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+}
+function showResetPasswordPanel() {
+  const form = document.getElementById('auth-form-panel');
+  const signedIn = document.getElementById('auth-signed-in-panel');
+  const forgot = document.getElementById('auth-forgot-panel');
+  const reset = document.getElementById('auth-reset-panel');
+  if (form) form.classList.add('hidden');
+  if (signedIn) signedIn.classList.add('hidden');
+  if (forgot) forgot.classList.remove('visible');
+  if (reset) reset.classList.add('visible');
+  if (state.currentScreen !== 'headphones') showScreen('headphones');
+}
+function showForgotError(msg) { const el = document.getElementById('auth-forgot-error'); if (el) { el.textContent = msg; el.classList.remove('hidden'); } }
+function showResetError(msg) { const el = document.getElementById('auth-reset-error'); if (el) { el.textContent = msg; el.classList.remove('hidden'); } }
+async function sendPasswordReset() {
+  if (!sbClient) { showForgotError('Auth not available.'); return; }
+  const emailEl = document.getElementById('auth-forgot-email');
+  const email = emailEl ? emailEl.value.trim() : '';
+  if (!email) { showForgotError('Please enter your email address.'); return; }
+  const btn = document.getElementById('btn-send-reset');
+  if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
+  const { error } = await sbClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+  if (error) {
+    showForgotError(error.message);
+    if (btn) { btn.textContent = 'Send reset email'; btn.disabled = false; }
+  } else {
+    const panel = document.getElementById('auth-forgot-panel');
+    if (panel) panel.innerHTML = '<p class="auth-reset-title">Check your email</p><p class="auth-reset-note">A password reset link has been sent. It may take a few minutes to arrive. Click the link in the email and you\'ll be brought straight back here to set your new password.</p><button class="btn-auth-skip" onclick="showAuthFormPanel()">&#8592; Back to sign in</button>';
+  }
+}
+async function saveNewPassword() {
+  if (!sbClient) { showResetError('Auth not available.'); return; }
+  const pwdEl = document.getElementById('auth-new-password');
+  const pwd = pwdEl ? pwdEl.value.trim() : '';
+  if (!pwd || pwd.length < 6) { showResetError('Password must be at least 6 characters.'); return; }
+  const btn = document.getElementById('btn-save-new-password');
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  const { error } = await sbClient.auth.updateUser({ password: pwd });
+  if (error) {
+    showResetError(error.message);
+    if (btn) { btn.textContent = 'Set new password and start tour'; btn.disabled = false; }
+  } else {
+    showScreen('stoplist');
+  }
+}
+async function shareAchievement() {
+  const city = (CONFIG && CONFIG.city) || 'the city';
+  const guide = (CONFIG && CONFIG.guideName) || 'Harriet';
+  const url = window.location.origin + window.location.pathname;
+  const shareData = { title: `I completed the ${city} walking tour!`, text: `I just completed the ${city} walking tour with ${guide}. A brilliant walk through the streets of ${city}.`, url };
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch(e) { /* user cancelled — do nothing */ }
+  } else {
+    try { await navigator.clipboard.writeText(url); showToast('Link copied to clipboard!'); } catch(e) { showToast('Tour link: ' + url); }
+  }
+}
+
+function showAuthSignedIn(email) {
+  const form = document.getElementById('auth-form-panel');
+  const signedIn = document.getElementById('auth-signed-in-panel');
+  const emailEl = document.getElementById('auth-user-email');
+  if (form) form.classList.add('hidden');
+  if (signedIn) signedIn.classList.remove('hidden');
+  if (emailEl) emailEl.textContent = email;
+  // Navigation to stoplist is handled by the caller after loadProgress resolves
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+}
+
+async function handleEmailAuth() {
+  if (!sbClient) { showToast('Auth not available. Continuing without saving.'); return; }
+  const emailEl = document.getElementById('auth-email');
+  const passEl = document.getElementById('auth-password');
+  const btn = document.getElementById('btn-auth-submit');
+  const errEl = document.getElementById('auth-error');
+  if (errEl) errEl.classList.add('hidden');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const password = passEl ? passEl.value : '';
+  if (!email) { showAuthError('Please enter your email address.'); return; }
+  if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+  if (btn) { btn.textContent = 'Starting tour…'; btn.disabled = true; }
+
+  // Step 1: try sign-in
+  const { data: signInData, error: signInErr } = await sbClient.auth.signInWithPassword({ email, password });
+  if (!signInErr) {
+    currentUser = signInData.user;
+    saveUserTourRecord();
+    await loadProgress();
+    await saveProgress(); // flush any stops visited before sign-in
+    if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
+    showScreen('stoplist');
+    return;
+  }
+
+  // Step 2: sign-in failed — try creating a new account
+  const { data: signUpData, error: signUpErr } = await sbClient.auth.signUp({ email, password });
+
+  // New account created and session returned — success
+  if (!signUpErr && signUpData.session) {
+    currentUser = signUpData.user;
+    saveUserTourRecord();
+    await loadProgress();
+    await saveProgress(); // flush any stops visited before sign-in
+    if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
+    showScreen('stoplist');
+    return;
+  }
+
+  // signUp returned a user but no session — email already registered, password was wrong
+  if (!signUpErr && signUpData.user && !signUpData.session) {
+    showAuthError('This email is already registered. Please check your password, or use the Forgot password link below.');
+    if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
+    return;
+  }
+
+  // Both failed — show the most useful error
+  const alreadyExists = signUpErr && signUpErr.message && signUpErr.message.toLowerCase().includes('already');
+  showAuthError(alreadyExists ? 'This email is already registered. Please check your password, or use the Forgot password link below.' : ((signUpErr && signUpErr.message) || signInErr.message));
+  if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
+}
+
+async function handleGoogleAuth() {
+  if (!sbClient) { showToast('Auth not available.'); return; }
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname }
+  });
+  if (error) showToast('Google sign-in failed: ' + error.message);
+}
+
+function skipAuth() {
+  showScreen('splash');
+}
+
+async function handleSignOut() {
+  await saveProgress();
+  if (sbClient) await sbClient.auth.signOut();
+  currentUser = null;
+  window.location.reload();
+}
+
+async function saveUserTourRecord() {
+  if (!sbClient || !currentUser) return;
+  // CONFIG may not be loaded yet if called at page load — wait up to 3s for it
+  if (!CONFIG) {
+    await new Promise(resolve => {
+      const t = setInterval(() => { if (CONFIG) { clearInterval(t); resolve(); } }, 100);
+      setTimeout(() => { clearInterval(t); resolve(); }, 3000);
+    });
+  }
+  if (!CONFIG) return;
+  const slug = CONFIG.citySlug || 'leominster';
+  await sbClient.from('user_tours').upsert(
+    { user_id: currentUser.id, city_slug: slug, last_visited_at: new Date().toISOString() },
+    { onConflict: 'user_id,city_slug' }
+  );
+}
+
+async function saveProgress() {
+  if (!sbClient || !CONFIG) return;
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (!session) return;
+  const slug = CONFIG.citySlug || 'leominster';
+  const ids = Array.from(state.visitedStops);
+  const { error } = await sbClient.from('tour_progress').upsert(
+    { user_id: session.user.id, city_slug: slug, visited_stop_ids: ids, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,city_slug' }
+  );
+  if (error) {
+    console.error('saveProgress failed:', error);
+  }
+}
+
+async function loadProgress() {
+  if (!sbClient || !CONFIG) return;
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (!session) return;
+  const slug = CONFIG.citySlug || 'leominster';
+  const { data } = await sbClient.from('tour_progress').select('visited_stop_ids').eq('user_id', session.user.id).eq('city_slug', slug).maybeSingle();
+  if (data && data.visited_stop_ids && data.visited_stop_ids.length) {
+    data.visited_stop_ids.forEach(id => state.visitedStops.add(id));
+    renderStopList();
+    renderStamps();
+    const n = data.visited_stop_ids.length;
+    showToast('Welcome back! ' + n + ' stop' + (n !== 1 ? 's' : '') + ' restored.');
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// ⚠️ REPLACE ALL {{PLACEHOLDER}} VALUES BEFORE DEPLOYING
+let CONFIG = null;
+async function loadConfig() {
+  // Derive city slug from URL path (e.g. /hereford/ → 'hereford')
+  const citySlug = window.location.pathname.split('/').filter(Boolean)[0] || 'leominster';
+
+  // Try the live DB-backed endpoint first. This is what the operator
+  // dashboard publishes to — so any change they Publish appears here
+  // within ~60 seconds (the API's edge cache TTL).
+  try {
+    const apiRes = await fetch('/api/config/' + citySlug);
+    if (apiRes.ok) {
+      CONFIG = await apiRes.json();
+      init();
+      return;
+    }
+    console.warn('API config returned ' + apiRes.status + ', falling back to static config.json');
+  } catch (e) {
+    console.warn('API config fetch failed, falling back to static config.json:', e);
+  }
+
+  // Fallback: the static config.json bundled alongside this HTML.
+  // Keeps the tour working even if the API or Supabase is down.
+  try {
+    const res = await fetch('./config.json');
+    if (!res.ok) throw new Error('Failed to load config (HTTP ' + res.status + ')');
+    CONFIG = await res.json();
+    init();
+  } catch (e) {
+    console.error('Config load failed:', e);
+    showLoadError(e);
+  }
+}
+function showLoadError(e) {
+  const msg = (e && e.message) || 'Unknown error';
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;font-family:Lato,sans-serif;color:#F5F0E8;background:#1B4332"><div style="max-width:360px"><h1 style="font-family:Cormorant Garamond,serif;font-size:2rem;font-weight:600;margin-bottom:16px">Tour unavailable</h1><p style="opacity:.85;line-height:1.6;margin-bottom:24px">We couldn\'t load the tour data. Please check your connection and refresh the page.</p><p style="font-size:.75rem;opacity:.5">' + msg + '</p></div></div>';
+}
+const state={weatherData:null,currentScreen:'headphones',currentStopIndex:0,visitedStops:new Set(),skippedStops:new Set(),stoplistMap:null,stoplistUserMarker:null,stoplistWatchId:null,headphones:false,map:null,userMarker:null,routeLayer:null,stopMarkers:[],osrmPath:[],osrmSteps:[],currentStepIdx:0,watchId:null,demoMode:false,demoInterval:null,demoProgress:0,firedFacts:new Set(),firedSponsors:new Set(),currentAudio:null,lastFactTime:0,tmmStopId:null,tmmFullText:'',arrivalFired:false,userLat:null,userLng:null,pendingFact:null,tourCompleted:false,harrietCallCount:0};
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('screen-'+id);if(el){el.classList.add('active');el.scrollTop=0;const body=el.querySelector('.stoplist-body,.detail-body,.stamps-body');if(body)body.scrollTop=0;}if(id!=='stoplist'&&state.stoplistWatchId){navigator.geolocation.clearWatch(state.stoplistWatchId);state.stoplistWatchId=null;}state.currentScreen=id;if(id==='stoplist'){renderStopList();initStoplistMap();startStoplistGPS();}if(id==='stamps')renderStamps();}
+function setHeadphones(val){state.headphones=val;showScreen('splash');}
+function renderStopList(){const body=document.getElementById('stoplist-body');if(!body)return;let banner=document.getElementById('tour-return-banner');if(state.tourCompleted){if(!banner){banner=document.createElement('div');banner.id='tour-return-banner';body.insertBefore(banner,body.firstChild);}banner.className='tour-complete-banner';banner.onclick=()=>document.getElementById('tour-complete-overlay').classList.add('show');banner.innerHTML='<span>&#127942; Tour Complete!</span><span class="btn-return-complete">View completion &#8594;</span>';}else if(banner){banner.remove();}let sc=document.getElementById('stops-container');if(!sc){sc=document.createElement('div');sc.id='stops-container';body.appendChild(sc);}sc.innerHTML=CONFIG.stops.map((stop,i)=>{const visited=state.visitedStops.has(stop.id);const skipped=state.skippedStops.has(stop.id);const cardClass=skipped?'visited skipped':visited?'visited':'';const icon=skipped?'🚶':visited?'✓':stop.id;const dist=state.userLat?formatDist(haversine(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng)):'';return`<div class="stop-card ${cardClass}" onclick="openStopDetail(${i})"><div class="stop-number">${icon}</div><div class="stop-card-info"><div class="stop-card-name">${stop.name}</div><div class="stop-card-desc">${stop.shortDescription}</div></div>${dist?`<div class="stop-card-distance">${dist}</div>`:''}</div>`;}).join('')+'<div class="ask-harriet-stoplist-wrap"><button class="btn-ask-harriet-stoplist" onclick="openFindSomething()">&#128269; Ask Harriet to find something nearby</button></div>'+(currentUser?'<div class="stoplist-signout-wrap"><button class="btn-stoplist-signout" onclick="handleSignOut()">Sign out</button></div>':'');const pct=(state.visitedStops.size/CONFIG.maxStops)*100;document.getElementById('stamp-progress-fill').style.width=pct+'%';document.getElementById('stamp-progress-label').textContent=`${state.visitedStops.size} of ${CONFIG.maxStops} stamps collected`;}
+function loadStopImage(stop){
+  const imgEl=document.getElementById('detail-stop-img');
+  const imgWrap=document.getElementById('detail-stop-img-wrap');
+  if(!imgEl||!imgWrap)return;
+  imgEl.alt=stop.name||'';
+  // Reset state — show wrap (with loading shimmer), hide image until validated
+  imgWrap.style.display='';
+  imgWrap.classList.remove('loaded','is-fallback');
+  imgEl.removeAttribute('src');
+  const fallbackUrl=`https://staticmap.openstreetmap.de/staticmap.php?center=${stop.coordinates.lat},${stop.coordinates.lng}&zoom=17&size=600x400&markers=${stop.coordinates.lat},${stop.coordinates.lng},red-pushpin`;
+  // Probe an image URL; only commit it to the visible <img> if it actually loads
+  const probe=(url,isFallback)=>new Promise((resolve)=>{
+    if(!url){resolve(false);return;}
+    const test=new Image();
+    let settled=false;
+    const finish=(ok)=>{if(settled)return;settled=true;resolve(ok);};
+    test.onload=()=>{
+      // Reject pixel-thin error responses (some hosts return 1x1 instead of 404)
+      if(test.naturalWidth<40||test.naturalHeight<40){finish(false);return;}
+      imgEl.src=url;
+      imgWrap.classList.add('loaded');
+      if(isFallback)imgWrap.classList.add('is-fallback');
+      finish(true);
+    };
+    test.onerror=()=>finish(false);
+    // Timeout if the image hangs
+    setTimeout(()=>finish(false),8000);
+    test.src=url;
+  });
+  (async()=>{
+    if(stop.heroImageUrl&&await probe(stop.heroImageUrl,false))return;
+    if(await probe(fallbackUrl,true))return;
+    // Both failed — hide the wrap entirely
+    imgWrap.style.display='none';
+  })();
+}
+function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopImage(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=CONFIG.sponsors.find(s=>s.subscriptionStatus==='active'&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300);sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><button class="btn-sponsor-cta" onclick="navigateToSponsor(${nearSponsor.coordinates.lat},${nearSponsor.coordinates.lng},'${nearSponsor.name}')">${nearSponsor.ctaLabel} →</button></div>`:'';if(nearSponsor)enrichSponsorCard(sponsorEl,nearSponsor);document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';showScreen('detail');}
+function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
+function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
+function initNavScreen(toIdx){
+  showScreen('nav');
+  state.arrivalFired=false;
+  state.lastFactTime=Date.now();
+  const imHereBtn=document.getElementById('btn-im-here');
+  if(imHereBtn)imHereBtn.classList.remove('nearby');
+  const stop=CONFIG.stops[toIdx];
+  document.getElementById('nav-destination-label').textContent=stop.name;
+  document.getElementById('nav-turn-main').textContent='Getting your location…';
+  // Reset map — directions will load on first GPS fix
+  state.mapLoaded=false;
+  const iframe=document.getElementById('nav-map-iframe');
+  if(iframe)iframe.src='about:blank';
+  const loadingDiv=document.getElementById('nav-map-loading');
+  if(loadingDiv)loadingDiv.classList.remove('hidden');
+  startGPSTracking(toIdx);
+}
+function initMap(){if(state.map){state.map.invalidateSize();return;}state.map=L.map('map',{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.map);const hfd=CONFIG.stops[0].coordinates;state.map.setView([hfd.lat,hfd.lng],16);state.userMarker=L.marker([hfd.lat,hfd.lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.map);CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active').forEach(sp=>{L.marker([sp.coordinates.lat,sp.coordinates.lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor">${sp.emoji}</div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(state.map).bindPopup(sp.name);});}
+function updateStopMarkers(destIdx){if(!state.map)return;state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];CONFIG.stops.forEach((stop,i)=>{let html,size;if(i===destIdx){html='<div class="map-marker-current"></div>';size=32;}else if(state.visitedStops.has(stop.id)){html='<div class="map-marker-visited">✓</div>';size=28;}else{html=`<div class="map-marker-future">${stop.id}</div>`;size=28;}const m=L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(state.map).bindPopup(`<b>${stop.name}</b><br><button onclick='initNavScreen(${i})' style='margin-top:6px;padding:6px 12px;background:#1B4332;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:.8rem'>Navigate here →</button>`);state.stopMarkers.push(m);});}
+async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
+  // ALWAYS foot routing. We use the OpenStreetMap community's foot-only
+  // OSRM instance — it actually honours the foot profile (the public
+  // Project-OSRM demo only reliably serves driving, which is why the
+  // map used to follow main roads). No via-points: sponsors are now
+  // narrated at arrival, no need to force walks through their location.
+  try{
+    const coords=`${fromLng},${fromLat};${toLng},${toLat}`;
+    const url=`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}?overview=full&geometries=geojson&steps=true`;
+    const res=await fetch(url);
+    const data=await res.json();
+    if(!data.routes||!data.routes.length)throw new Error('No route');
+    const route=data.routes[0];
+    state.osrmPath=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+    state.osrmSteps=route.legs[0].steps;
+    state.currentStepIdx=0;
+    if(state.routeLayer)state.map.removeLayer(state.routeLayer);
+    state.routeLayer=L.polyline(state.osrmPath,{color:'#1B4332',weight:4,opacity:.8,dashArray:'8, 6'}).addTo(state.map);
+    updateTurnInstruction(0);
+    updateNavStats(0,route.distance);
+  }catch(e){
+    console.warn('Foot route failed:',e);
+    document.getElementById('nav-turn-main').textContent='Walk towards '+CONFIG.stops[state.currentStopIndex].name;
+  }
+}
+function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
+function updateNavStats(distToDest){document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
+function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied. Please enable GPS in your browser to use the walk.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
+// Distance thresholds. Bump these here and the whole tour follows.
+const ARRIVAL_RADIUS_M=30;
+const SPONSOR_APPROACH_RADIUS_M=100;
+function onGPSUpdate(lat,lng,toIdx){
+  state.userLat=lat;state.userLng=lng;
+  const dest=CONFIG.stops[toIdx].coordinates;
+  const distToDest=haversine(lat,lng,dest.lat,dest.lng);
+  updateNavStats(distToDest);
+  // Load walking directions map on first GPS fix
+  if(!state.mapLoaded){
+    state.mapLoaded=true;
+    document.getElementById('nav-turn-main').textContent='Follow Google Maps to destination';
+    const iframe=document.getElementById('nav-map-iframe');
+    if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'leominster'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}`;}
+    const loadingDiv=document.getElementById('nav-map-loading');
+    if(loadingDiv)loadingDiv.classList.add('hidden');
+  }
+  // Approach: fire sponsor once when entering the wider radius around the
+  // destination stop, before arrival itself. Catches users walking into a
+  // large area (Castle Green, parks, squares) before reaching the named pin.
+  if(distToDest<SPONSOR_APPROACH_RADIUS_M)maybeFireSponsorForStop(toIdx,'approach');
+  if(!state.arrivalFired&&distToDest<ARRIVAL_RADIUS_M)triggerArrival(toIdx);
+  // Light up the "I'm here" button when within 100m so users can tap manually if GPS undershoots
+  const imHereBtn=document.getElementById('btn-im-here');
+  if(imHereBtn&&!state.arrivalFired)imHereBtn.classList.toggle('nearby',distToDest<100);
+}
+// Fire the sponsor mention for a stop, once per session, regardless of
+// which path triggered it (selection, approach, or arrival). Returns the
+// sponsor that was fired, or null if none was eligible / already fired.
+function maybeFireSponsorForStop(toIdx,source){
+  const sponsor=pickSponsorForStop(toIdx);
+  if(!sponsor)return null;
+  state.firedSponsors.add(sponsor.id);
+  const callout=(sponsor.narrationText&&sponsor.narrationText.trim())
+    ? sponsor.narrationText.trim()
+    : `And why not visit ${sponsor.name}?${sponsor.tagline?' '+sponsor.tagline:''}`;
+  speakAfterCurrent(callout,`Sponsor: ${sponsor.name}`);
+  showNotification('sponsor',sponsor.name,callout,12000,'',sponsor.ctaLabel||'Take me there',`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`);
+  return sponsor;
+}
+function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}showScreen('stoplist');}
+function isAudioPlaying(){return state.currentAudio&&!state.currentAudio.ended&&!state.currentAudio.paused;}
+function tryPlayFact(fact){if(isAudioPlaying()){state.pendingFact=fact;return false;}showNotification('fact',null,fact.text,10000);playHarriet(fact.text,'Local Fact');return true;}
+function flushPendingFact(){if(!state.pendingFact)return;const f=state.pendingFact;state.pendingFact=null;setTimeout(()=>{if(!isAudioPlaying())tryPlayFact(f);else state.pendingFact=f;},800);}
+function checkProximityFacts(lat,lng){
+  // Filter out ambient (no-coords) facts — those are reserved for the
+  // where-am-I fallback. Keep priority order.
+  const spatialFacts=(CONFIG.locationFacts||[]).filter(f=>f.coordinates&&typeof f.coordinates.lat==='number'&&typeof f.coordinates.lng==='number');
+  const sorted=[...spatialFacts].sort((a,b)=>(a.priority||100)-(b.priority||100));
+  let proxFired=false;
+  for(const fact of sorted){
+    if(state.firedFacts.has(fact.id))continue;
+    const d=haversine(lat,lng,fact.coordinates.lat,fact.coordinates.lng);
+    if(d<(fact.radiusMetres||30)){
+      state.firedFacts.add(fact.id);
+      markFactPlayed(fact.id);
+      state.lastFactTime=Date.now();
+      proxFired=true;
+      tryPlayFact(fact);
+      break;
+    }
+  }
+  if(!proxFired&&Date.now()-state.lastFactTime>70000){
+    const unfired=sorted.filter(f=>!state.firedFacts.has(f.id));
+    if(unfired.length){
+      const fact=unfired[0];
+      state.firedFacts.add(fact.id);
+      markFactPlayed(fact.id);
+      state.lastFactTime=Date.now();
+      tryPlayFact(fact);
+    }
+  }
+}
+function checkProximitySponsors(lat,lng){CONFIG.sponsors.forEach(sp=>{if(sp.subscriptionStatus!=='active'||state.firedSponsors.has(sp.id))return;const d=haversine(lat,lng,sp.coordinates.lat,sp.coordinates.lng);if(d<sp.proximityRadiusMetres){state.firedSponsors.add(sp.id);triggerSponsorCallout(sp);}});}
+async function triggerSponsorCallout(sponsor){const callout=`Just ahead on your right is ${sponsor.name} - ${sponsor.tagline}. Worth a look if you have a moment - highly rated by locals. Anyway, let's press on.`;const navUrl=`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`;showNotification('sponsor',sponsor.name,callout,12000,'★★★★★',sponsor.ctaLabel,navUrl);playHarriet(callout,sponsor.name);}
+function manualArrival(){
+  if(state.arrivalFired)return;
+  triggerArrival(state.currentStopIndex);
+}
+function triggerArrival(toIdx){
+  state.arrivalFired=true;
+  const stop=CONFIG.stops[toIdx];
+  state.visitedStops.add(stop.id);
+  saveProgress();
+  showToast(`Visited - ${stop.name}`);
+  playHarriet(`You've arrived at ${stop.name}. Wonderful - tap to find out more about where you're standing.`,'Arrival');
+  document.getElementById('arrival-emoji').textContent=stop.emoji;
+  document.getElementById('arrival-stop-name').textContent=stop.name;
+  document.getElementById('arrival-overlay').classList.add('show');
+  if(state.watchId)navigator.geolocation.clearWatch(state.watchId);
+  // After the arrival blurb finishes, fire the sponsor callout if it
+  // hasn't already been fired by approach (100m) or by selection (the
+  // user playing the stop's narration). Same callout, deduped by
+  // state.firedSponsors inside the helper.
+  maybeFireSponsorForStop(toIdx,'arrival');
+}
+// Pick the closest active, unfired sponsor whose coordinates fall within
+// SPONSOR_NEAR_STOP_M of the arriving stop. Returns null if none qualify.
+const SPONSOR_NEAR_STOP_M=250;
+function pickSponsorForStop(toIdx){
+  const stop=CONFIG.stops[toIdx];
+  if(!stop||!stop.coordinates)return null;
+  const sponsors=(CONFIG.sponsors||[]).filter(sp=>sp.subscriptionStatus==='active'&&!state.firedSponsors.has(sp.id)&&sp.coordinates);
+  let best=null,bestDist=Infinity;
+  for(const sp of sponsors){
+    const d=haversine(stop.coordinates.lat,stop.coordinates.lng,sp.coordinates.lat,sp.coordinates.lng);
+    if(d<=SPONSOR_NEAR_STOP_M&&d<bestDist){best=sp;bestDist=d;}
+  }
+  return best;
+}
+// Schedule audio to play once the currently-playing clip ends.
+// playHarriet is async (TTS fetch), so we poll briefly for state.currentAudio
+// to be set, then chain onended. Falls through to immediate play after
+// 3 s if no audio ever started.
+function speakAfterCurrent(text,label){
+  const startTime=Date.now();
+  const tryAttach=()=>{
+    if(state.currentAudio){
+      const prev=state.currentAudio.onended;
+      state.currentAudio.onended=function(){
+        if(prev)prev.apply(state.currentAudio,arguments);
+        playHarriet(text,label);
+      };
+    }else if(Date.now()-startTime<3000){
+      setTimeout(tryAttach,100);
+    }else{
+      playHarriet(text,label);
+    }
+  };
+  setTimeout(tryAttach,100);
+}
+function closeArrivalOverlay(){document.getElementById('arrival-overlay').classList.remove('show');openStopDetail(state.currentStopIndex);}
+function renderStamps(){const grid=document.getElementById('stamps-grid');grid.innerHTML='';CONFIG.stops.forEach(stop=>{const earned=state.visitedStops.has(stop.id);const div=document.createElement('div');div.className='stamp-slot'+(earned?' earned':'');div.innerHTML=`<span class="stamp-name">${stop.name}</span>`;grid.appendChild(div);});const n=state.visitedStops.size;document.getElementById('stamps-subtitle').textContent=n===CONFIG.maxStops?'Tour complete - well done!':`${n} of ${CONFIG.maxStops} - ${CONFIG.maxStops-n} more to go`;const cc=document.getElementById('completion-card');if(n===CONFIG.maxStops){cc.classList.add('visible');playHarriet(`Congratulations! You've collected all ${CONFIG.maxStops} stamps and completed the Leominster walk. I hope you've fallen a little in love with this town.`,'Completion');}else{cc.classList.remove('visible');}}
+function shareCompletion(){if(navigator.share){navigator.share({title:`I completed the Harriet guided walk of ${CONFIG.city}!`,text:`I just walked the full ${CONFIG.city} heritage tour with Harriet as my AI guide. All ${CONFIG.maxStops} stops collected.`,url:window.location.href});}else{showToast('Copy the URL to share your achievement!');}}
+let notifTimeout=null;
+function showNotification(type,title,text,duration=10000,stars=null,ctaLabel=null,ctaUrl=null){if(notifTimeout){clearTimeout(notifTimeout);dismissNotification();}const card=document.getElementById('notification-card');document.getElementById('notif-type').textContent=type==='sponsor'?'Local recommendation':'Harriet says';document.getElementById('notif-type').style.color=type==='sponsor'?'var(--color-primary)':'var(--color-accent)';const titleEl=document.getElementById('notif-title');titleEl.textContent=title||'';titleEl.style.display=title?'':'none';document.getElementById('notif-text').textContent=text;const starsEl=document.getElementById('notif-stars');starsEl.classList.toggle('hidden',!stars);if(stars)starsEl.textContent=stars;const ctaEl=document.getElementById('notif-cta');ctaEl.classList.toggle('hidden',!ctaLabel);if(ctaLabel){ctaEl.textContent=ctaLabel;ctaEl.onclick=()=>{if(ctaUrl&&ctaUrl.startsWith('nav:')){const[,lat,lng,...nameParts]=ctaUrl.split(':');navigateToSponsor(parseFloat(lat),parseFloat(lng),nameParts.join(':'));}else if(ctaUrl&&ctaUrl!=='#'){window.open(ctaUrl,'_blank');}};}card.classList.toggle('sponsor-notif',type==='sponsor');card.classList.add('show');const prog=document.getElementById('notif-progress');prog.style.transition='none';prog.style.width='100%';setTimeout(()=>{prog.style.transition=`width ${duration}ms linear`;prog.style.width='0%';},50);notifTimeout=setTimeout(dismissNotification,duration);}
+function dismissNotification(){document.getElementById('notification-card').classList.remove('show');notifTimeout=null;}
+async function playHarriet(text,label){try{stopAudio();showAudioBar(label||'Speaking…',false);const ttsParams=new URLSearchParams({text,voiceId:CONFIG.guideVoiceId});const res=await fetch(`/api/tts/${CONFIG.citySlug||'leominster'}?${ttsParams}`,{method:'GET'});if(!res.ok)throw new Error('TTS proxy '+res.status);const blob=await res.blob();const url=URL.createObjectURL(blob);state.currentAudio=new Audio(url);state.currentAudio.play();document.getElementById('audio-play-pause-btn').textContent='⏸';state.currentAudio.ontimeupdate=()=>{if(!state.currentAudio.duration)return;document.getElementById('audio-progress-fill').style.width=(state.currentAudio.currentTime/state.currentAudio.duration*100)+'%';};state.currentAudio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;flushPendingFact();};}catch(e){console.warn('Proxy audio failed, falling back to browser TTS:',e);hideAudioBar();if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt2=new SpeechSynthesisUtterance(text);utt2.lang='en-GB';utt2.rate=0.88;utt2.pitch=1.05;const voices2=window.speechSynthesis.getVoices();const v2=voices2.find(v=>v.lang==='en-GB')||voices2.find(v=>v.lang.startsWith('en'));if(v2)utt2.voice=v2;utt2.onstart=()=>showAudioBar(label||'Harriet speaking…',false);utt2.onend=()=>{hideAudioBar();state.currentAudio=null;flushPendingFact();};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;}};window.speechSynthesis.speak(utt2);}else{showToast('Audio unavailable - text shown on screen');}}}
+async function playSplashIntro(){
+  const btn=document.querySelector('.btn-play-intro');
+  const originalHTML=btn?btn.innerHTML:null;
+  if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}
+  try{
+    // Single source of truth: the same paragraph shown on screen is
+    // spoken aloud, plus a short live note about today's weather and
+    // any current event. Operator-authored intros override the default
+    // wording but still get the dynamic weather/event line appended.
+    const baseIntro=getSplashIntroText();
+    const weatherLine=getWeatherIntroLine(state.weatherData||null);
+    const evMention=getCurrentEventMention();
+    const eventLine=evMention?` Also, ${evMention.ev[evMention.type]}`:'';
+    await playHarriet(`${baseIntro}${weatherLine}${eventLine}`,'Introduction');
+  }catch(e){console.warn('Intro playback failed:',e);}
+  finally{if(btn){btn.innerHTML=originalHTML||'<span>▶</span> Play Introduction';btn.classList.remove('loading');btn.disabled=false;}}
+}
+function toggleNarrationExpand(){const el=document.getElementById('detail-narration');const btn=document.getElementById('btn-expand-narration');if(!el||!btn)return;const expanded=el.classList.toggle('expanded');btn.textContent=expanded?'Read less ↑':'Read more ↓';if(!expanded)el.scrollIntoView({behavior:'smooth',block:'nearest'});}function toggleDetailNarration(){
+  const btn=document.getElementById('btn-narration-toggle');
+  if(!state.currentAudio||state.currentAudio.ended){
+    const stop=CONFIG.stops[state.currentStopIndex];
+    if(!stop)return;
+    playNarrationTrack(stop.narration,stop.name);
+    // Selection-path sponsor mention: when the user plays a stop's
+    // narration, the sponsor callout follows. Same dedup as approach
+    // and arrival paths via state.firedSponsors.
+    maybeFireSponsorForStop(state.currentStopIndex,'selection');
+  }else if(state.currentAudio.paused){
+    state.currentAudio.play();
+    if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}
+  }else{
+    state.currentAudio.pause();
+    if(btn){btn.textContent='▶ Resume';btn.classList.add('paused');}
+  }
+}async function playNarrationTrack(text,label){const btn=document.getElementById('btn-narration-toggle');if(!text||!text.trim()){if(btn){btn.textContent='▶ Play narration';btn.classList.remove('loading');btn.disabled=false;}showToast('No narration has been added for this stop yet.');return;}try{stopAudio();if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}
+// Create and unlock the Audio element NOW, synchronously within the user gesture.
+// iOS Safari blocks audio.play() called after an await — unlocking first fixes this.
+const audio=new Audio();audio.play().catch(()=>{});state.currentAudio=audio;
+showAudioBar(label||'Speaking…',false);const ttsP=new URLSearchParams({text,voiceId:CONFIG.guideVoiceId});const res=await fetch(`/api/tts/${CONFIG.citySlug||'leominster'}?${ttsP}`,{method:'GET'});if(!res.ok)throw new Error('TTS proxy '+res.status);const blob=await res.blob();const url=URL.createObjectURL(blob);
+// Assign the fetched audio to the already-unlocked element and play
+audio.src=url;audio.load();const playPromise=audio.play();if(playPromise!==undefined){playPromise.then(()=>{if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused','loading');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='⏸';}).catch(err=>{console.warn('Audio play failed:',err);if(btn){btn.textContent='▶ Resume';btn.classList.add('paused');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='▶';});}else{if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused','loading');btn.disabled=false;}document.getElementById('audio-play-pause-btn').textContent='⏸';}audio.ontimeupdate=()=>{if(!audio.duration)return;document.getElementById('audio-progress-fill').style.width=(audio.currentTime/audio.duration*100)+'%';};audio.onended=()=>{hideAudioBar();URL.revokeObjectURL(url);state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};}catch(e){console.warn('Proxy narration failed, falling back to browser TTS:',e);hideAudioBar();if(btn){btn.textContent='▶ Play narration';btn.classList.remove('loading');btn.disabled=false;}if('speechSynthesis' in window){window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance(text);utt.lang='en-GB';utt.rate=0.88;utt.pitch=1.05;const voices=window.speechSynthesis.getVoices();const v=voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'));if(v)utt.voice=v;utt.onstart=()=>{showAudioBar(label||'Harriet speaking…',false);if(btn){btn.textContent='⏸ Pause';btn.classList.remove('paused');}};utt.onend=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};utt.onerror=()=>{hideAudioBar();state.currentAudio=null;if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}};state.currentAudio={paused:false,ended:false,pause:()=>{window.speechSynthesis.pause();state.currentAudio.paused=true;if(btn)btn.textContent='▶ Resume';},play:()=>{window.speechSynthesis.resume();state.currentAudio.paused=false;if(btn)btn.textContent='⏸ Pause';}};window.speechSynthesis.speak(utt);}else{showAudioBar('No audio available - read the narration text below',true);if(btn){btn.textContent='▶ Play narration';btn.classList.remove('paused');}}}}
+
+function saveSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'leominster');try{localStorage.setItem(k,JSON.stringify([...state.skippedStops]));}catch(e){}}
+function loadSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'leominster');try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}}
+function skipStop(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id)){showScreen('stoplist');return;}state.visitedStops.add(stop.id);state.skippedStops.add(stop.id);saveProgress();saveSkippedStops();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display='none';if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,600);}showScreen('stoplist');}
+function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`Visited - ${stop.name}`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
+function playFact(text){playHarriet(text,'Interesting Fact');}
+function showAudioBar(label,demo){document.getElementById('audio-label').textContent=label;document.getElementById('audio-player-bar').classList.add('visible');}
+function hideAudioBar(){document.getElementById('audio-player-bar').classList.remove('visible');document.getElementById('audio-progress-fill').style.width='0%';}
+function toggleAudioPlayPause(){if(!state.currentAudio)return;if(state.currentAudio.paused){state.currentAudio.play();document.getElementById('audio-play-pause-btn').textContent='⏸';}else{state.currentAudio.pause();document.getElementById('audio-play-pause-btn').textContent='▶';}}
+function stopAudio(){if(state.currentAudio){try{state.currentAudio.pause();}catch(e){}state.currentAudio=null;}hideAudioBar();}
+async function streamClaude(prompt,onChunk,onDone){const guideName=CONFIG.guideName||'Harriet';try{const citySlug=CONFIG.citySlug||'leominster';const res=await fetch(`/api/chat/${citySlug}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});if(!res.ok)throw new Error('Chat proxy '+res.status);const reader=res.body.getReader();const decoder=new TextDecoder();let full='';while(true){const{value,done}=await reader.read();if(done)break;const lines=decoder.decode(value).split('\n');for(const line of lines){if(!line.startsWith('data: '))continue;try{const d=JSON.parse(line.slice(6));if(d.type==='content_block_delta'){const chunk=d.delta.text||'';full+=chunk;onChunk(chunk);}}catch{}}}onDone(full);}catch(e){console.warn('Chat proxy failed:',e);const demo=`${guideName} here. I'm afraid my live connection isn't responding at the moment. Once it's back, I can tell you everything about where you're standing - the history, the architecture, the hidden stories. For now, do take a moment to simply look around. History doesn't always need narrating.`;let i=0;const iv=setInterval(()=>{if(i>=demo.length){clearInterval(iv);onDone(demo);return;}onChunk(demo[i]);i++;},15);}}
+function openTellMeMore(){const stop=CONFIG.stops[state.currentStopIndex];const guideName=CONFIG.guideName||'Harriet';if(state.harrietCallCount>=10){document.getElementById('tmm-modal-title').textContent=`${guideName} — session limit reached`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='none';const el=document.getElementById('tmm-response');el.classList.remove('hidden');el.innerHTML=`<p>You've had a wonderfully curious session — ${guideName} has answered ten questions for you today, which is her limit per visit. She'll be just as happy to chat on your next tour. In the meantime, keep exploring — there's always more to discover.</p>`;document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');return;}state.harrietCallCount++;state.tmmStopId=stop.id;state.tmmFullText='';document.getElementById('tmm-modal-title').textContent=`${guideName} on ${stop.name}`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');const prompt=`You are ${guideName}, a warm, knowledgeable, and quietly witty British walking guide. The visitor is currently standing at ${stop.name} in ${CONFIG.city}.\n\nTell them about this specific location, drawing only on established, reliable sources: encyclopaedic history, official heritage records, well-documented cultural and architectural accounts. Focus on:\n- Historic context: who built what, when, and why\n- Notable people connected to this place\n- Architectural details worth looking up at\n- Geographic and demographic context that helps the visitor understand the area\n- Stories or anecdotes from credible historical sources\n\nKeep the tone warm, positive, and factual. Avoid current news, contemporary politics, controversies, or anything with negative or contested framing. If you don't know something with confidence from reliable sources, say so plainly rather than speculate.\n\nWrite 3 to 4 engaging paragraphs in a conversational tone, as though speaking directly to the visitor. Include at least one genuinely surprising fact. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
+function hearTellMeMore(){if(state.tmmFullText){playHarriet(state.tmmFullText,'Tell Me More');closeModal('tellmore');}}
+function findSomethingCustom(){const inp=document.getElementById('fs-custom-input');const query=inp?inp.value.trim():'';if(!query)return;findSomething(query,null);}
+function openFindSomething(){document.getElementById('fs-typing').classList.add('hidden');document.getElementById('fs-response').classList.add('hidden');document.getElementById('fs-response').innerHTML='';const r=document.getElementById('fs-results');if(r){r.classList.remove('visible');r.innerHTML='';}document.getElementById('modal-findsomething').classList.add('open');}
+// Google Places-backed lookup. No AI involved.
+// `query` is one of the chip keys (eat/drink/coffee/explore/sit/photo)
+// or a free-text term from the custom input.
+async function findSomething(query,chipEl){
+  const citySlug=CONFIG.citySlug||'leominster';
+  document.querySelectorAll('.find-chip').forEach(c=>c.classList.remove('active'));
+  if(chipEl)chipEl.classList.add('active');
+  document.getElementById('fs-response').classList.add('hidden');
+  document.getElementById('fs-response').innerHTML='';
+  const resultsEl=document.getElementById('fs-results');
+  resultsEl.classList.remove('visible');
+  resultsEl.innerHTML='';
+  document.getElementById('fs-typing').classList.remove('hidden');
+  // Resolve user location — prefer cached state, otherwise request fresh.
+  let lat=state.userLat,lng=state.userLng;
+  if(!lat||!lng){
+    if(navigator.geolocation){
+      try{
+        const pos=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:10000}));
+        lat=pos.coords.latitude;lng=pos.coords.longitude;
+        state.userLat=lat;state.userLng=lng;
+      }catch(err){
+        // GPS denied or timed out — fall back to current stop coords or first stop (city centre proxy)
+        const stop=CONFIG.stops&&(CONFIG.stops[state.currentStopIndex]||CONFIG.stops[0]);
+        if(stop&&stop.coordinates){lat=stop.coordinates.lat;lng=stop.coordinates.lng;}
+        else{document.getElementById('fs-typing').classList.add('hidden');showFsMessage(`I need your location to find what's nearby. Enable GPS in your browser settings and try again.`);return;}
+      }
+    }else{
+      // Fallback: use the current stop's coords if we have them
+      const stop=CONFIG.stops&&(CONFIG.stops[state.currentStopIndex]||CONFIG.stops[0]);
+      if(stop&&stop.coordinates){lat=stop.coordinates.lat;lng=stop.coordinates.lng;}
+      else{document.getElementById('fs-typing').classList.add('hidden');showFsMessage('I need GPS to find what is near you.');return;}
+    }
+  }
+  try{
+    const r=await fetch(`/api/findnearby/${citySlug}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({lat,lng,query})
+    });
+    if(!r.ok)throw new Error('findnearby '+r.status);
+    const d=await r.json();
+    document.getElementById('fs-typing').classList.add('hidden');
+    renderFsResults(d.results||[]);
+  }catch(e){
+    console.warn('findnearby failed:',e);
+    document.getElementById('fs-typing').classList.add('hidden');
+    showFsMessage(`I'm having trouble looking around right now. Try again in a moment.`);
+  }
+}
+function showFsMessage(text){
+  const r=document.getElementById('fs-results');
+  r.innerHTML=`<div class="fs-empty">${text}</div>`;
+  r.classList.remove('hidden');
+  r.classList.add('visible');
+}
+function renderFsResults(results){
+  const r=document.getElementById('fs-results');
+  if(!results.length){r.innerHTML='<div class="fs-empty">Nothing close enough to suggest right now — try a different chip or walk a few minutes and tap again.</div><button class="btn-fs-close" onclick="closeModal(\'findsomething\')">Close</button>';r.classList.remove('hidden');r.classList.add('visible');return;}
+  const cards=results.map(p=>{
+    const dist=p.distance<1000?`${p.distance} m away`:`${(p.distance/1000).toFixed(1)} km away`;
+    const rating=p.rating?`<span class="fs-card-rating">★ ${p.rating.toFixed(1)}</span>`:'';
+    const open=p.open_now===true?`<span class="fs-card-open">Open now</span>`:p.open_now===false?`<span class="fs-card-closed">Closed</span>`:'';
+    const safeName=String(p.name||'').replace(/"/g,'&quot;');
+    const safeAddr=String(p.address||'').replace(/</g,'&lt;');
+    return `<div class="fs-card"><div class="fs-card-body"><div class="fs-card-name">${safeName.replace(/</g,'&lt;')}</div><div class="fs-card-meta"><span>${dist}</span>${rating}${open}</div>${safeAddr?`<div class="fs-card-address">${safeAddr}</div>`:''}</div><button class="fs-card-nav" onclick="navigateToPlace(${p.lat},${p.lng},&quot;${safeName}&quot;)">Take me there</button></div>`;
+  }).join('');
+  r.innerHTML=cards+'<button class="btn-fs-close" onclick="closeModal(\'findsomething\')">Close</button>';
+  r.classList.remove('hidden');
+  r.classList.add('visible');
+}
+function navigateToPlace(lat,lng,name){closeModal('findsomething');navigateToSponsor(lat,lng,name);}
+function openCityAskHarriet(){const guideName=CONFIG.guideName||'Harriet';if(state.harrietCallCount>=10){document.getElementById('tmm-modal-title').textContent=`${guideName} — session limit reached`;document.getElementById('tmm-location-label').textContent=`📍 ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='none';const el=document.getElementById('tmm-response');el.classList.remove('hidden');el.innerHTML=`<p>You've had a wonderfully curious session — ${guideName} has answered ten questions for you today, which is her limit per visit. She'll be just as happy to chat on your next tour. In the meantime, keep exploring — there's always more to discover.</p>`;document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');return;}state.harrietCallCount++;document.getElementById('tmm-modal-title').textContent=`Ask ${guideName} about ${CONFIG.city}`;document.getElementById('tmm-location-label').textContent=`📍 ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');state.tmmFullText='';const prompt=`You are ${guideName}, a warm, knowledgeable, and quietly witty British walking guide leading a tour of ${CONFIG.city}. The visitor has asked a general question about the area.\n\nGive them a warm, engaging 3 to 4 paragraph overview of what makes ${CONFIG.city} worth knowing. Draw only on established, reliable sources: encyclopaedic history, official heritage records, well-documented cultural and demographic accounts. Cover history, character, geography, and hidden gems.\n\nKeep the tone warm, positive, and factual. Avoid current news, contemporary politics, controversies, or anything with negative or contested framing. If you don't know something with confidence from reliable sources, say so plainly rather than speculate. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
+function closeModal(which){document.getElementById('modal-'+which).classList.remove('open');}
+// ── PLAYED-FACT TRACKING ───────────────────────────────────
+// localStorage key per city. Each fact spoken by the tour — whether
+// triggered by proximity OR by the Curious-where-standing button —
+// goes in this list so it never repeats. Cleared by browser data wipe.
+function getPlayedFactIds(){const k='played-facts-'+(CONFIG.citySlug||'leominster');try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}}
+function markFactPlayed(id){if(!id)return;const k='played-facts-'+(CONFIG.citySlug||'leominster');const list=getPlayedFactIds();if(list.includes(id))return;list.push(id);try{localStorage.setItem(k,JSON.stringify(list));}catch(e){}}
+// ── INTERESTING [CITY] FACT ────────────────────────────────
+// Picks an unplayed fact from CONFIG.locationFacts in priority order,
+// speaks it via TTS, marks it played in localStorage so it never
+// repeats. Once every fact has been played, falls back to a random
+// replay with a "you've heard this before" intro.
+function giveMeACityFact(){
+  const guideName=CONFIG.guideName||'Harriet';
+  const cityName=CONFIG.city||'this area';
+  const facts=(CONFIG.locationFacts||[]).filter(f=>f&&f.text);
+  if(facts.length===0){
+    showFactModal(cityName,
+      `${guideName} hasn't been given any facts about ${cityName} yet — check back soon.`);
+    return;
+  }
+  const played=new Set(getPlayedFactIds());
+  const unplayed=facts.filter(f=>!played.has(f.id));
+  let chosen,intro='';
+  if(unplayed.length>0){
+    // Priority order: lower number first. Same priority falls in insertion order.
+    const sorted=[...unplayed].sort((a,b)=>(a.priority||100)-(b.priority||100));
+    chosen=sorted[0];
+  }else{
+    // All played — pick a random one to replay with a gentle intro.
+    chosen=facts[Math.floor(Math.random()*facts.length)];
+    intro=`Here's one you've heard before, but it bears repeating. `;
+  }
+  if(chosen.id){markFactPlayed(chosen.id);state.firedFacts.add(chosen.id);}
+  const spoken=intro+chosen.text;
+  showFactModal(cityName,chosen.text);
+  playHarriet(spoken,`${cityName} fact`);
+}
+function showFactModal(cityName,text){
+  document.getElementById('tmm-modal-title').textContent=`Interesting ${cityName} fact`;
+  document.getElementById('tmm-location-label').textContent=`💡 ${cityName}`;
+  document.getElementById('tmm-typing').style.display='none';
+  const el=document.getElementById('tmm-response');
+  el.classList.remove('hidden');
+  el.innerHTML=`<p>${text}</p>`;
+  document.getElementById('btn-hear-response').classList.add('hidden');
+  document.getElementById('modal-tellmore').classList.add('open');
+  state.tmmFullText=text;
+}
+async function speakDirection(stepIdx){if(!state.osrmSteps[stepIdx])return;const step=state.osrmSteps[stepIdx];const dist=Math.round(step.distance);const rawInstruction=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);playHarriet(dist>0?`In about ${dist} metres, ${rawInstruction.toLowerCase()}.`:`${rawInstruction}.`,'Direction');}
+function haversine(lat1,lng1,lat2,lng2){const R=6371000,toRad=d=>d*Math.PI/180;const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function formatDist(m){return m<1000?`${Math.round(m)}m`:`${(m/1000).toFixed(1)}km`;}
+function maneuverIcon(type,modifier){if(type==='arrive')return'🏁';if(type==='depart')return'▶️';if(modifier==='left')return'←';if(modifier==='right')return'→';if(modifier==='slight left')return'↖';if(modifier==='slight right')return'↗';if(modifier==='sharp left')return'↩';if(modifier==='sharp right')return'↪';return'↑';}
+function maneuverText(type,modifier){if(type==='arrive')return'You have arrived';if(type==='depart')return'Head';if(modifier==='left')return'Turn left';if(modifier==='right')return'Turn right';if(modifier==='slight left')return'Bear left';if(modifier==='slight right')return'Bear right';if(modifier==='sharp left')return'Turn sharply left';if(modifier==='sharp right')return'Turn sharply right';return'Continue straight';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function needsKey(){return !CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.startsWith('{{');}
+function saveKey(){const k=document.getElementById('key-input').value.trim();const err=document.getElementById('key-error');if(!k){err.textContent='Please paste your API key above.';return;}if(!k.startsWith('sk_')){err.textContent='That doesn\'t look right - ElevenLabs keys start with sk_';return;}CONFIG.elevenlabsApiKey=k;try{localStorage.setItem('harriet_el_key',k);}catch(e){}document.getElementById('key-setup-overlay').classList.add('hidden');}
+function initStoplistMap(){if(state.stoplistMap){if(state.stoplistMap._leaflet_id)state.stoplistMap.invalidateSize();return;}const mapEl=document.getElementById('stoplist-mini-map');if(!mapEl)return;const firstStop=CONFIG.stops[0].coordinates;state.stoplistMap=L.map('stoplist-mini-map',{zoomControl:false,attributionControl:false,dragging:true,touchZoom:true,scrollWheelZoom:false,tap:false,keyboard:false,bounceAtZoomLimits:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.stoplistMap);state.stoplistMap.setView([firstStop.lat,firstStop.lng],15);CONFIG.stops.forEach((stop,i)=>{const visited=state.visitedStops.has(stop.id);const html=visited?'<div class="map-marker-visited">✓</div>':`<div class="map-marker-future">${stop.id}</div>`;L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.stoplistMap).bindPopup(stop.name);});if(state.userLat){addUserDotToStoplistMap(state.userLat,state.userLng);}}
+function addUserDotToStoplistMap(lat,lng){if(!state.stoplistMap)return;if(state.stoplistUserMarker)state.stoplistMap.removeLayer(state.stoplistUserMarker);state.stoplistUserMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.stoplistMap);state.stoplistMap.setView([lat,lng],15);}
+function startStoplistGPS(){if(!navigator.geolocation)return;if(state.stoplistWatchId){navigator.geolocation.clearWatch(state.stoplistWatchId);state.stoplistWatchId=null;}// Immediate fix so distances appear straight away
+navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;addUserDotToStoplistMap(state.userLat,state.userLng);renderStopList();},()=>{},{enableHighAccuracy:true,timeout:8000,maximumAge:30000});// Keep updating while on the stoplist so distances stay live
+state.stoplistWatchId=navigator.geolocation.watchPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.currentScreen==='stoplist'){addUserDotToStoplistMap(state.userLat,state.userLng);renderStopList();}},()=>{},{enableHighAccuracy:true,maximumAge:10000,timeout:15000});}
+function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';initMap();state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];const m=L.marker([lat,lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor" style="background:var(--color-accent);color:var(--color-primary);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">★</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(state.map).bindPopup(name);state.stopMarkers.push(m);if(state.userLat){fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);}else{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.userMarker)state.userMarker.setLatLng([state.userLat,state.userLng]);fetchAndDrawRoute(state.userLat,state.userLng,lat,lng);startGPSTracking_sponsor(lat,lng);},()=>{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);},{enableHighAccuracy:true,timeout:8000});}else{fetchAndDrawRoute(CONFIG.stops[0].coordinates.lat,CONFIG.stops[0].coordinates.lng,lat,lng);}}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;if(state.userMarker)state.userMarker.setLatLng([lat,lng]);if(state.map)state.map.setView([lat,lng],state.map.getZoom(),{animate:true});const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){applyBrand();applyGuideName();seedFiredFactsFromStorage();loadSkippedStops().forEach(id=>state.skippedStops.add(id));applyCityFactButtonLabel();applySplashIntro();document.getElementById('splash-city-name').textContent=CONFIG.city;const _authCity=document.getElementById('auth-city-name');if(_authCity)_authCity.textContent=CONFIG.city;initSupabase();renderStamps();showScreen('headphones');renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();}
+function applyCityFactButtonLabel(){const btn=document.getElementById('btn-city-fact');if(btn&&CONFIG.city)btn.textContent=`💡 Interesting ${CONFIG.city} fact`;}
+// Returns the welcome paragraph the operator wrote in the dashboard, or a
+// sensible default if blank. Used both to render the splash text on screen
+// AND as the base for the spoken introduction (which may add weather/events).
+function getSplashIntroText(){
+  const operator=(CONFIG.splashIntro||'').trim();
+  if(operator)return operator;
+  const guide=CONFIG.guideName||'Harriet';
+  const city=CONFIG.city||'this area';
+  return `Hello, I'm ${guide}. I'll be your guide today as we walk through some of ${city}'s most fascinating places. Along the way I'll share stories, hidden details, and a few local secrets. Whenever you're ready, let's begin.`;
+}
+function applySplashIntro(){const el=document.getElementById('splash-intro-text');if(el)el.textContent=getSplashIntroText();}
+// Seed in-session firedFacts from localStorage so previously-played
+// facts (including ones used by the where-am-I button on a previous
+// visit) don't refire as the walker passes their proximity zones.
+function seedFiredFactsFromStorage(){try{const list=getPlayedFactIds();list.forEach(id=>state.firedFacts.add(id));}catch(e){}}
+function applyBrand(){const root=document.documentElement;const isHex=v=>typeof v==='string'&&/^#[0-9A-Fa-f]{6}$/.test(v);if(isHex(CONFIG.colorPrimary))root.style.setProperty('--color-primary',CONFIG.colorPrimary);if(isHex(CONFIG.colorAccent))root.style.setProperty('--color-accent',CONFIG.colorAccent);if(isHex(CONFIG.colorBackground))root.style.setProperty('--color-bg',CONFIG.colorBackground);// Operator-uploaded splash image overrides the hardcoded default
+if(CONFIG.splashImageUrl){const img=document.getElementById('splash-city-img');if(img)img.src=CONFIG.splashImageUrl;}}
+function applyGuideName(){const guide=(CONFIG.guideName||'Harriet').trim();if(!guide||guide==='Harriet')return;const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null);const nodes=[];let n;while((n=walker.nextNode()))if(n.nodeValue&&n.nodeValue.includes('Harriet'))nodes.push(n);nodes.forEach(node=>{node.nodeValue=node.nodeValue.split('Harriet').join(guide);});if(document.title)document.title=document.title.split('Harriet').join(guide);}
+function renderOperatorCredit(){const credit=document.getElementById('operator-credit');const logo=document.getElementById('operator-logo');const attr=document.getElementById('operator-attribution');if(!credit||!logo||!attr)return;const hasLogo=CONFIG.operatorLogoUrl&&!CONFIG.operatorLogoUrl.startsWith('{{');const hasAttr=CONFIG.operatorAttributionText&&!CONFIG.operatorAttributionText.startsWith('{{');if(hasLogo){logo.src=CONFIG.operatorLogoUrl;logo.alt=CONFIG.operatorName||'';logo.style.display='block';}else{logo.style.display='none';}if(hasAttr){attr.textContent=CONFIG.operatorAttributionText;attr.style.display='block';}else{attr.style.display='none';}if(hasLogo||hasAttr)credit.classList.add('visible');else credit.classList.remove('visible');}
+
+// ── TOUR COMPLETE ──────────────────────────────────────────
+const TOUR_COMPLETE_NARRATION_FALLBACK="Well done, you've done it. Every stop, every story, every stamp. Leominster has shown you what it really is, and I hope it has earned a return visit. There is always more to discover here. Tap the button and ask me to find somewhere to eat, drink, or explore nearby.";
+function showTourComplete(){
+  state.tourCompleted=true;
+  const ov=document.getElementById('tour-complete-overlay');
+  if(ov)ov.classList.add('show');
+  const city=CONFIG.city||'the area';
+  const guide=CONFIG.guideName||'Harriet';
+  document.getElementById('tc-sub').textContent=`You've explored ${city} with ${guide}`;
+  const suggestText=CONFIG.tourCompleteSuggestion||`Why not find somewhere to sit and reflect? Or ask ${guide} to help you find something nearby.`;
+  document.getElementById('tc-suggest-text').textContent=suggestText;
+  const harrietText=CONFIG.tourCompleteMessage||`Well done, you've done it. Every stop, every story, every stamp. ${city} has shown you what it really is. We hope it has earned a return visit.`;
+  const narration=CONFIG.tourCompleteNarration||harrietText;
+  playHarriet(narration,'Tour Complete');
+  // Operator block
+  const operatorBlock=document.getElementById('tc-operator-block');
+  if(operatorBlock){
+    const opName=CONFIG.operatorAttributionText||(CONFIG.operatorName?`Brought to you by ${CONFIG.operatorName}`:null);
+    if(opName){
+      document.getElementById('tc-operator-name').textContent=opName;
+      const opLogo=document.getElementById('tc-operator-logo');
+      if(CONFIG.operatorLogoUrl){opLogo.src=CONFIG.operatorLogoUrl;opLogo.alt=CONFIG.operatorName||'';opLogo.style.display='';}else{opLogo.style.display='none';}
+      operatorBlock.style.display='';
+    }else{
+      operatorBlock.style.display='none';
+    }
+  }
+  // Sponsor block
+  const sponsorBlock=document.getElementById('tc-sponsor-block');
+  if(sponsorBlock){
+    if(CONFIG.tcSponsorName){
+      document.getElementById('tc-sponsor-name').textContent=CONFIG.tcSponsorName;
+      const logoEl=document.getElementById('tc-sponsor-logo');
+      if(CONFIG.tcSponsorLogoUrl){logoEl.src=CONFIG.tcSponsorLogoUrl;logoEl.style.display='';}else{logoEl.style.display='none';}
+      const taglineEl=document.getElementById('tc-sponsor-tagline');
+      if(CONFIG.tcSponsorTagline){taglineEl.textContent=CONFIG.tcSponsorTagline;taglineEl.style.display='';}else{taglineEl.style.display='none';}
+      const linkEl=document.getElementById('tc-sponsor-link');
+      if(CONFIG.tcSponsorUrl){linkEl.href=CONFIG.tcSponsorUrl;linkEl.style.cursor='pointer';}else{linkEl.removeAttribute('href');}
+      sponsorBlock.style.display='';
+    }else{
+      sponsorBlock.style.display='none';
+    }
+  }
+}
+function playTourCompleteNarration(){
+  stopAudio();
+  const harrietText=CONFIG.tourCompleteMessage||TOUR_COMPLETE_NARRATION_FALLBACK;
+  const narration=CONFIG.tourCompleteNarration||harrietText;
+  playHarriet(narration,'Tour Complete');
+}
+function closeTourComplete(){
+  const ov=document.getElementById('tour-complete-overlay');
+  if(ov)ov.classList.remove('show');
+  showScreen('stamps');
+}
+function openTourCompleteAsk(){
+  const ov=document.getElementById('tour-complete-overlay');
+  if(ov)ov.classList.remove('show');
+  openFindSomething();
+}
+
+// ── WEATHER ───────────────────────────────────────────────
+const WEATHER_CODES={
+  0:{icon:'☀️',desc:'clear skies'},1:{icon:'🌤️',desc:'mainly clear'},
+  2:{icon:'⛅',desc:'partly cloudy'},3:{icon:'☁️',desc:'overcast'},
+  45:{icon:'🌫️',desc:'foggy'},48:{icon:'🌫️',desc:'foggy'},
+  51:{icon:'🌦️',desc:'light drizzle'},53:{icon:'🌦️',desc:'drizzle'},55:{icon:'🌦️',desc:'heavy drizzle'},
+  61:{icon:'🌧️',desc:'light rain'},63:{icon:'🌧️',desc:'rain'},65:{icon:'🌧️',desc:'heavy rain'},
+  71:{icon:'🌨️',desc:'light snow'},73:{icon:'🌨️',desc:'snow'},75:{icon:'🌨️',desc:'heavy snow'},
+  80:{icon:'🌦️',desc:'rain showers'},81:{icon:'🌧️',desc:'rain showers'},82:{icon:'⛈️',desc:'heavy showers'},
+  95:{icon:'⛈️',desc:'thunderstorms'},96:{icon:'⛈️',desc:'thunderstorms'},99:{icon:'⛈️',desc:'thunderstorms'}
+};
+async function fetchWeather(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=52.0567&longitude=-2.7159&current=temperature_2m,precipitation,weather_code,wind_speed_10m&timezone=Europe%2FLondon');
+    const d=await r.json();
+    return {temp:Math.round(d.current.temperature_2m),precip:d.current.precipitation,code:d.current.weather_code,wind:Math.round(d.current.wind_speed_10m)};
+  }catch(e){return null;}
+}
+function buildWeatherBanner(w){
+  if(!w)return;
+  const wc=WEATHER_CODES[w.code]||{icon:'🌤️',desc:'variable weather'};
+  let text=`${wc.icon} It's ${w.temp}°C in Leominster today with ${wc.desc}.`;
+  if(w.code>=51&&w.code<=82){
+    text+=` You might want an umbrella today.`;
+  }else if(w.temp>=24){
+    text+=` It's warm - you may want to pick up a cold drink before heading off.`;
+  }else if(w.temp<=3){
+    text+=` It's cold today - make sure you're dressed warmly.`;
+  }
+  const banner=document.getElementById('weather-banner');
+  const textEl=document.getElementById('weather-text');
+  const ctaEl=document.getElementById('weather-cta');
+  if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=text;}
+  if(ctaEl){ctaEl.classList.add('hidden');}
+  state.weatherData=w;
+}
+function getWeatherIntroLine(w){
+  if(!w)return'';
+  const wc=WEATHER_CODES[w.code]||{desc:'variable weather'};
+  if(w.code>=51&&w.code<=82)return` The weather today is ${wc.desc} and ${w.temp}°C — you'll want a jacket, and possibly an umbrella.`;
+  if(w.temp>=24)return` It's a beautiful warm day today — ${w.temp}°C and ${wc.desc}. Perfect for a walk.`;
+  if(w.temp<=3)return` It's a cold ${w.temp}°C today, so do make sure you're dressed warmly.`;
+  return` The weather today is ${wc.desc} and ${w.temp}°C — a fine day for a walk.`;
+}
+
+// ── EVENTS ────────────────────────────────────────────────
+function getCurrentEventMention(){
+  if(!CONFIG.events||!CONFIG.events.length)return null;
+  const now=new Date();const m=now.getMonth()+1;const d=now.getDate();const y=now.getFullYear();
+  for(const ev of CONFIG.events){
+    if(ev.yearCycle){const offset=(y-ev.nextYear)%ev.yearCycle;if(offset!==0)continue;}
+    const within=m===ev.month;
+    if(within&&d>=ev.dayFrom&&d<=ev.dayTo)return{ev,type:'during'};
+    if(within&&d>ev.dayTo&&d<=ev.dayTo+7)return{ev,type:'recent'};
+    if(within&&d<ev.dayFrom&&d>=ev.dayFrom-10)return{ev,type:'upcoming'};
+    if(m===ev.month-1&&d>=21)return{ev,type:'upcoming'};
+  }
+  return null;
+}
+function showEventBanner(){
+  const mention=getCurrentEventMention();
+  if(!mention)return;
+  const{ev,type}=mention;
+  const banner=document.getElementById('event-banner');
+  const textEl=document.getElementById('event-text');
+  if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=`${ev.emoji} ${ev[type]}`;}
+}
+
+// ── BUSINESS HOURS (Google Places with 6h cache) ──────────
+const HOURS_CACHE_KEY='harriet_hours_cache';const HOURS_TTL=6*60*60*1000;
+async function checkPlaceHours(placeId){
+  if(!CONFIG.googlePlacesApiKey||CONFIG.googlePlacesApiKey.startsWith('{{'))return null;
+  try{
+    const cache=JSON.parse(localStorage.getItem(HOURS_CACHE_KEY)||'{}');
+    const now=Date.now();
+    if(cache[placeId]&&now-cache[placeId].ts<HOURS_TTL)return cache[placeId].data;
+    const url=`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=opening_hours,name&key=${CONFIG.googlePlacesApiKey}`;
+    const r=await fetch(url);const j=await r.json();
+    const hours=j.result&&j.result.opening_hours||null;
+    cache[placeId]={ts:now,data:hours};
+    localStorage.setItem(HOURS_CACHE_KEY,JSON.stringify(cache));
+    return hours;
+  }catch(e){return null;}
+}
+function openBadgeHtml(hours){
+  if(!hours)return'';
+  const open=hours.open_now;
+  return`<span class="open-badge ${open?'open':'closed'}">${open?'✓ Open now':'✕ Closed'}</span>`;
+}
+async function enrichSponsorCard(sponsorEl,sponsor){
+  if(!sponsor.googlePlaceId||sponsor.googlePlaceId.startsWith('ChIJ_demo'))return;
+  const hours=await checkPlaceHours(sponsor.googlePlaceId);
+  const badge=openBadgeHtml(hours);
+  if(badge){const nameEl=sponsorEl.querySelector('.sponsor-name');if(nameEl)nameEl.insertAdjacentHTML('beforeend',badge);}
+}
+
+loadConfig();
+</script>
+  </body>
+</html>
