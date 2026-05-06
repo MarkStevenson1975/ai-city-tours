@@ -809,7 +809,7 @@ async function handleSignOut() {
   await saveProgress();
   if (sbClient) await sbClient.auth.signOut();
   currentUser = null;
-  window.location.href = window.location.origin + '/';
+  window.location.reload();
 }
 
 async function saveUserTourRecord() {
