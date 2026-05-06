@@ -33,7 +33,10 @@ export async function createCity(formData: FormData) {
     throw new Error('City name and slug are required.');
   }
 
-  const { data: city, error } = await supabase
+  // Use the admin client for the insert so the service role bypasses RLS.
+  // We've already verified above that the calling user is an admin.
+  const admin = createAdminClient();
+  const { data: city, error } = await admin
     .from('cities')
     .insert({ name, slug, guide_name: guideName })
     .select('slug')
