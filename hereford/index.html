@@ -767,6 +767,7 @@ async function handleEmailAuth() {
   if (!signInErr) {
     currentUser = signInData.user;
     saveUserTourRecord();
+    await loadProgress();
     if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
     showScreen('stoplist');
     return;
@@ -778,6 +779,7 @@ async function handleEmailAuth() {
   if (!signUpErr) {
     currentUser = signUpData.user;
     saveUserTourRecord();
+    await loadProgress();
     if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
     showScreen('stoplist');
     return;
@@ -807,9 +809,7 @@ async function handleSignOut() {
   await saveProgress();
   if (sbClient) await sbClient.auth.signOut();
   currentUser = null;
-  showScreen('splash');
-  showAuthFormPanel();
-  showToast('Progress saved. You have been signed out.');
+  window.location.href = window.location.origin + '/';
 }
 
 async function saveUserTourRecord() {
