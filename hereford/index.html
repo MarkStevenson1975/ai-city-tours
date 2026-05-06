@@ -642,7 +642,7 @@ function initSupabase() {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
       loadProgress().then(() => {
-        if (state.currentScreen === 'headphones') showScreen('stoplist');
+        if (state.currentScreen === 'headphones') showScreen('splash');
       });
     } else {
       showAuthFormPanel();
@@ -655,7 +655,7 @@ function initSupabase() {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
       loadProgress().then(() => {
-        if (state.currentScreen === 'headphones') showScreen('stoplist');
+        if (state.currentScreen === 'headphones') showScreen('splash');
       });
     }
   });
