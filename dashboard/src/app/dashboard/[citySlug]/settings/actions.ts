@@ -237,3 +237,100 @@ function extractOperatorLogoPath(publicUrl: string): string | null {
   if (idx < 0) return null;
   return publicUrl.substring(idx + marker.length).split('?')[0];
 }
+
+// ── Splash image upload ────────────────────────────────────────────────────
+
+const MAX_SPLASH_BYTES = 5 * 1024 * 1024;
+const ALLOWED_SPLASH_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export async function uploadSplashImage(formData: FormData) {
+  const file = formData.get('file') as File | null;
+  const cityId = String(formData.get('cityId') ?? '');
+  const citySlug = String(formData.get('citySlug') ?? '');
+
+  if (!file || file.size === 0) return { ok: false as const, error: 'No file selected.' };
+  if (!cityId || !citySlug) return { ok: false as const, error: 'Missing city identifier.' };
+  if (file.size > MAX_SPLASH_BYTES) {
+    return { ok: false as const, error: `File too large. Max 5 MB (yours is ${(file.size / 1024 / 1024).toFixed(1)} MB).` };
+  }
+  if (!ALLOWED_SPLASH_TYPES.includes(file.type)) {
+    return { ok: false as const, error: 'Use JPEG, PNG, or WebP.' };
+  }
+
+  const supabase = await createClient();
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : 'jpg';
+  const path = `${citySlug}/splash-${Date.now()}.${safeExt}`;
+
+  const { data: existingCity } = await supabase
+    .from('cities')
+    .select('splash_image_url')
+    .eq('id', cityId)
+    .single();
+
+  const { error: uploadErr } = await supabase.storage
+    .from('city-images')
+    .upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' });
+
+  if (uploadErr) return { ok: false as const, error: `Upload failed: ${uploadErr.message}` };
+
+  const { data: pub } = supabase.storage.from('city-images').getPublicUrl(path);
+  const publicUrl = pub.publicUrl;
+
+  const { error: updateErr } = await supabase
+    .from('cities')
+    .update({ splash_image_url: publicUrl, draft_updated_at: new Date().toISOString() })
+    .eq('id', cityId);
+
+  if (updateErr) {
+    await supabase.storage.from('city-images').remove([path]);
+    return { ok: false as const, error: `DB write failed: ${updateErr.message}` };
+  }
+
+  // Best-effort: delete the previous splash image
+  if (existingCity?.splash_image_url) {
+    const oldPath = extractSplashImagePath(existingCity.splash_image_url);
+    if (oldPath && oldPath !== path) {
+      await supabase.storage.from('city-images').remove([oldPath]);
+    }
+  }
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/settings`);
+
+  return { ok: true as const, url: publicUrl };
+}
+
+export async function removeSplashImage(cityId: string, citySlug: string) {
+  const supabase = await createClient();
+
+  const { data: city } = await supabase
+    .from('cities')
+    .select('splash_image_url')
+    .eq('id', cityId)
+    .single();
+
+  if (city?.splash_image_url) {
+    const path = extractSplashImagePath(city.splash_image_url);
+    if (path) await supabase.storage.from('city-images').remove([path]);
+  }
+
+  const { error } = await supabase
+    .from('cities')
+    .update({ splash_image_url: null, draft_updated_at: new Date().toISOString() })
+    .eq('id', cityId);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/settings`);
+
+  return { ok: true as const };
+}
+
+function extractSplashImagePath(publicUrl: string): string | null {
+  const marker = '/storage/v1/object/public/city-images/';
+  const idx = publicUrl.indexOf(marker);
+  if (idx < 0) return null;
+  return publicUrl.substring(idx + marker.length).split('?')[0];
+}

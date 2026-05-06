@@ -76,12 +76,12 @@ export function ImageUpload({
     <div>
       {/* Preview */}
       {displayUrl ? (
-        <div className="relative inline-block mb-3">
+        <div className="relative w-full mb-3 overflow-hidden rounded-lg border border-gray-200" style={{ aspectRatio: '16/10' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={displayUrl}
             alt="Stop hero"
-            className="rounded-lg max-h-56 object-cover border border-gray-200"
+            className="w-full h-full object-cover object-center"
             onError={(e) => {
               (e.target as HTMLImageElement).style.opacity = '0.3';
             }}

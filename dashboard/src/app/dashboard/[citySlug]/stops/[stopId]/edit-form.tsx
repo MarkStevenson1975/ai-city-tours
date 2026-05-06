@@ -301,12 +301,12 @@ export function StopEditForm({
           // New-stop staged upload: file is held in state, uploaded after createStop
           <div>
             {stagedPreview ? (
-              <div className="relative inline-block mb-3">
+              <div className="relative w-full mb-3 overflow-hidden rounded-lg border border-gray-200" style={{ aspectRatio: '16/10' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={stagedPreview}
                   alt="Staged preview"
-                  className="rounded-lg max-h-56 object-cover border border-gray-200"
+                  className="w-full h-full object-cover object-center"
                 />
                 <span className="absolute top-2 left-2 bg-amber-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
                   Will upload on create
