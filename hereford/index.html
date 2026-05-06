@@ -557,7 +557,7 @@
       </div>
       <div class="typing-indicator hidden" id="fs-typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
       <div class="modal-response hidden" id="fs-response"></div>
-      <div class="hidden" id="fs-results"></div>
+      <div id="fs-results"></div>
     </div>
   </div>
 </div>
@@ -1214,11 +1214,12 @@ async function findSomething(query,chipEl){
 function showFsMessage(text){
   const r=document.getElementById('fs-results');
   r.innerHTML=`<div class="fs-empty">${text}</div>`;
+  r.classList.remove('hidden');
   r.classList.add('visible');
 }
 function renderFsResults(results){
   const r=document.getElementById('fs-results');
-  if(!results.length){r.innerHTML='<div class="fs-empty">Nothing close enough to suggest right now — try a different chip or walk a few minutes and tap again.</div>';r.classList.add('visible');return;}
+  if(!results.length){r.innerHTML='<div class="fs-empty">Nothing close enough to suggest right now — try a different chip or walk a few minutes and tap again.</div>';r.classList.remove('hidden');r.classList.add('visible');return;}
   const cards=results.map(p=>{
     const dist=p.distance<1000?`${p.distance} m away`:`${(p.distance/1000).toFixed(1)} km away`;
     const rating=p.rating?`<span class="fs-card-rating">★ ${p.rating.toFixed(1)}</span>`:'';
@@ -1228,6 +1229,7 @@ function renderFsResults(results){
     return `<div class="fs-card"><div class="fs-card-body"><div class="fs-card-name">${safeName.replace(/</g,'&lt;')}</div><div class="fs-card-meta"><span>${dist}</span>${rating}${open}</div>${safeAddr?`<div class="fs-card-address">${safeAddr}</div>`:''}</div><button class="fs-card-nav" onclick="navigateToPlace(${p.lat},${p.lng},&quot;${safeName}&quot;)">Take me there</button></div>`;
   }).join('');
   r.innerHTML=cards;
+  r.classList.remove('hidden');
   r.classList.add('visible');
 }
 function navigateToPlace(lat,lng,name){closeModal('findsomething');navigateToSponsor(lat,lng,name);}
