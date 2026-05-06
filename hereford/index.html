@@ -297,10 +297,10 @@
     .btn-tc-play{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:14px 22px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
     .btn-tc-play:hover{background:rgba(255,255,255,.08)}
     .btn-tc-ask{background:var(--color-accent);color:var(--color-primary);padding:16px 28px;border-radius:50px;font-size:1rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-tc-share{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-tc-share:active{background:rgba(255,255,255,.08)}
-    .btn-tc-back{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;width:100%;display:flex;align-items:center;justify-content:center}
-    .btn-forgot-password{background:none;border:none;color:var(--color-primary);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:2px 0 8px;display:block;opacity:.7}
+    .btn-tc-share{background:#fff;border:1.5px solid #fff;color:var(--color-primary);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center}
+    .btn-tc-share:active{opacity:.85}
+    .btn-tc-back{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--color-text-light);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center}
+    .btn-forgot-password{background:none;border:none;color:var(--color-text-light);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:2px 0 8px;display:block;opacity:.65;font-family:var(--font-body)}
     .auth-forgot-panel,.auth-reset-panel{display:none}
     .auth-forgot-panel.visible,.auth-reset-panel.visible{display:block}
     .auth-reset-title{font-size:1rem;font-weight:700;color:var(--color-primary);margin-bottom:6px}
@@ -589,7 +589,7 @@
       <div class="tc-operator-name" id="tc-operator-name"></div>
     </div>
     <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
-    <button class="btn-tc-share" onclick="shareAchievement()">&#128279; Share your achievement</button>
+    <button class="btn-tc-share" onclick="shareAchievement()">Share your achievement</button>
     <button class="btn-tc-back" onclick="closeTourComplete()">&#8592; Back to the tour</button>
   </div>
 </div>
