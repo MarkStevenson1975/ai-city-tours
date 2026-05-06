@@ -642,6 +642,7 @@ function initSupabase() {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
       await loadProgress();
+      await saveProgress(); // flush any stops visited before sign-in
       if (state.currentScreen === 'headphones') showScreen('stoplist');
     } else {
       showAuthFormPanel();
@@ -654,6 +655,7 @@ function initSupabase() {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
       await loadProgress();
+      await saveProgress(); // flush any stops visited before sign-in
       if (state.currentScreen === 'headphones') showScreen('stoplist');
     }
   });
@@ -769,6 +771,7 @@ async function handleEmailAuth() {
     currentUser = signInData.user;
     saveUserTourRecord();
     await loadProgress();
+    await saveProgress(); // flush any stops visited before sign-in
     if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
     showScreen('stoplist');
     return;
@@ -781,6 +784,7 @@ async function handleEmailAuth() {
     currentUser = signUpData.user;
     saveUserTourRecord();
     await loadProgress();
+    await saveProgress(); // flush any stops visited before sign-in
     if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
     showScreen('stoplist');
     return;
@@ -834,10 +838,11 @@ async function saveProgress() {
   if (!sbClient || !currentUser || !CONFIG) return;
   const slug = CONFIG.citySlug || 'hereford';
   const ids = Array.from(state.visitedStops);
-  await sbClient.from('tour_progress').upsert(
+  const { error } = await sbClient.from('tour_progress').upsert(
     { user_id: currentUser.id, city_slug: slug, visited_stop_ids: ids, updated_at: new Date().toISOString() },
     { onConflict: 'user_id,city_slug' }
   );
+  if (error) console.error('saveProgress failed:', error.message, error);
 }
 
 async function loadProgress() {
