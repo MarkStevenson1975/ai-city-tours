@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export interface StopInput {
   name: string;
@@ -30,11 +31,17 @@ interface UpdateStopInput extends StopInput {
 export async function updateStop(input: UpdateStopInput) {
   const supabase = await createClient();
 
-  // Swap position via the Postgres RPC. It does the swap atomically in a
-  // single UPDATE statement, so the BETWEEN 1 AND 50 check + the unique
-  // (city_id, position) constraint are both honoured.
+  // Verify the caller is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
+
+  // Use the admin client for all writes so auth.uid() null in server actions
+  // doesn't cause RLS to silently block the update.
+  const admin = createAdminClient();
+
+  // Swap position via the Postgres RPC atomically
   if (input.position && input.position > 0) {
-    const { error: swapErr } = await supabase.rpc('swap_stop_position', {
+    const { error: swapErr } = await admin.rpc('swap_stop_position', {
       p_stop_id: input.stopId,
       p_new_position: input.position,
     });
@@ -44,7 +51,7 @@ export async function updateStop(input: UpdateStopInput) {
   }
 
   // Now update the rest of the fields
-  const { error } = await supabase
+  const { error } = await admin
     .from('stops')
     .update({
       name: input.name.trim(),
@@ -63,14 +70,14 @@ export async function updateStop(input: UpdateStopInput) {
   }
 
   // Touch the area's draft_updated_at so the publish button activates
-  const { data: stop } = await supabase
+  const { data: stop } = await admin
     .from('stops')
     .select('city_id')
     .eq('id', input.stopId)
     .single();
 
   if (stop?.city_id) {
-    await supabase
+    await admin
       .from('cities')
       .update({ draft_updated_at: new Date().toISOString() })
       .eq('id', stop.city_id);
@@ -99,14 +106,21 @@ export async function createStop(
 ) {
   const supabase = await createClient();
 
+  // Verify the caller is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
+
   if (!input.name.trim()) {
     return { ok: false as const, error: 'Stop name is required.' };
   }
 
+  // Use admin client for all writes to avoid auth.uid() null in server actions
+  const admin = createAdminClient();
+
   // Pull every existing position for this area so we can detect both
   // collisions and exhaustion (50 used) up-front, with friendly errors
   // rather than a raw constraint violation.
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('stops')
     .select('id, position, name')
     .eq('city_id', cityId);
@@ -153,7 +167,7 @@ export async function createStop(
     positionToUse = found;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('stops')
     .insert({
       city_id: cityId,
@@ -174,7 +188,7 @@ export async function createStop(
     return { ok: false as const, error: error.message };
   }
 
-  await supabase
+  await admin
     .from('cities')
     .update({ draft_updated_at: new Date().toISOString() })
     .eq('id', cityId);
@@ -186,8 +200,12 @@ export async function createStop(
 
 export async function deleteStop(stopId: string, citySlug: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
 
-  const { data: stop } = await supabase
+  const admin = createAdminClient();
+
+  const { data: stop } = await admin
     .from('stops')
     .select('city_id, hero_image_override_url')
     .eq('id', stopId)
@@ -199,17 +217,17 @@ export async function deleteStop(stopId: string, citySlug: string) {
     const idx = stop.hero_image_override_url.indexOf(marker);
     if (idx >= 0) {
       const path = stop.hero_image_override_url.substring(idx + marker.length).split('?')[0];
-      await supabase.storage.from('stop-images').remove([path]);
+      await admin.storage.from('stop-images').remove([path]);
     }
   }
 
-  const { error } = await supabase.from('stops').delete().eq('id', stopId);
+  const { error } = await admin.from('stops').delete().eq('id', stopId);
   if (error) {
     return { ok: false as const, error: error.message };
   }
 
   if (stop?.city_id) {
-    await supabase
+    await admin
       .from('cities')
       .update({ draft_updated_at: new Date().toISOString() })
       .eq('id', stop.city_id);
@@ -262,20 +280,24 @@ export async function uploadStopImage(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
+
+  const admin = createAdminClient();
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
   const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : 'jpg';
   const path = `${citySlug}/${stopId}-${Date.now()}.${safeExt}`;
 
   // Get the existing override URL so we can delete the old file after upload
-  const { data: existingStop } = await supabase
+  const { data: existingStop } = await admin
     .from('stops')
     .select('hero_image_override_url, city_id')
     .eq('id', stopId)
     .single();
 
   // Upload the new file
-  const { error: uploadErr } = await supabase.storage
+  const { error: uploadErr } = await admin.storage
     .from('stop-images')
     .upload(path, file, {
       contentType: file.type,
@@ -288,18 +310,18 @@ export async function uploadStopImage(formData: FormData) {
   }
 
   // Resolve the public URL
-  const { data: pub } = supabase.storage.from('stop-images').getPublicUrl(path);
+  const { data: pub } = admin.storage.from('stop-images').getPublicUrl(path);
   const publicUrl = pub.publicUrl;
 
   // Persist the URL on the stops row
-  const { error: updateErr } = await supabase
+  const { error: updateErr } = await admin
     .from('stops')
     .update({ hero_image_override_url: publicUrl })
     .eq('id', stopId);
 
   if (updateErr) {
     // Best-effort cleanup of the just-uploaded file
-    await supabase.storage.from('stop-images').remove([path]);
+    await admin.storage.from('stop-images').remove([path]);
     return { ok: false as const, error: `DB write failed: ${updateErr.message}` };
   }
 
@@ -307,13 +329,13 @@ export async function uploadStopImage(formData: FormData) {
   if (existingStop?.hero_image_override_url) {
     const oldPath = extractStopImagePath(existingStop.hero_image_override_url);
     if (oldPath && oldPath !== path) {
-      await supabase.storage.from('stop-images').remove([oldPath]);
+      await admin.storage.from('stop-images').remove([oldPath]);
     }
   }
 
   // Bump the city's draft timestamp so the publish button activates
   if (existingStop?.city_id) {
-    await supabase
+    await admin
       .from('cities')
       .update({ draft_updated_at: new Date().toISOString() })
       .eq('id', existingStop.city_id);
@@ -331,8 +353,12 @@ export async function uploadStopImage(formData: FormData) {
  */
 export async function removeStopImageOverride(stopId: string, citySlug: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
 
-  const { data: stop } = await supabase
+  const admin = createAdminClient();
+
+  const { data: stop } = await admin
     .from('stops')
     .select('hero_image_override_url, city_id')
     .eq('id', stopId)
@@ -341,11 +367,11 @@ export async function removeStopImageOverride(stopId: string, citySlug: string) 
   if (stop?.hero_image_override_url) {
     const path = extractStopImagePath(stop.hero_image_override_url);
     if (path) {
-      await supabase.storage.from('stop-images').remove([path]);
+      await admin.storage.from('stop-images').remove([path]);
     }
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('stops')
     .update({ hero_image_override_url: null })
     .eq('id', stopId);
@@ -355,7 +381,7 @@ export async function removeStopImageOverride(stopId: string, citySlug: string) 
   }
 
   if (stop?.city_id) {
-    await supabase
+    await admin
       .from('cities')
       .update({ draft_updated_at: new Date().toISOString() })
       .eq('id', stop.city_id);
