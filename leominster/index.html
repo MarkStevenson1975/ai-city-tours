@@ -4,6 +4,7 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" id="meta-theme-color" content="#ffffff">
   <title>Explore Leominster with Harriet</title>
   <!--
   HARRIET GUIDED WALK HEREFORD - v2.0 · The SetUp Crew
@@ -19,7 +20,7 @@
   <style>
     :root{--color-primary:#1B4332;--color-primary-light:#2D6A4F;--color-bg:#F5F0E8;--color-accent:#C9A84C;--color-accent-light:#E8C96A;--color-text:#1A1A1A;--color-text-light:#F5F0E8;--color-muted:#E8E0D0;--color-muted-dark:#B0A898;--color-visited:#40916C;--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Lato',sans-serif;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,.12);--shadow-lg:0 8px 32px rgba(0,0,0,.18);--transition:200ms ease}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;overflow:hidden;background:var(--color-primary)}
+    html,body{height:100%;overflow:hidden;background:var(--color-bg)}
     body{font-family:var(--font-body);color:var(--color-text)}
     button{font-family:var(--font-body);cursor:pointer;border:none;outline:none}
     img{display:block;max-width:100%}
@@ -1343,7 +1344,7 @@ function applySplashIntro(){const el=document.getElementById('splash-intro-text'
 // facts (including ones used by the where-am-I button on a previous
 // visit) don't refire as the walker passes their proximity zones.
 function seedFiredFactsFromStorage(){try{const list=getPlayedFactIds();list.forEach(id=>state.firedFacts.add(id));}catch(e){}}
-function applyBrand(){const root=document.documentElement;const isHex=v=>typeof v==='string'&&/^#[0-9A-Fa-f]{6}$/.test(v);if(isHex(CONFIG.colorPrimary))root.style.setProperty('--color-primary',CONFIG.colorPrimary);if(isHex(CONFIG.colorAccent))root.style.setProperty('--color-accent',CONFIG.colorAccent);if(isHex(CONFIG.colorBackground))root.style.setProperty('--color-bg',CONFIG.colorBackground);// Operator-uploaded splash image overrides the hardcoded default
+function applyBrand(){const root=document.documentElement;const isHex=v=>typeof v==='string'&&/^#[0-9A-Fa-f]{6}$/.test(v);if(isHex(CONFIG.colorPrimary)){root.style.setProperty('--color-primary',CONFIG.colorPrimary);const tc=document.getElementById('meta-theme-color');if(tc)tc.setAttribute('content',CONFIG.colorPrimary);}if(isHex(CONFIG.colorAccent))root.style.setProperty('--color-accent',CONFIG.colorAccent);if(isHex(CONFIG.colorBackground))root.style.setProperty('--color-bg',CONFIG.colorBackground);// Operator-uploaded splash image overrides the hardcoded default
 if(CONFIG.splashImageUrl){const img=document.getElementById('splash-city-img');if(img)img.src=CONFIG.splashImageUrl;}}
 function applyGuideName(){const guide=(CONFIG.guideName||'Harriet').trim();if(!guide||guide==='Harriet')return;const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null);const nodes=[];let n;while((n=walker.nextNode()))if(n.nodeValue&&n.nodeValue.includes('Harriet'))nodes.push(n);nodes.forEach(node=>{node.nodeValue=node.nodeValue.split('Harriet').join(guide);});if(document.title)document.title=document.title.split('Harriet').join(guide);}
 function renderOperatorCredit(){const credit=document.getElementById('operator-credit');const logo=document.getElementById('operator-logo');const attr=document.getElementById('operator-attribution');if(!credit||!logo||!attr)return;const hasLogo=CONFIG.operatorLogoUrl&&!CONFIG.operatorLogoUrl.startsWith('{{');const hasAttr=CONFIG.operatorAttributionText&&!CONFIG.operatorAttributionText.startsWith('{{');if(hasLogo){logo.src=CONFIG.operatorLogoUrl;logo.alt=CONFIG.operatorName||'';logo.style.display='block';}else{logo.style.display='none';}if(hasAttr){attr.textContent=CONFIG.operatorAttributionText;attr.style.display='block';}else{attr.style.display='none';}if(hasLogo||hasAttr)credit.classList.add('visible');else credit.classList.remove('visible');}
