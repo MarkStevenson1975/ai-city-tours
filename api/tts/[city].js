@@ -15,12 +15,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid city slug' });
   }
 
-  // Look up the per-city key. Each operator has their own ElevenLabs key
-  // stored as ELEVENLABS_KEY_HEREFORD / ELEVENLABS_KEY_GLOUCESTER / etc.
+  // Look up the per-city key first (ELEVENLABS_KEY_HEREFORD etc.).
+  // Falls back to ELEVENLABS_API_KEY (shared key), then to
+  // ELEVENLABS_KEY_HEREFORD as a last resort so new cities work
+  // automatically without needing a new env var per city.
   const envKey = `ELEVENLABS_KEY_${city.toUpperCase().replace(/-/g, '_')}`;
-  const apiKey = process.env[envKey];
+  const apiKey = process.env[envKey] || process.env.ELEVENLABS_API_KEY || process.env.ELEVENLABS_KEY_HEREFORD;
   if (!apiKey) {
-    console.warn(`No env var ${envKey}`);
+    console.warn(`No env var ${envKey} and no ELEVENLABS_API_KEY fallback`);
     return res.status(503).json({
       error: 'Voice not configured for this city',
       env: envKey,
