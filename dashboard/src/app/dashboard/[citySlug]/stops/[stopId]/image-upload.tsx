@@ -138,10 +138,9 @@ export function ImageUpload({
         </p>
       )}
 
-      <p className="mt-2 text-xs text-gray-500">
-        JPEG, PNG, or WebP · max 5 MB · uploads override the default URL below
-        until you remove them. Saved instantly to the draft. Click Publish on
-        the area overview to push live.
+      <p className="mt-2 text-xs text-gray-400">
+        For best results: <span className="text-gray-500 font-medium">16:10 landscape</span> · recommended 1600 x 1000 px (minimum 1200 x 750 px) · JPEG or WebP preferred (WebP gives smaller file sizes) · max 5 MB enforced.
+        Uploads override the default URL until removed. Saved to draft instantly — click Publish to push live.
       </p>
     </div>
   );
