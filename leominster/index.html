@@ -643,9 +643,9 @@ function initSupabase() {
     if (currentUser) {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
-      loadProgress().then(() => {
-        if (state.currentScreen === 'headphones') showScreen('splash');
-      });
+      // Advance immediately — don't wait for loadProgress (avoids race condition after OAuth redirect)
+      if (state.currentScreen === 'headphones') showScreen('splash');
+      loadProgress();
     } else {
       showAuthFormPanel();
     }
@@ -656,9 +656,8 @@ function initSupabase() {
     if (currentUser) {
       showAuthSignedIn(currentUser.email);
       saveUserTourRecord();
-      loadProgress().then(() => {
-        if (state.currentScreen === 'headphones') showScreen('splash');
-      });
+      if (state.currentScreen === 'headphones') showScreen('splash');
+      loadProgress();
     }
   });
 }
