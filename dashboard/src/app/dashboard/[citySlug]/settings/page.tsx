@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { SettingsForm } from './settings-form';
 import { LogoUpload } from './logo-upload';
 import { SplashImageUpload } from './splash-image-upload';
+import { InviteOperatorForm } from '../invite-operator-form';
 
 export default async function SettingsPage({
   params,
@@ -19,6 +20,12 @@ export default async function SettingsPage({
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase.from('user_profiles').select('role').eq('id', user.id).single()
+    : { data: null };
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <div className="max-w-3xl">
@@ -73,6 +80,20 @@ export default async function SettingsPage({
       <section className="mb-12">
         <SettingsForm city={city} />
       </section>
+
+      {isAdmin && (
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-3">Operator access</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Invite or re-invite the operator who manages this area. Sending a new
+            invite removes the previous operator&apos;s access and emails the new
+            address a link to set their password.
+          </p>
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <InviteOperatorForm citySlug={citySlug} />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

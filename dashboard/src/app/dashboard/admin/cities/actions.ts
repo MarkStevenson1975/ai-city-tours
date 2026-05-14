@@ -80,6 +80,30 @@ export async function inviteOperator(formData: FormData) {
     .single();
   if (cityError || !city) throw new Error('City not found.');
 
+  // Remove any existing operators for this city (role = 'operator' only, not admins)
+  const { data: existingAssignments } = await admin
+    .from('city_operators')
+    .select('user_id')
+    .eq('city_id', city.id);
+
+  if (existingAssignments && existingAssignments.length > 0) {
+    const existingIds = existingAssignments.map((a) => a.user_id);
+    const { data: existingProfiles } = await admin
+      .from('user_profiles')
+      .select('id, role')
+      .in('id', existingIds)
+      .eq('role', 'operator');
+
+    if (existingProfiles && existingProfiles.length > 0) {
+      const operatorIds = existingProfiles.map((p) => p.id);
+      await admin
+        .from('city_operators')
+        .delete()
+        .eq('city_id', city.id)
+        .in('user_id', operatorIds);
+    }
+  }
+
   // Invite via Supabase Auth (sends the invite email automatically)
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? 'https://storied-dashboard.vercel.app';
@@ -101,7 +125,7 @@ export async function inviteOperator(formData: FormData) {
     display_name: displayName || null,
   });
 
-  // Link operator to city
+  // Link new operator to city
   await admin.from('city_operators').upsert({
     user_id: newUserId,
     city_id: city.id,
