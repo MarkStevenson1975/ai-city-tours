@@ -105,8 +105,9 @@ export async function inviteOperator(formData: FormData) {
   }
 
   // Invite via Supabase Auth (sends the invite email automatically)
+  // Use DASHBOARD_URL (server-only) so local dev never leaks localhost into invite emails.
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://storied-dashboard.vercel.app';
+    process.env.DASHBOARD_URL ?? 'https://storied-dashboard.vercel.app';
 
   const { data: inviteData, error: inviteError } =
     await admin.auth.admin.inviteUserByEmail(email, {
