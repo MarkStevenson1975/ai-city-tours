@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { DeleteVisitorButton } from './delete-visitor-button';
 
 type VisitorRow = {
   user_id: string;
@@ -71,13 +72,14 @@ export default async function AdminVisitorsPage() {
               <th className="px-6 py-3">Last active</th>
               <th className="px-6 py-3">Areas visited</th>
               <th className="px-6 py-3">Stops visited</th>
+              <th className="px-6 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-cream">
             {!visitors || visitors.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-6 py-10 text-center text-gray-400 italic"
                 >
                   No visitor sign-ups yet.
@@ -126,6 +128,9 @@ export default async function AdminVisitorsPage() {
                         ))}
                       </div>
                     )}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <DeleteVisitorButton userId={v.user_id} email={v.email} />
                   </td>
                 </tr>
               ))

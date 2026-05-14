@@ -47,6 +47,12 @@ export default async function DashboardLayout({
               >
                 All Visitors
               </Link>
+              <Link
+                href="/dashboard/admin/operators"
+                className="block px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                Operators
+              </Link>
             </>
           )}
         </nav>
