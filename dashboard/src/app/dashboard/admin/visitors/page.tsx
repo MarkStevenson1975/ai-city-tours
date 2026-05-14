@@ -9,7 +9,7 @@ type VisitorRow = {
   last_active_at: string | null;
   cities_visited: string[];
   total_stops: number;
-  visited_stop_names: string[];
+  stops_by_city: Record<string, string[]>;
 };
 
 export default async function AdminVisitorsPage() {
@@ -114,17 +114,26 @@ export default async function AdminVisitorsPage() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {!v.visited_stop_names || v.visited_stop_names.length === 0 ? (
+                    {!v.stops_by_city || Object.keys(v.stops_by_city).length === 0 ? (
                       <span className="text-gray-400 italic">None yet</span>
                     ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {v.visited_stop_names.map((name) => (
-                          <span
-                            key={name}
-                            className="inline-block bg-accent/15 text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          >
-                            {name}
-                          </span>
+                      <div className="space-y-2">
+                        {Object.entries(v.stops_by_city).map(([citySlug, stops]) => (
+                          <div key={citySlug}>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1 capitalize">
+                              {citySlug}
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {stops.map((name) => (
+                                <span
+                                  key={name}
+                                  className="inline-block bg-accent/15 text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                >
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
