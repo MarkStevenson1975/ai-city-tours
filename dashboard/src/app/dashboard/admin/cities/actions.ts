@@ -104,22 +104,37 @@ export async function inviteOperator(formData: FormData) {
     }
   }
 
-  // Invite via Supabase Auth (sends the invite email automatically)
   // Use DASHBOARD_URL (server-only) so local dev never leaks localhost into invite emails.
   const siteUrl =
     process.env.DASHBOARD_URL ?? 'https://storied-dashboard.vercel.app';
 
-  const { data: inviteData, error: inviteError } =
-    await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${siteUrl}/auth/callback?next=/setup-password`,
-      data: { display_name: displayName || null },
+  // Check if a user with this email already exists in Supabase Auth
+  const { data: { users: allUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const existingAuthUser = allUsers.find((u) => u.email === email);
+
+  let newUserId: string;
+
+  if (existingAuthUser) {
+    // User already exists — reuse their account rather than re-inviting.
+    // Send a password-reset email so they get a notification and can log in.
+    newUserId = existingAuthUser.id;
+    await admin.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: `${siteUrl}/auth/callback?next=/dashboard` },
     });
+  } else {
+    // Brand new user — send the standard invite email.
+    const { data: inviteData, error: inviteError } =
+      await admin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: `${siteUrl}/auth/callback?next=/setup-password`,
+        data: { display_name: displayName || null },
+      });
+    if (inviteError) throw new Error(inviteError.message);
+    newUserId = inviteData.user.id;
+  }
 
-  if (inviteError) throw new Error(inviteError.message);
-
-  const newUserId = inviteData.user.id;
-
-  // Create user_profiles row
+  // Create or update user_profiles row
   await admin.from('user_profiles').upsert({
     id: newUserId,
     role: 'operator',
