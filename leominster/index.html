@@ -628,7 +628,7 @@ let currentUser = null;
 
 function initSupabase() {
   if (!window.supabase) { console.warn('Supabase JS not loaded'); return; }
-  sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { flowType: 'implicit' } });
   // Update city name in auth welcome
   const cityNameEl = document.getElementById('auth-city-name');
   if (cityNameEl && CONFIG) cityNameEl.textContent = CONFIG.city || 'Leominster';
