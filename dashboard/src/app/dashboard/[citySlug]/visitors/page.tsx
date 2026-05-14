@@ -164,7 +164,7 @@ export default async function CityVisitorsPage({
             <strong>Privacy note:</strong> These KPIs are aggregated and
             anonymised. No email addresses or personal details are stored or
             displayed here. Individual visitor records are accessible to the
-            Storied admin team only.
+            StorieD admin team only.
           </div>
         </>
       )}
