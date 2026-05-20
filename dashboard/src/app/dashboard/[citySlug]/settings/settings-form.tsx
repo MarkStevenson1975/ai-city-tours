@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveSettings } from './actions';
+import { SponsorLogoUpload } from './sponsor-logo-upload';
 
 interface City {
   id: string;
@@ -74,8 +75,8 @@ export function SettingsForm({ city }: { city: City }) {
   const [tourCompleteSuggestion, setTourCompleteSuggestion] = useState(city.tour_complete_suggestion ?? '');
 
   // Completion screen sponsor
+  // (the logo is handled by the SponsorLogoUpload component, which saves on its own)
   const [tcSponsorName, setTcSponsorName] = useState(city.tc_sponsor_name ?? '');
-  const [tcSponsorLogoUrl, setTcSponsorLogoUrl] = useState(city.tc_sponsor_logo_url ?? '');
   const [tcSponsorUrl, setTcSponsorUrl] = useState(city.tc_sponsor_url ?? '');
   const [tcSponsorTagline, setTcSponsorTagline] = useState(city.tc_sponsor_tagline ?? '');
 
@@ -103,7 +104,6 @@ export function SettingsForm({ city }: { city: City }) {
         tour_complete_message: tourCompleteMessage,
         tour_complete_suggestion: tourCompleteSuggestion,
         tc_sponsor_name: tcSponsorName,
-        tc_sponsor_logo_url: tcSponsorLogoUrl,
         tc_sponsor_url: tcSponsorUrl,
         tc_sponsor_tagline: tcSponsorTagline,
       });
@@ -332,15 +332,13 @@ export function SettingsForm({ city }: { city: City }) {
             />
           </Field>
           <Field
-            label="Sponsor logo URL"
-            hint="Direct link to the sponsor's logo image (JPEG, PNG, SVG). Wide rectangular logos work best."
+            label="Sponsor logo"
+            hint="Upload the sponsor's logo image. Wide rectangular logos work best."
           >
-            <input
-              type="url"
-              value={tcSponsorLogoUrl}
-              onChange={(e) => setTcSponsorLogoUrl(e.target.value)}
-              placeholder="https://example.com/logo.png"
-              className={inputCls}
+            <SponsorLogoUpload
+              cityId={city.id}
+              citySlug={city.slug}
+              currentLogoUrl={city.tc_sponsor_logo_url}
             />
           </Field>
           <Field

@@ -25,8 +25,10 @@ interface SaveSettingsInput {
   tour_complete_message: string;
   tour_complete_suggestion: string;
   // Completion screen sponsor
+  // Note: tc_sponsor_logo_url is NOT saved here — it is managed separately by
+  // the upload component (uploadTcSponsorLogo / removeTcSponsorLogo) so it is
+  // never overwritten by a stale form value.
   tc_sponsor_name: string;
-  tc_sponsor_logo_url: string;
   tc_sponsor_url: string;
   tc_sponsor_tagline: string;
 }
@@ -80,9 +82,8 @@ export async function saveSettings(input: SaveSettingsInput) {
       // Tour completion
       tour_complete_message: input.tour_complete_message.trim() || null,
       tour_complete_suggestion: input.tour_complete_suggestion.trim() || null,
-      // Completion screen sponsor
+      // Completion screen sponsor (tc_sponsor_logo_url handled by upload action)
       tc_sponsor_name: input.tc_sponsor_name.trim() || null,
-      tc_sponsor_logo_url: input.tc_sponsor_logo_url.trim() || null,
       tc_sponsor_url: input.tc_sponsor_url.trim() || null,
       tc_sponsor_tagline: input.tc_sponsor_tagline.trim() || null,
       draft_updated_at: new Date().toISOString(),
@@ -333,4 +334,122 @@ function extractSplashImagePath(publicUrl: string): string | null {
   const idx = publicUrl.indexOf(marker);
   if (idx < 0) return null;
   return publicUrl.substring(idx + marker.length).split('?')[0];
+}
+
+// ── Completion-screen sponsor logo upload ───────────────────────────────────
+// Stored in the public "operator-logos" bucket alongside operator logos, under
+// a citySlug/sponsor-logo-* path, and written to cities.tc_sponsor_logo_url.
+
+export async function uploadTcSponsorLogo(formData: FormData) {
+  const file = formData.get('file') as File | null;
+  const cityId = String(formData.get('cityId') ?? '');
+  const citySlug = String(formData.get('citySlug') ?? '');
+
+  if (!file || file.size === 0) {
+    return { ok: false as const, error: 'No file selected.' };
+  }
+  if (!cityId || !citySlug) {
+    return { ok: false as const, error: 'Missing city identifier.' };
+  }
+  if (file.size > MAX_LOGO_BYTES) {
+    return {
+      ok: false as const,
+      error: `File too large. Max 5 MB (yours is ${(file.size / 1024 / 1024).toFixed(1)} MB).`,
+    };
+  }
+  if (!ALLOWED_LOGO_TYPES.includes(file.type)) {
+    return { ok: false as const, error: 'Use JPEG, PNG, WebP, or SVG.' };
+  }
+
+  const supabase = await createClient();
+
+  const ext =
+    file.type === 'image/svg+xml'
+      ? 'svg'
+      : file.name.split('.').pop()?.toLowerCase() || 'png';
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : 'png';
+  const path = `${citySlug}/sponsor-logo-${Date.now()}.${safeExt}`;
+
+  const { data: existingCity } = await supabase
+    .from('cities')
+    .select('tc_sponsor_logo_url')
+    .eq('id', cityId)
+    .single();
+
+  const { error: uploadErr } = await supabase.storage
+    .from('operator-logos')
+    .upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+      cacheControl: '3600',
+    });
+
+  if (uploadErr) {
+    return { ok: false as const, error: `Upload failed: ${uploadErr.message}` };
+  }
+
+  const { data: pub } = supabase.storage
+    .from('operator-logos')
+    .getPublicUrl(path);
+  const publicUrl = pub.publicUrl;
+
+  const { error: updateErr } = await supabase
+    .from('cities')
+    .update({
+      tc_sponsor_logo_url: publicUrl,
+      draft_updated_at: new Date().toISOString(),
+    })
+    .eq('id', cityId);
+
+  if (updateErr) {
+    await supabase.storage.from('operator-logos').remove([path]);
+    return { ok: false as const, error: `DB write failed: ${updateErr.message}` };
+  }
+
+  // Best-effort: delete the previous sponsor logo file
+  if (existingCity?.tc_sponsor_logo_url) {
+    const oldPath = extractOperatorLogoPath(existingCity.tc_sponsor_logo_url);
+    if (oldPath && oldPath !== path) {
+      await supabase.storage.from('operator-logos').remove([oldPath]);
+    }
+  }
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/settings`);
+
+  return { ok: true as const, url: publicUrl };
+}
+
+export async function removeTcSponsorLogo(cityId: string, citySlug: string) {
+  const supabase = await createClient();
+
+  const { data: city } = await supabase
+    .from('cities')
+    .select('tc_sponsor_logo_url')
+    .eq('id', cityId)
+    .single();
+
+  if (city?.tc_sponsor_logo_url) {
+    const path = extractOperatorLogoPath(city.tc_sponsor_logo_url);
+    if (path) {
+      await supabase.storage.from('operator-logos').remove([path]);
+    }
+  }
+
+  const { error } = await supabase
+    .from('cities')
+    .update({
+      tc_sponsor_logo_url: null,
+      draft_updated_at: new Date().toISOString(),
+    })
+    .eq('id', cityId);
+
+  if (error) {
+    return { ok: false as const, error: error.message };
+  }
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/settings`);
+
+  return { ok: true as const };
 }
