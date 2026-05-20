@@ -1434,7 +1434,7 @@ async function fetchWeather(){
 function buildWeatherBanner(w){
   if(!w)return;
   const wc=WEATHER_CODES[w.code]||{icon:'🌤️',desc:'variable weather'};
-  let text=`${wc.icon} It's ${w.temp}°C in Leominster today with ${wc.desc}.`;
+  let text=`It's ${w.temp}°C in Leominster today with ${wc.desc}.`;
   if(w.code>=51&&w.code<=82){
     text+=` You might want an umbrella today.`;
   }else if(w.temp>=24){
@@ -1445,6 +1445,8 @@ function buildWeatherBanner(w){
   const banner=document.getElementById('weather-banner');
   const textEl=document.getElementById('weather-text');
   const ctaEl=document.getElementById('weather-cta');
+  const iconEl=document.getElementById('weather-icon');
+  if(iconEl)iconEl.textContent=wc.icon;
   if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=text;}
   if(ctaEl){ctaEl.classList.add('hidden');}
   state.weatherData=w;
