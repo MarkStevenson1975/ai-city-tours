@@ -1,0 +1,34 @@
+{
+  "city": "Ledbury",
+  "citySlug": "ledbury",
+  "postcodeArea": "HR8",
+  "guideName": "Harriet",
+  "guideVoiceId": "NTqGiNK8P02i66yY2GOH",
+  "maxStops": 10,
+  "colorPrimary": "#1B4332",
+  "colorBackground": "#F5F0E8",
+  "colorAccent": "#C9A84C",
+  "operatorName": "Ledbury",
+  "stops": [
+    {
+      "id": 1,
+      "name": "Ledbury War Memorial",
+      "shortDescription": "A 1920 stone column topped with a gilded eternal flame, set with mosaics of a soldier, sailor and angel",
+      "coordinates": {
+        "lat": 52.0369059,
+        "lng": -2.4229554
+      },
+      "heroImageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/11/Ledbury_War_Memorial_-_geograph.org.uk_-_5723002.jpg",
+      "narration": "Stand for a moment and look up. Above the stone column in front of you, a flame picked out in gold catches what light there is. It does not flicker, and it never goes out. This is Ledbury's war memorial, and that gilded flame has stood, in the eternal sense, since the winter of 1920.\n\nThe memorial was unveiled on Sunday the fifth of December that year, set here on the High Street directly opposite the Market House. The First World War had ended two years earlier, and the town had lost eighty-five of its men. Eighty-five names, from a place this size. Walk the streets around you and you begin to understand what that meant. A brother gone from one house, a son from the next, a father from the one after that. The column was raised so that those names would stand in the centre of town, where everyone passed, and could not be forgotten.\n\nLook closer at the pedestal. On the lower section, three mosaic figures face out across the street. There is a soldier, a sailor, and an angel, their colours still bright against the pale stone. These belong to the First World War memorial. Above them, a second chapter was added later. When the Second World War ended, the town carried more names, and in 1988 the Ledbury Royal British Legion led an appeal to add them here. Painted tiles showing an airman mark that newer story, so the memorial now holds both wars in a single standing stone.\n\nThe marble tablets around the base carry the names themselves. Read a few of them. You will notice the same surnames repeating, families who gave more than one. These were not distant figures. They worked the shops and farms of this valley, and walked the cobbles you are standing on now.\n\nBy 2020, a century of weather had taken its toll. The stone was worn, the base unstable, the top of the spire decayed. A former Ledbury man named Stuart Heaton, by then living in London, gave more than thirty thousand pounds towards the repair. The cobbles were relaid, the base rebuilt, and the crowning section replaced, so the flame could go on standing as it was meant to.\n\nNotice the setting too. Behind the memorial rises the red and timber clock tower, and beyond it the old black and white frontages of the High Street. The townspeople chose this spot deliberately. Not a quiet churchyard, but the busiest crossing in Ledbury, where the living and the remembered share the same ground every single day.\n\nTake a slow look at the soldier in the mosaic before you move on. He is young, calm, and ordinary, which is rather the point. Behind that one painted face stand eighty-five real ones, and more again from the war that followed.\n\nWhen you're ready to move on, press the Log Visit button in the top right corner of your screen. That records your stop here so you can move onto the next stop.",
+      "facts": [
+        "The memorial was unveiled on 5 December 1920 and carries the names of eighty-five Ledbury men who died in the First World War, a heavy loss for a town of its size.",
+        "The gilded shape at the very top is an eternal flame, while the lower pedestal is set with three mosaics showing a soldier, a sailor and an angel.",
+        "The Second World War names were not added until 1988, after an appeal by the Ledbury Royal British Legion, and a former resident gave over thirty thousand pounds to restore the monument in 2020."
+      ],
+      "emoji": "🕯️"
+    }
+  ],
+  "locationFacts": [],
+  "sponsors": [],
+  "events": []
+}
