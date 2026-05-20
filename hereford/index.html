@@ -1461,14 +1461,19 @@ function getWeatherIntroLine(w){
 // ── EVENTS ────────────────────────────────────────────────
 function getCurrentEventMention(){
   if(!CONFIG.events||!CONFIG.events.length)return null;
-  const now=new Date();const m=now.getMonth()+1;const d=now.getDate();const y=now.getFullYear();
+  const now=new Date();const y=now.getFullYear();
   for(const ev of CONFIG.events){
     if(ev.yearCycle){const offset=(y-ev.nextYear)%ev.yearCycle;if(offset!==0)continue;}
-    const within=m===ev.month;
-    if(within&&d>=ev.dayFrom&&d<=ev.dayTo)return{ev,type:'during'};
-    if(within&&d>ev.dayTo&&d<=ev.dayTo+7)return{ev,type:'recent'};
-    if(within&&d<ev.dayFrom&&d>=ev.dayFrom-10)return{ev,type:'upcoming'};
-    if(m===ev.month-1&&d>=21)return{ev,type:'upcoming'};
+    const startMonth=ev.month;const endMonth=ev.monthTo||ev.month;
+    let start=new Date(y,startMonth-1,ev.dayFrom,0,0,0);
+    let end=new Date(y,endMonth-1,ev.dayTo,23,59,59);
+    // Window crosses the year end (e.g. Dec to Jan): shift one side onto the right year.
+    if(end<start){if(now>=start){end=new Date(y+1,endMonth-1,ev.dayTo,23,59,59);}else{start=new Date(y-1,startMonth-1,ev.dayFrom,0,0,0);}}
+    const upcomingStart=new Date(start);upcomingStart.setDate(upcomingStart.getDate()-10);
+    const recentEnd=new Date(end);recentEnd.setDate(recentEnd.getDate()+7);
+    if(now>=start&&now<=end)return{ev,type:'during'};
+    if(now>end&&now<=recentEnd)return{ev,type:'recent'};
+    if(now>=upcomingStart&&now<start)return{ev,type:'upcoming'};
   }
   return null;
 }

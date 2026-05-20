@@ -8,6 +8,8 @@ export interface EventInput {
   name: string;
   emoji: string;
   month: number;
+  /** Optional end month for events that run into the following month. Null = single-month event. */
+  month_to: number | null;
   day_from: number;
   day_to: number;
   year_cycle: number | null;
@@ -18,10 +20,18 @@ export interface EventInput {
 }
 
 function sanitize(input: EventInput) {
+  const month = Math.max(1, Math.min(12, input.month));
+  let month_to =
+    input.month_to && input.month_to >= 1 && input.month_to <= 12
+      ? input.month_to
+      : null;
+  // An end month equal to the start month is just a single-month event.
+  if (month_to === month) month_to = null;
   return {
     name: input.name.trim(),
     emoji: input.emoji.trim() || null,
-    month: Math.max(1, Math.min(12, input.month)),
+    month,
+    month_to,
     day_from: Math.max(1, Math.min(31, input.day_from)),
     day_to: Math.max(1, Math.min(31, input.day_to)),
     year_cycle: input.year_cycle && input.year_cycle > 0 ? input.year_cycle : null,
@@ -53,8 +63,10 @@ export async function createEvent(
   if (!sanitized.name) {
     return { ok: false as const, error: 'Event name is required.' };
   }
-  if (sanitized.day_to < sanitized.day_from) {
-    return { ok: false as const, error: 'End day must be on or after start day.' };
+  // The day order only matters within a single month. A cross-month event
+  // (e.g. 26th to 5th of the next month) legitimately has end day < start day.
+  if (!sanitized.month_to && sanitized.day_to < sanitized.day_from) {
+    return { ok: false as const, error: 'For a single month, the end day must be on or after the start day.' };
   }
 
   const { data, error } = await supabase

@@ -9,6 +9,7 @@ interface EventRow {
   name: string;
   emoji: string | null;
   month: number;
+  month_to: number | null;
   day_from: number;
   day_to: number;
   year_cycle: number | null;
@@ -39,6 +40,7 @@ export function EventForm({ citySlug, cityId, event }: Props) {
   const [name, setName] = useState(event?.name ?? '');
   const [emoji, setEmoji] = useState(event?.emoji ?? '');
   const [month, setMonth] = useState(String(event?.month ?? new Date().getMonth() + 1));
+  const [monthTo, setMonthTo] = useState(event?.month_to ? String(event.month_to) : '');
   const [dayFrom, setDayFrom] = useState(String(event?.day_from ?? 1));
   const [dayTo, setDayTo] = useState(String(event?.day_to ?? 1));
   const [yearCycle, setYearCycle] = useState(event?.year_cycle?.toString() ?? '');
@@ -52,6 +54,7 @@ export function EventForm({ citySlug, cityId, event }: Props) {
       name,
       emoji,
       month: parseInt(month, 10) || 1,
+      month_to: monthTo ? parseInt(monthTo, 10) : null,
       day_from: parseInt(dayFrom, 10) || 1,
       day_to: parseInt(dayTo, 10) || 1,
       year_cycle: yearCycle ? parseInt(yearCycle, 10) : null,
@@ -127,10 +130,10 @@ export function EventForm({ citySlug, cityId, event }: Props) {
 
       <Section
         title="When"
-        subtitle="Anchor month and day range. Used to detect upcoming, during, and recent events on splash screen."
+        subtitle="Month and day range. Leave the end month as 'Same month' for events that stay within one month, or pick a later month for ones that roll over (e.g. 26 March to 5 April). Used to detect upcoming, during, and recent events on the splash screen."
       >
-        <div className="grid grid-cols-3 gap-4">
-          <Field label="Month" required>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Start month" required>
             <select
               value={month}
               onChange={(e) => setMonth(e.target.value)}
@@ -143,7 +146,23 @@ export function EventForm({ citySlug, cityId, event }: Props) {
               ))}
             </select>
           </Field>
-          <Field label="From day" required>
+          <Field label="End month" hint="Leave as 'Same month' unless the event runs into a later month.">
+            <select
+              value={monthTo}
+              onChange={(e) => setMonthTo(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Same month</option>
+              {MONTHS.map((name, i) => (
+                <option key={i} value={i + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Start day" required>
             <input
               type="number"
               min={1}
@@ -154,7 +173,7 @@ export function EventForm({ citySlug, cityId, event }: Props) {
               className={inputCls}
             />
           </Field>
-          <Field label="To day" required>
+          <Field label="End day" required hint="The day in the end month (or the start month if no end month is set).">
             <input
               type="number"
               min={1}
