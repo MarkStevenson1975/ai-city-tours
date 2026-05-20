@@ -1185,7 +1185,7 @@ audio.src=url;audio.load();const playPromise=audio.play();if(playPromise!==undef
 function saveSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'leominster');try{localStorage.setItem(k,JSON.stringify([...state.skippedStops]));}catch(e){}}
 function loadSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'leominster');try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}}
 function skipStop(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id)){showScreen('stoplist');return;}state.visitedStops.add(stop.id);state.skippedStops.add(stop.id);saveProgress();saveSkippedStops();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display='none';if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,600);}showScreen('stoplist');}
-function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`Visited - ${stop.name}`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`Well done - you've marked ${stop.name} as complete. On to the next stop whenever you're ready.`,'Complete');}}
+function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`Visited: ${stop.name}`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`That's ${stop.name} logged. When you're ready, make your way to the next stop. Or to see the whole walk again, tap the Tour button in the top left corner of your screen to go back to your list of stops.`,'Complete');}}
 function playFact(text){playHarriet(text,'Interesting Fact');}
 function showAudioBar(label,demo){document.getElementById('audio-label').textContent=label;document.getElementById('audio-player-bar').classList.add('visible');}
 function hideAudioBar(){document.getElementById('audio-player-bar').classList.remove('visible');document.getElementById('audio-progress-fill').style.width='0%';}
@@ -1478,7 +1478,7 @@ function showEventBanner(){
   const{ev,type}=mention;
   const banner=document.getElementById('event-banner');
   const textEl=document.getElementById('event-text');
-  if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=`${ev.emoji} ${ev[type]}`;}
+  if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=ev[type];}
 }
 
 // ── BUSINESS HOURS (Google Places with 6h cache) ──────────
