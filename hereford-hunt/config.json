@@ -1,0 +1,129 @@
+{
+  "city": "Hereford",
+  "citySlug": "hereford-hunt",
+  "postcodeArea": "HR1",
+  "guideName": "Richard",
+  "guideVoiceId": "JBFqnCBsd6RMkjVDRZzb",
+  "maxStops": 6,
+  "colorPrimary": "#1B4332",
+  "colorBackground": "#F5F0E8",
+  "colorAccent": "#C9A84C",
+  "operatorName": "Hereford BID",
+  "operatorAttributionText": "Brought to you by Hereford BID",
+  "splashIntro": "Stop right there. Yes, you. Don't move, and whatever you do, don't tell the vergers.\n\nMy name is Richard of Haldingham. You will not have heard of me, which is a wound I have learned to carry. But you have, I promise, heard of my work. Step inside this cathedral and you will find it: the Mappa Mundi, the great map of the whole world, drawn on a single calf skin some seven hundred years ago. The largest map to survive from the medieval age. Jerusalem at the centre, the rivers, the cities, the edge of all things. I drew every line of it. I even signed it, which at the time felt modest.\n\nHere is my difficulty. A map of the world must also show the creatures of the world. So around the edges I drew a few. A beast with ears so large it sleeps inside them. A bull that fires its own dung at anyone foolish enough to give chase. A man with one enormous foot. Useful, educational, entirely accurate.\n\nThey have got out.\n\nEvery last one of them climbed off the parchment in the night and wandered into Hereford, and the cathedral opens at nine. If the keepers find gaps in the greatest map in Christendom, seven hundred years of my reputation goes with it. I cannot chase them myself. I am, you will have noticed, drawn in ink and somewhat flat.\n\nSo you will do it. I had pictured someone taller, but the hour is late and you are here.\n\nSix beasts are loose. Each has crept off to the corner of the city that suits it best. Find one, and I will draw it home where it belongs. Find all six, and we will both pretend this never happened.\n\nThe first has the ears. You will hear it before you see it, halfway up Church Street, listening to gossip that is none of its business. Off you go. Quietly.",
+  "tourCompleteNarration": "You are back where you started, at the Cathedral, with a satchel full of monsters and the sky beginning to lighten. We have just enough time.\n\nStep inside, and in a room of its own you will find it at last. The Mappa Mundi. The real one. The largest map to survive from the medieval world, drawn on a single calf skin around the year 1300, every line of it by my own hand. Jerusalem sits at the centre, where I believed the world turned. Around the edges, in their proper places, you will find them all: the man with the ears, the bull that should not be approached, the screaming root, the lazy fellow with one foot, the dragon, and the serpent in the sea. Each one back exactly where it belongs, as though it never left.\n\nLook closely. People walk past this map and see an old drawing. You know better now. You helped put them back. Seven hundred years of my reputation, safe for one more morning, thanks to someone I had frankly written off at the Cathedral door.\n\nGo and see the real map. Stand close. Find your six. Richard of Haldingham. Cartographer. At your service, and, against all expectation, in your debt.",
+  "tourCompleteMessage": "Every monster is back on the map. Now step inside the Cathedral and find all six on the real Mappa Mundi.",
+  "tourCompleteSuggestion": "Step inside Hereford Cathedral and find your six monsters on the real medieval map.",
+  "stops": [
+    {
+      "id": 1,
+      "name": "Church Street",
+      "emoji": "👂",
+      "shortDescription": "A creature with ears like bedsheets, eavesdropping on the lane's gossip",
+      "coordinates": {
+        "lat": 52.0553,
+        "lng": -2.7146
+      },
+      "narration": "Slow down. You are on Church Street now, that narrow lane of little shops running up from the Cathedral, and somewhere along here is the first of my escapees. You will not see him at first. You will feel watched.\n\nThere. Tucked between the shopfronts. The Panotii. A man, more or less, except for the ears. Ears the size of bedsheets, which he can fold around himself at night and sleep inside like a man in a tent. I drew him on the eastern edge of the world, where I was assured such people lived. I had it on excellent authority. The authority was a sailor, and he was drunk, but the ears are correct.\n\nHe has chosen Church Street for a reason. It is the most overheard street in Hereford. Centuries of shopkeepers leaning in doorways, sharing news that was none of their business. A creature with ears like that cannot resist it. Right now he is listening to a conversation three doors down about somebody's son-in-law, and he is appalled, and delighted.\n\nHere is how we catch him. Ears that large hear everything, which means they are easily overwhelmed. Lean in, as though you are about to tell him the juiciest secret in the city. Lower your voice. Lower it further. He will lean closer, and closer, straining those enormous ears toward you, until he is so busy listening that he forgets to run. And there. He folds up neatly, ears and all, and goes back in my satchel where he belongs.\n\nOne down. Only a little dignity lost. Mostly his.",
+      "facts": [
+        "The Panotii, drawn with ears large enough to sleep inside, appear on the real Mappa Mundi at the edge of the known world.",
+        "Church Street is one of Hereford's oldest lanes, lined with independent shops between the Cathedral and High Town."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "High Town",
+      "emoji": "🐂",
+      "shortDescription": "A bull that fights with fire, at home in the old market square",
+      "coordinates": {
+        "lat": 52.056,
+        "lng": -2.7155
+      },
+      "narration": "You have reached High Town, the wide market square at the heart of Hereford. For centuries this was where the city did its trading, including, fittingly, its cattle. Hold that thought about cattle. It matters in a moment.\n\nBecause the beast loose here is the Bonnacon. Picture a bull. Give it a fine head, a mane like a horse, and a pair of horns that curl so far inward they are completely useless for goring anyone. A bull that cannot fight with its horns. You may be wondering how such a creature survives. I wondered the same when I drew it. The answer is the single most undignified defence in the natural world.\n\nWhen the Bonnacon is chased, it runs, and as it runs it fires a long stream of its own dung at whoever is behind it. Not a small amount. Enough, the old accounts swear, to cover three acres of ground, and it burns like hot coals wherever it lands. A hunter does not catch a Bonnacon. A hunter learns a lesson.\n\nIt has settled in High Town because this was cattle country, and Hereford cattle, those calm beasts with the white faces, are known the world over. The Bonnacon took one look at the square, decided it was among family, and made itself at home.\n\nNow. Whatever you do, do not chase it. That is precisely what it wants. Instead, simply walk past, slowly, with the supreme indifference of someone who has somewhere better to be. A Bonnacon only fires at a pursuer. Show no interest, and it deflates, with nothing to aim at. Walk on by, and it trots after you meekly, hoping you did not notice the smell.\n\nTwo caught. Try not to stand downwind.",
+      "facts": [
+        "Medieval bestiaries describe the Bonnacon defending itself by firing burning dung as it flees, said to cover three acres of ground.",
+        "Hereford cattle, with their distinctive white faces, are one of the most widely exported breeds in the world."
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The Old House",
+      "emoji": "🌱",
+      "shortDescription": "A screaming root hiding beneath the 1621 timber house",
+      "coordinates": {
+        "lat": 52.0561,
+        "lng": -2.7152
+      },
+      "narration": "Stand in front of the Old House. You cannot miss it: a tall, black-and-white timber building standing on its own in the middle of the square, all crooked beams and leaded windows. It was built in 1621, and it has watched Hereford go by for four hundred years. Which is exactly why the next creature chose to hide beneath it.\n\nThis one is not a beast. It is a plant. The Mandrake. A root that grows in the shape of a small human figure, with what look like arms, legs, and a furious little face. Harmless in the ground. The trouble comes when you pull it up. The Mandrake screams. And the scream, the old books promise, is so dreadful that any living thing which hears it drops dead on the spot, or at the very least loses its mind entirely.\n\nSensible people did not pull them by hand. They tied a hungry dog to the root, stood well back, covered their ears, and let the dog do the pulling. The dog, sadly, did not last the afternoon. I include this detail not to upset you, but because it is true, and I am nothing if not accurate.\n\nOur Mandrake has wedged itself among the old foundations of this house, four hundred years of timber and silence above it, perfectly happy down there in the dark. Coaxing it out without a scream is the trick.\n\nSo we do not pull. We wait. A Mandrake cannot bear to be ignored. Turn your back on it. Admire the house, the carved beams, the leaning upper floor. Pay it no attention at all, and within moments it will come wriggling up out of the ground entirely on its own, just to find out what is so much more interesting than itself. Vanity. Works every time.\n\nThree home. And not a single dog harmed today, which is an improvement.",
+      "facts": [
+        "The Old House was built in 1621 and is one of the last survivors of a row of timber-framed buildings that once filled High Town.",
+        "Legend held that a mandrake root screamed when pulled from the ground, so dogs were used to pull it up instead."
+      ]
+    },
+    {
+      "id": 4,
+      "name": "All Saints Church",
+      "emoji": "🦶",
+      "shortDescription": "A one-footed sunbather lounging by the leaning spire",
+      "coordinates": {
+        "lat": 52.0556,
+        "lng": -2.717
+      },
+      "narration": "Look up at All Saints Church, and look at the spire. Notice anything? It leans. Not the gentle lean of age, either. That spire went crooked almost as soon as it was built, because the builders, in their wisdom, laid the foundations on top of an old rubbish pit. The church was begun around the year 1200, suffered badly, possibly in an earthquake, and took a full century to finish. Step inside and there is a cafe among the medieval carvings, and one or two carvings the Victorians wished had never been made. Have a look. I shall say no more.\n\nThe creature here is the Sciapod, and he is the laziest thing I ever put on a map. A man with a single, enormous foot. Just the one. He cannot walk so much as hop, and he tires of that quickly, so he spends his days lying flat on his back with that great foot raised in the air above him, using it as a parasol to keep the sun off. An entire life spent sunbathing in his own shade.\n\nYou can see why he likes it here. A quiet churchyard, a cafe nearby, somewhere comfortable to lie down. He has found one creature's idea of paradise.\n\nCatching him could not be simpler, because he will not get up. The only difficulty is that a Sciapod, when content, becomes almost impossible to move, like a cat that has chosen your lap. So you must offer him somewhere even more comfortable. Pat your satchel, the soft one, the shaded one, and he will hop in gratefully and resume his nap at once. He does not so much get caught as accept an upgrade.\n\nFour. He has not noticed he is captured. I shall not tell him.",
+      "facts": [
+        "The Sciapod is shown on the Mappa Mundi as a man lying on his back, using his single huge foot as a sunshade.",
+        "All Saints was begun around 1200 and its spire leans because it was built over an old rubbish pit."
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Castle Green",
+      "emoji": "🐉",
+      "shortDescription": "A dragon with nothing left to guard but a lawn",
+      "coordinates": {
+        "lat": 52.0525,
+        "lng": -2.7105
+      },
+      "narration": "You are standing on Castle Green now, a broad green park beside the River Wye, with a tall column at its centre topped by Admiral Nelson. Pleasant, isn't it. Peaceful. You would never know that this was once the site of one of the largest castles in all of England. A great fortress stood here, with towers and walls and a keep. And then, over the centuries, it was taken down, stone by stone, until almost nothing remained. A castle that vanished.\n\nWhich brings us to our gloomiest escapee. The Dragon. Every good map needs one, and I gave mine pride of place out in the far East, coiled and watchful, because that is where dragons were known to guard great treasures and great strongholds.\n\nAnd that, you see, is the problem. A dragon must guard something. It is the entire point of a dragon. So when this one wandered into Hereford and found a castle, it was overjoyed. It curled up to begin a thousand years of magnificent guarding. Then somebody mentioned that the castle had been gone for two hundred years, and that it was now, in fact, guarding a lawn.\n\nYou will find it over by the column, sulking enormously, breathing the occasional half-hearted puff of smoke at a passing pigeon.\n\nWe catch this one with kindness. A dragon does not want a castle. A dragon wants a purpose. So give it one. Tell it, quietly and seriously, that the most precious treasure in the whole city is a seven-hundred-year-old map kept in the Cathedral, and that it is dreadfully under-guarded. Watch its eyes light up. It will follow you the rest of the way without a word, finally with somewhere worth going.\n\nFive. And rather pleased with itself. Let it have this.",
+      "facts": [
+        "Hereford Castle was once one of the largest castles in England, but was dismantled over the centuries until almost nothing remained.",
+        "The column on Castle Green honours Admiral Lord Nelson, who was given the freedom of the city when he visited in 1802."
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Victoria Bridge",
+      "emoji": "🐍",
+      "shortDescription": "A sea serpent lurking in the Wye beneath the white footbridge",
+      "coordinates": {
+        "lat": 52.0516,
+        "lng": -2.7156
+      },
+      "narration": "Walk out onto Victoria Bridge, the slender white suspension footbridge that crosses the River Wye. It was built in 1898, to mark sixty years of Queen Victoria on the throne, and it sways, very slightly, when you reach the middle. Stop there. Look down at the water.\n\nThe Wye is a serious river. Salmon run in it, herons fish it, and it has been the road, the boundary, and the lifeblood of this city for as long as there has been a city. So when the last of my creatures needed somewhere to hide, it did not choose a street or a square. It chose deep water.\n\nThe Sea Serpent. I drew a good many of these around the oceans at the edges of the map, because every sailor I ever spoke to swore blind they had seen one, usually just after describing how much they had had to drink. Long as three boats, they said. Coils like a ship's rope. Eyes like lanterns. I drew exactly that, and out here, in the brown water of the Wye, something long and patient is waiting beneath the surface.\n\nThis is the hardest catch of the day, because you cannot reach it and you cannot trick it. A serpent that old has heard every trick there is. So we do not catch it at all. We invite it.\n\nLean on the rail. Look down. And tell it, plainly, that its likeness has hung in pride of place on the greatest map in the world for seven hundred years, admired by every soul who ever stood before it, and ask whether it would not rather go home to that than spend another century in a river in Herefordshire. Vanity again. It works on monsters even better than it works on men. A great dark coil rises, turns once, and slips into the satchel like something coming home.\n\nSix. All of them. I confess I doubted you, taller or not.",
+      "facts": [
+        "Victoria Bridge, the white suspension footbridge over the Wye, opened in 1898 in honour of Queen Victoria.",
+        "Medieval mapmakers filled the oceans of maps like the Mappa Mundi with sea serpents and monsters reported by sailors."
+      ]
+    }
+  ],
+  "locationFacts": [
+    {
+      "id": "mm1",
+      "text": "The Hereford Mappa Mundi is the largest medieval map of the world to survive, drawn on a single sheet of calf-skin vellum around the year 1300."
+    },
+    {
+      "id": "mm2",
+      "text": "The map places Jerusalem at the very centre of the world, with east, not north, at the top."
+    },
+    {
+      "id": "mm3",
+      "text": "Around its edges the map shows strange races and beasts, from dog-headed men to a bull that fights with fire."
+    },
+    {
+      "id": "mm4",
+      "text": "The mapmaker signed his work as Richard of Haldingham and Lafford, which is why Richard is your guide on this hunt."
+    }
+  ],
+  "sponsors": [],
+  "events": []
+}
