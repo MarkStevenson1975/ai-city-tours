@@ -899,7 +899,7 @@ async function loadConfig() {
   // Fallback: the static config.json bundled alongside this HTML.
   // Keeps the tour working even if the API or Supabase is down.
   try {
-    const res = await fetch('./config.json');
+    const res = await fetch('/' + citySlug + '/config.json');
     if (!res.ok) throw new Error('Failed to load config (HTTP ' + res.status + ')');
     CONFIG = await res.json();
     init();
