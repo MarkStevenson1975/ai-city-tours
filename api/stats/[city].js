@@ -93,6 +93,14 @@ export default async function handler(req, res) {
       return res.status(200).send(csv);
     }
 
+    // Ready-to-send HTML summary, for the daily email (and viewable in a browser).
+    if (format === 'email' || format === 'html') {
+      const html = toEmailHtml(stats);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).send(html);
+    }
+
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json(stats);
   } catch (e) {
@@ -111,4 +119,118 @@ function toCsv(cols, rows) {
   const head = cols.join(',');
   const body = (rows || []).map((row) => cols.map((c) => esc(row[c])).join(',')).join('\n');
   return head + '\n' + body + '\n';
+}
+
+// Friendly display names for the city slugs.
+const CITY_NAMES = {
+  hereford: 'Hereford',
+  ledbury: 'Ledbury',
+  leominster: 'Leominster',
+  'hereford-hunt': 'Hereford Monster Hunt',
+};
+function cityName(slug) {
+  if (CITY_NAMES[slug]) return CITY_NAMES[slug];
+  return String(slug || '')
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// Builds a self-contained, email-client-friendly HTML summary. Inline styles
+// only (email clients strip <style>), simple table, no external assets.
+function toEmailHtml(stats) {
+  const t = (stats && stats.totals) || {};
+  const areas = Array.isArray(stats && stats.by_area) ? stats.by_area : [];
+  const gen = stats && stats.generated_at ? new Date(stats.generated_at) : new Date();
+  const dateLabel = gen.toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London',
+  });
+
+  const green = '#1B4332';
+  const gold = '#C9A84C';
+  const border = '#E8E0D0';
+
+  const th = `style="text-align:left;padding:8px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#ffffff;background:${green};"`;
+  const thN = th.replace('text-align:left', 'text-align:right');
+  const td = `style="padding:8px 10px;border-bottom:1px solid ${border};font-size:14px;color:#1A1A1A;"`;
+  const tdN = td.replace('padding:8px 10px', 'padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums');
+
+  let rows = areas
+    .map(
+      (a) => `<tr>
+        <td ${td}>${esc(cityName(a.city))}</td>
+        <td ${tdN}>${esc(a.unique_devices)}</td>
+        <td ${tdN}>${esc(a.opens)}</td>
+        <td ${tdN}>${esc(a.walks_started)}</td>
+        <td ${tdN}>${esc(a.stops_logged)}</td>
+        <td ${tdN}>${esc(a.tours_completed)}</td>
+        <td ${tdN}>${esc(a.unique_devices_7d)}</td>
+      </tr>`
+    )
+    .join('');
+  if (!rows) {
+    rows = `<tr><td ${td} colspan="7" style="padding:16px;color:#777;font-size:14px;">No guest activity recorded yet.</td></tr>`;
+  }
+
+  const firstSeen = t.first_seen
+    ? new Date(t.first_seen).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/London' })
+    : 'n/a';
+
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#F5F0E8;">
+  <div style="max-width:640px;margin:0 auto;padding:24px;font-family:Arial,Helvetica,sans-serif;">
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
+      <div style="background:${green};padding:20px 24px;">
+        <div style="color:${gold};font-size:13px;letter-spacing:.08em;text-transform:uppercase;">Storied Tours</div>
+        <div style="color:#ffffff;font-size:20px;font-weight:bold;margin-top:4px;">Daily guest usage</div>
+        <div style="color:#cfe0d6;font-size:13px;margin-top:4px;">${esc(dateLabel)}</div>
+      </div>
+      <div style="padding:20px 24px;">
+        <p style="margin:0 0 16px;font-size:15px;color:#1A1A1A;">A summary of people using the tours without signing in, across every area.</p>
+
+        <div style="display:block;margin-bottom:18px;">
+          <span style="display:inline-block;background:#F5F0E8;border-radius:8px;padding:10px 14px;margin:0 8px 8px 0;font-size:14px;">
+            <strong style="font-size:20px;color:${green};">${esc(t.unique_devices || 0)}</strong><br>
+            <span style="color:#555;font-size:12px;">total visitors (all time)</span>
+          </span>
+          <span style="display:inline-block;background:#F5F0E8;border-radius:8px;padding:10px 14px;margin:0 8px 8px 0;font-size:14px;">
+            <strong style="font-size:20px;color:${green};">${esc(stats.unique_devices_7d || 0)}</strong><br>
+            <span style="color:#555;font-size:12px;">visitors last 7 days</span>
+          </span>
+          <span style="display:inline-block;background:#F5F0E8;border-radius:8px;padding:10px 14px;margin:0 8px 8px 0;font-size:14px;">
+            <strong style="font-size:20px;color:${green};">${esc(t.tours_completed || 0)}</strong><br>
+            <span style="color:#555;font-size:12px;">tours completed</span>
+          </span>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;">
+          <thead>
+            <tr>
+              <th ${th}>Area</th>
+              <th ${thN}>Visitors</th>
+              <th ${thN}>Opens</th>
+              <th ${thN}>Walks</th>
+              <th ${thN}>Stops</th>
+              <th ${thN}>Completed</th>
+              <th ${thN}>7&nbsp;days</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+
+        <p style="margin:16px 0 0;font-size:12px;color:#888;">
+          Visitors are counted as unique anonymous devices, no personal data. Tracking began ${esc(firstSeen)}.
+          Figures are all-time unless labelled otherwise.
+        </p>
+      </div>
+    </div>
+    <p style="text-align:center;color:#999;font-size:11px;margin:16px 0 0;">Storied Tours &middot; automated daily summary</p>
+  </div>
+</body></html>`;
 }
