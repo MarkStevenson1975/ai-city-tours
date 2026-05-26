@@ -162,6 +162,25 @@ function toEmailHtml(stats) {
   const td = `style="padding:8px 10px;border-bottom:1px solid ${border};font-size:14px;color:#1A1A1A;"`;
   const tdN = td.replace('padding:8px 10px', 'padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums');
 
+  const l24 = (stats && stats.last_24h) || {};
+
+  // Last-24-hours table: every area, so a quiet day reads clearly as zeros.
+  let rows24 = areas
+    .map(
+      (a) => `<tr>
+        <td ${td}>${esc(cityName(a.city))}</td>
+        <td ${tdN}>${esc(a.unique_devices_24h || 0)}</td>
+        <td ${tdN}>${esc(a.opens_24h || 0)}</td>
+        <td ${tdN}>${esc(a.walks_started_24h || 0)}</td>
+        <td ${tdN}>${esc(a.stops_logged_24h || 0)}</td>
+        <td ${tdN}>${esc(a.tours_completed_24h || 0)}</td>
+      </tr>`
+    )
+    .join('');
+  if (!rows24) {
+    rows24 = `<tr><td ${td} colspan="6" style="padding:16px;color:#777;font-size:14px;">No activity in the last 24 hours.</td></tr>`;
+  }
+
   let rows = areas
     .map(
       (a) => `<tr>
@@ -196,19 +215,35 @@ function toEmailHtml(stats) {
 
         <div style="display:block;margin-bottom:18px;">
           <span style="display:inline-block;background:#F5F0E8;border-radius:8px;padding:10px 14px;margin:0 8px 8px 0;font-size:14px;">
-            <strong style="font-size:20px;color:${green};">${esc(t.unique_devices || 0)}</strong><br>
-            <span style="color:#555;font-size:12px;">total visitors (all time)</span>
+            <strong style="font-size:20px;color:${green};">${esc(l24.unique_devices || 0)}</strong><br>
+            <span style="color:#555;font-size:12px;">visitors last 24h</span>
           </span>
           <span style="display:inline-block;background:#F5F0E8;border-radius:8px;padding:10px 14px;margin:0 8px 8px 0;font-size:14px;">
             <strong style="font-size:20px;color:${green};">${esc(stats.unique_devices_7d || 0)}</strong><br>
             <span style="color:#555;font-size:12px;">visitors last 7 days</span>
           </span>
           <span style="display:inline-block;background:#F5F0E8;border-radius:8px;padding:10px 14px;margin:0 8px 8px 0;font-size:14px;">
-            <strong style="font-size:20px;color:${green};">${esc(t.tours_completed || 0)}</strong><br>
-            <span style="color:#555;font-size:12px;">tours completed</span>
+            <strong style="font-size:20px;color:${green};">${esc(t.unique_devices || 0)}</strong><br>
+            <span style="color:#555;font-size:12px;">total visitors (all time)</span>
           </span>
         </div>
 
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Last 24 hours, by area</div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;margin-bottom:22px;">
+          <thead>
+            <tr>
+              <th ${th}>Area</th>
+              <th ${thN}>Visitors</th>
+              <th ${thN}>Opens</th>
+              <th ${thN}>Walks</th>
+              <th ${thN}>Stops</th>
+              <th ${thN}>Completed</th>
+            </tr>
+          </thead>
+          <tbody>${rows24}</tbody>
+        </table>
+
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">All time, by area</div>
         <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;">
           <thead>
             <tr>
@@ -226,7 +261,7 @@ function toEmailHtml(stats) {
 
         <p style="margin:16px 0 0;font-size:12px;color:#888;">
           Visitors are counted as unique anonymous devices, no personal data. Tracking began ${esc(firstSeen)}.
-          Figures are all-time unless labelled otherwise.
+          "Last 24 hours" is a rolling window ending when this email was generated.
         </p>
       </div>
     </div>
