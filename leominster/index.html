@@ -1163,7 +1163,8 @@ function toggleNarrationExpand(){const el=document.getElementById('detail-narrat
   if(!state.currentAudio||state.currentAudio.ended){
     const stop=CONFIG.stops[state.currentStopIndex];
     if(!stop)return;
-    playNarrationTrack(stop.narration,stop.name);
+    const closingLine=' Take some time to look around and explore the stop. When you are ready, tap Tour in the top left corner of your screen to go back to your stop list.';
+    playNarrationTrack(stop.narration+closingLine,stop.name);
     // Selection-path sponsor mention: when the user plays a stop's
     // narration, the sponsor callout follows. Same dedup as approach
     // and arrival paths via state.firedSponsors.
