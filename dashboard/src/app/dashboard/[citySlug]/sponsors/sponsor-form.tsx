@@ -23,7 +23,7 @@ interface SponsorRow {
   google_business_url: string | null;
   cta_label: string | null;
   cta_url: string | null;
-  tier: string;
+  stop_number: number | null;
   subscription_status: string;
   monthly_price_pence: number | null;
   contact_email: string | null;
@@ -61,8 +61,8 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
   );
   const [ctaLabel, setCtaLabel] = useState(sponsor?.cta_label ?? '');
   const [ctaUrl, setCtaUrl] = useState(sponsor?.cta_url ?? '');
-  const [tier, setTier] = useState<'featured' | 'standard'>(
-    (sponsor?.tier as 'featured' | 'standard') ?? 'standard'
+  const [stopNumber, setStopNumber] = useState<string>(
+    sponsor?.stop_number != null ? String(sponsor.stop_number) : ''
   );
   const [status, setStatus] = useState<SponsorInput['subscription_status']>(
     (sponsor?.subscription_status as SponsorInput['subscription_status']) ??
@@ -101,7 +101,7 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
       google_business_url: googleBusinessUrl,
       cta_label: ctaLabel,
       cta_url: ctaUrl,
-      tier,
+      stop_number: stopNumber.trim() ? parseInt(stopNumber, 10) : null,
       subscription_status: status,
       monthly_price_pence: priceP,
       contact_email: contactEmail,
@@ -161,15 +161,17 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
       className="space-y-8 bg-white rounded-xl p-8 shadow-sm"
     >
       <Section title="Identity">
-        <Field label="Name" required>
+        <Field label="Name" required hint="Max 25 characters — this is shown in the sponsored pill on the stop list alongside the emoji.">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            maxLength={25}
             placeholder="The Nest Hereford"
             className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
+          <p className="text-xs text-gray-400 mt-1 text-right">{name.length}/25</p>
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Category" hint="e.g. 'Cafe / Coffee', 'Independent Bookshop'">
@@ -303,18 +305,18 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
       </Section>
 
       <Section
-        title="Tier"
-        subtitle="Featured sponsors get a full callout with audio narration. Standard sponsors get a brief mention."
+        title="Attach to stop"
+        subtitle="Enter the stop number this sponsor is attached to. The sponsored pill will appear on that stop in the visitor's stop list and stop detail screen."
       >
-        <Field label="Tier">
-          <select
-            value={tier}
-            onChange={(e) => setTier(e.target.value as 'featured' | 'standard')}
-            className="px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="standard">Standard</option>
-            <option value="featured">Featured</option>
-          </select>
+        <Field label="Stop number" hint="Enter the number of the stop, e.g. 1 for Stop 1. Leave blank if not attached to a specific stop.">
+          <input
+            type="number"
+            min={1}
+            value={stopNumber}
+            onChange={(e) => setStopNumber(e.target.value)}
+            placeholder="e.g. 1"
+            className="w-28 px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
         </Field>
       </Section>
 

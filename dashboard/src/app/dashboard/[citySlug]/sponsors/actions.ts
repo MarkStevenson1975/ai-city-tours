@@ -21,13 +21,12 @@ export interface SponsorInput {
   google_business_url: string;
   cta_label: string;
   cta_url: string;
-  tier: 'featured' | 'standard';
+  stop_number: number | null;
   subscription_status: 'pending' | 'active' | 'past_due' | 'cancelled';
   monthly_price_pence: number | null;
   contact_email: string;
 }
 
-const VALID_TIERS = ['featured', 'standard'] as const;
 const VALID_STATUSES = ['pending', 'active', 'past_due', 'cancelled'] as const;
 
 function sanitize(input: SponsorInput) {
@@ -47,7 +46,7 @@ function sanitize(input: SponsorInput) {
     google_business_url: input.google_business_url.trim() || null,
     cta_label: input.cta_label.trim() || null,
     cta_url: input.cta_url.trim() || null,
-    tier: VALID_TIERS.includes(input.tier) ? input.tier : 'standard',
+    stop_number: input.stop_number ?? null,
     subscription_status: VALID_STATUSES.includes(input.subscription_status)
       ? input.subscription_status
       : 'pending',
