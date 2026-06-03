@@ -28,7 +28,8 @@
       "facts": [
         "The Panotii, drawn with ears large enough to sleep inside, appear on the real Mappa Mundi at the edge of the known world.",
         "Church Street is one of Hereford's oldest lanes, lined with independent shops between the Cathedral and High Town."
-      ]
+      ],
+      "monster": "Panotii"
     },
     {
       "id": 2,
@@ -43,7 +44,8 @@
       "facts": [
         "Medieval bestiaries describe the Bonnacon defending itself by firing burning dung as it flees, said to cover three acres of ground.",
         "Hereford cattle, with their distinctive white faces, are one of the most widely exported breeds in the world."
-      ]
+      ],
+      "monster": "Bonnacon"
     },
     {
       "id": 3,
@@ -58,7 +60,8 @@
       "facts": [
         "The Old House was built in 1621 and is one of the last survivors of a row of timber-framed buildings that once filled High Town.",
         "Legend held that a mandrake root screamed when pulled from the ground, so dogs were used to pull it up instead."
-      ]
+      ],
+      "monster": "Mandrake"
     },
     {
       "id": 4,
@@ -69,11 +72,12 @@
         "lat": 52.0556,
         "lng": -2.717
       },
-      "narration": "Look up at this church. It is called All Saints. Can you see the tall pointy tower, the spire? Look carefully, because it leans over to one side. That is because, long ago, the builders built it on top of an old rubbish pit. Whoops.\n\nThe monster hiding here is the lazy one. He is called the Sciapod, and he has just one leg and one enormous foot. Look at your screen. He cannot really walk, so he lies on his back all day and holds his giant foot up in the air to use as a sunshade. Imagine being your very own umbrella.\n\nHe is hiding somewhere close by, probably having a nap. Look in the windows and the doorways, and check down low near the ground. Can you find that great big foot?\n\nWhen you spot him, tap Caught it. He will not even wake up.",
+      "narration": "Look up at this church. It is called All Saints. Can you see the tall pointy tower, the spire? For hundreds of years it leaned right over to one side, because long ago the builders stood it on top of an old buried rubbish pit. Clever people straightened it not so long ago, but for a very long time it looked like it might topple right over. Whoops.\n\nThe monster hiding here is the lazy one. He is called the Sciapod, and he has just one leg and one enormous foot. Look at your screen. He cannot really walk, so he lies on his back all day and holds his giant foot up in the air to use as a sunshade. Imagine being your very own umbrella.\n\nHe is hiding somewhere close by, probably having a nap. Look in the windows and the doorways, and check down low near the ground. Can you find that great big foot?\n\nWhen you spot him, tap Caught it. He will not even wake up.",
       "facts": [
         "The Sciapod is shown on the Mappa Mundi as a man lying on his back, using his single huge foot as a sunshade.",
-        "All Saints was begun around 1200 and its spire leans because it was built over an old rubbish pit."
-      ]
+        "All Saints was begun around 1200, and for centuries its spire leaned because it was built over an old rubbish pit, until it was straightened not long ago."
+      ],
+      "monster": "Sciapod"
     },
     {
       "id": 5,
@@ -88,7 +92,8 @@
       "facts": [
         "Hereford Castle was once one of the largest castles in England, but was dismantled over the centuries until almost nothing remained.",
         "The column on Castle Green honours Admiral Lord Nelson, who was given the freedom of the city when he visited in 1802."
-      ]
+      ],
+      "monster": "Dragon"
     },
     {
       "id": 6,
@@ -103,7 +108,8 @@
       "facts": [
         "Victoria Bridge, the white suspension footbridge over the Wye, opened in 1898 in honour of Queen Victoria.",
         "Medieval mapmakers filled the oceans of maps like the Mappa Mundi with sea serpents and monsters reported by sailors."
-      ]
+      ],
+      "monster": "Sea Serpent"
     }
   ],
   "locationFacts": [
