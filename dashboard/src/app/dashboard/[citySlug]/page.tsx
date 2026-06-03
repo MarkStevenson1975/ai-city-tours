@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PublishButton } from './publish-button';
 import { InviteOperatorForm } from './invite-operator-form';
+import { StopsReorder } from './stops-reorder';
 
 export default async function CityOverview({
   params,
@@ -153,63 +154,7 @@ export default async function CityOverview({
             + Add stop
           </Link>
         </div>
-        <div className="bg-white rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full">
-            <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
-              <tr>
-                <th className="px-6 py-3 w-12">#</th>
-                <th className="px-6 py-3">Name</th>
-                <th className="px-6 py-3">Description</th>
-                <th className="px-6 py-3 w-32">Image</th>
-                <th className="px-6 py-3 w-20" aria-label="Actions"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-cream">
-              {(stops ?? []).map((stop) => (
-                <tr key={stop.id} className="hover:bg-cream/50 transition">
-                  <td className="px-6 py-4 font-bold text-gray-700">
-                    {stop.position}
-                  </td>
-                  <td className="px-6 py-4 font-display text-lg">
-                    {stop.name}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {stop.short_description}
-                  </td>
-                  <td className="px-6 py-4 text-xs">
-                    {stop.hero_image_override_url ? (
-                      <span className="font-bold text-green-700">
-                        Custom upload
-                      </span>
-                    ) : stop.hero_image_url ? (
-                      <span className="text-gray-500">Default URL</span>
-                    ) : (
-                      <span className="font-bold text-red-700">Missing</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Link
-                      href={`/dashboard/${citySlug}/stops/${stop.id}`}
-                      className="text-sm font-bold text-primary hover:underline"
-                    >
-                      Edit
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {(!stops || stops.length === 0) && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-8 text-center text-sm text-gray-500 italic"
-                  >
-                    No stops yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <StopsReorder citySlug={citySlug} initialStops={stops ?? []} />
       </section>
     </div>
   );

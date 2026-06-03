@@ -85,6 +85,7 @@ export function BuildWizard({
         if (!res.ok) throw new Error(data.error || 'Draft failed');
         out.push({
           place_id: p.place_id,
+          placeId: p.place_id,
           name: p.name,
           lat: p.lat,
           lng: p.lng,

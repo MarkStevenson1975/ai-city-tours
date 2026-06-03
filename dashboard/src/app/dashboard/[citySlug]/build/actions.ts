@@ -10,6 +10,7 @@ export type DraftStop = {
   shortDescription?: string;
   narration?: string;
   facts?: string[];
+  placeId?: string;
 };
 
 /**
@@ -53,6 +54,9 @@ export async function saveDraftStops(citySlug: string, stops: DraftStop[]) {
     facts: s.facts ?? [],
     lat: s.lat,
     lng: s.lng,
+    google_business_url: s.placeId
+      ? `https://www.google.com/maps/place/?q=place_id:${s.placeId}`
+      : null,
   }));
 
   const { error } = await supabase.from('stops').insert(rows);

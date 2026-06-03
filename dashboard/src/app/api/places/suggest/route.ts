@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
 
   const params = new URLSearchParams({
     query: `top tourist attractions and landmarks in ${area}`,
+    region: 'gb',
     key: apiKey,
   });
   const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?${params.toString()}`;
