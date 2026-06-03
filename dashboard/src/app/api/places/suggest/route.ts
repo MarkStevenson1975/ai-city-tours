@@ -1,8 +1,8 @@
 // POST /api/places/suggest
-// Body: { area: string }  e.g. "Hereford, Herefordshire"
-// Returns the main tourist sites for that area using Google Places Text
-// Search, ready for the operator to tick. Uses GOOGLE_MAPS_API_KEY (server
-// only, same key as the public tour app). Add it to this Vercel project.
+// Body: { postcode: string, radiusMiles?: number }  (or { area } as fallback)
+// Geocodes the postcode, then finds tourist sites within the given radius
+// using Google Places Nearby Search. Returns selectable sites with a photo
+// reference so the save step can pull an image. Uses GOOGLE_MAPS_API_KEY.
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
@@ -14,7 +14,10 @@ type Suggestion = {
   lat: number;
   lng: number;
   category: string;
+  photoRef: string | null;
 };
+
+const TYPES = ['tourist_attraction', 'museum', 'art_gallery', 'church', 'park'];
 
 const CATEGORY_LABEL: Record<string, string> = {
   tourist_attraction: 'Landmark',
@@ -23,7 +26,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   place_of_worship: 'Church',
   park: 'Park',
   art_gallery: 'Gallery',
-  city_hall: 'Landmark',
   point_of_interest: 'Place',
 };
 
@@ -32,14 +34,32 @@ function categoryFor(types: string[]): string {
   return 'Place';
 }
 
+async function geocode(query: string, apiKey: string) {
+  const params = new URLSearchParams({ address: query, region: 'gb', key: apiKey });
+  const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`);
+  const j = await r.json();
+  const loc = j?.results?.[0]?.geometry?.location;
+  return loc ? { lat: loc.lat as number, lng: loc.lng as number } : null;
+}
+
+async function nearby(lat: number, lng: number, radius: number, type: string, apiKey: string) {
+  const params = new URLSearchParams({
+    location: `${lat},${lng}`,
+    radius: String(radius),
+    type,
+    key: apiKey,
+  });
+  const r = await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?${params}`);
+  const j = await r.json();
+  return Array.isArray(j.results) ? j.results : [];
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
@@ -50,50 +70,50 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
+  const postcode = String(body.postcode ?? '').trim();
   const area = String(body.area ?? '').trim();
-  if (!area) {
-    return NextResponse.json({ error: 'Tell us the town or area first.' }, { status: 400 });
+  const radiusMiles = Number(body.radiusMiles) > 0 ? Number(body.radiusMiles) : 3;
+  const radius = Math.min(Math.round(radiusMiles * 1609), 50000);
+
+  const where = postcode || area;
+  if (!where) {
+    return NextResponse.json({ error: 'Enter a postcode or area first.' }, { status: 400 });
   }
 
-  const params = new URLSearchParams({
-    query: `top tourist attractions and landmarks in ${area}`,
-    region: 'gb',
-    key: apiKey,
-  });
-  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?${params.toString()}`;
-
   try {
-    const r = await fetch(url);
-    const j = await r.json();
-    if (j.status && j.status !== 'OK' && j.status !== 'ZERO_RESULTS') {
+    const center = await geocode(where, apiKey);
+    if (!center) {
       return NextResponse.json(
-        { error: `Place search failed: ${j.status}` },
-        { status: 502 }
+        { error: 'Could not find that postcode or area. Check it and try again.' },
+        { status: 404 }
       );
     }
 
-    const results: Suggestion[] = (Array.isArray(j.results) ? j.results : [])
-      .filter((p: { geometry?: { location?: unknown }; business_status?: string }) =>
-        p.geometry && p.geometry.location && p.business_status !== 'CLOSED_PERMANENTLY')
-      .slice(0, 12)
-      .map((p: {
-        place_id: string;
-        name: string;
-        formatted_address?: string;
-        rating?: number;
-        geometry: { location: { lat: number; lng: number } };
-        types?: string[];
-      }) => ({
-        place_id: p.place_id,
-        name: p.name,
-        address: p.formatted_address ?? '',
-        rating: typeof p.rating === 'number' ? p.rating : null,
-        lat: p.geometry.location.lat,
-        lng: p.geometry.location.lng,
-        category: categoryFor(p.types ?? []),
-      }));
+    const lists = await Promise.all(TYPES.map((t) => nearby(center.lat, center.lng, radius, t, apiKey)));
 
-    return NextResponse.json({ results });
+    const seen = new Map<string, Suggestion>();
+    for (const list of lists) {
+      for (const p of list) {
+        if (!p.geometry?.location || p.business_status === 'CLOSED_PERMANENTLY') continue;
+        if (seen.has(p.place_id)) continue;
+        seen.set(p.place_id, {
+          place_id: p.place_id,
+          name: p.name,
+          address: p.vicinity ?? '',
+          rating: typeof p.rating === 'number' ? p.rating : null,
+          lat: p.geometry.location.lat,
+          lng: p.geometry.location.lng,
+          category: categoryFor(p.types ?? []),
+          photoRef: p.photos?.[0]?.photo_reference ?? null,
+        });
+      }
+    }
+
+    const results = Array.from(seen.values())
+      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+      .slice(0, 15);
+
+    return NextResponse.json({ results, center });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'upstream failed';
     return NextResponse.json({ error: message }, { status: 502 });

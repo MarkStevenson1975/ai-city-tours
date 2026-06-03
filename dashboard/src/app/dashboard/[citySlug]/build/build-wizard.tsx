@@ -12,9 +12,12 @@ type Suggestion = {
   lat: number;
   lng: number;
   category: string;
+  photoRef: string | null;
 };
 
 type Drafted = DraftStop & { place_id: string };
+
+const RADIUS_OPTIONS = [1, 3, 5, 10, 15];
 
 export function BuildWizard({
   citySlug,
@@ -26,7 +29,8 @@ export function BuildWizard({
   guideName: string;
 }) {
   const router = useRouter();
-  const [area, setArea] = useState(defaultArea);
+  const [postcode, setPostcode] = useState('');
+  const [radiusMiles, setRadiusMiles] = useState(3);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selected, setSelected] = useState<Record<string, Suggestion>>({});
   const [loading, setLoading] = useState(false);
@@ -44,12 +48,12 @@ export function BuildWizard({
       const res = await fetch('/api/places/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ area }),
+        body: JSON.stringify({ postcode, radiusMiles }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not find sites');
       setSuggestions(data.results || []);
-      if (!data.results?.length) setError('No sites found. Try a broader area name.');
+      if (!data.results?.length) setError('No sites found. Try a wider radius.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
     } finally {
@@ -79,13 +83,14 @@ export function BuildWizard({
         const res = await fetch('/api/build/draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ citySlug, name: p.name, area, guideName }),
+          body: JSON.stringify({ citySlug, name: p.name, area: defaultArea, guideName }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Draft failed');
         out.push({
           place_id: p.place_id,
           placeId: p.place_id,
+          photoRef: p.photoRef ?? undefined,
           name: p.name,
           lat: p.lat,
           lng: p.lng,
@@ -96,6 +101,8 @@ export function BuildWizard({
       } catch (e) {
         out.push({
           place_id: p.place_id,
+          placeId: p.place_id,
+          photoRef: p.photoRef ?? undefined,
           name: p.name,
           lat: p.lat,
           lng: p.lng,
@@ -135,8 +142,9 @@ export function BuildWizard({
           </p>
           <h1 className="text-3xl font-semibold">{drafts.length} stops drafted</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Each one is narrated in {guideName}&apos;s voice. Save them and you can
-            edit, reorder or regenerate any stop in the dashboard.
+            Each one is narrated in {guideName}&apos;s voice, with its photo and
+            Google listing attached. Save them and you can edit, reorder or
+            regenerate any stop.
           </p>
         </div>
         {drafts.map((d) => (
@@ -185,17 +193,31 @@ export function BuildWizard({
         <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
           Step 1 · Where is your tour?
         </p>
-        <div className="flex gap-2 mt-2">
+        <p className="text-sm text-gray-600 mb-2">
+          Enter a postcode near the centre of your tour and how far around it to look.
+        </p>
+        <div className="flex flex-wrap gap-2 items-center">
           <input
-            value={area}
-            onChange={(e) => setArea(e.target.value)}
-            placeholder="Hereford, Herefordshire"
-            className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            value={postcode}
+            onChange={(e) => setPostcode(e.target.value)}
+            placeholder="e.g. WR14 4QA"
+            className="flex-1 min-w-[160px] px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
+          <select
+            value={radiusMiles}
+            onChange={(e) => setRadiusMiles(Number(e.target.value))}
+            className="px-3 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
+          >
+            {RADIUS_OPTIONS.map((m) => (
+              <option key={m} value={m}>
+                {m} mile{m === 1 ? '' : 's'}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={findSites}
-            disabled={loading || !area.trim()}
+            disabled={loading || !postcode.trim()}
             className="px-5 py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
           >
             {loading ? 'Finding…' : 'Find sites'}

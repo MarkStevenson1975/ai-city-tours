@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PublishButton } from './publish-button';
 import { InviteOperatorForm } from './invite-operator-form';
 import { StopsReorder } from './stops-reorder';
+import { GoLivePanel, ManageBillingButton } from './go-live-panel';
 
 export default async function CityOverview({
   params,
@@ -129,6 +130,20 @@ export default async function CityOverview({
           href={`/dashboard/${citySlug}/visitors`}
         />
       </div>
+
+      <section className="mb-12">
+        {city.subscription_status === 'active' ? (
+          <div className="bg-white rounded-xl p-5 shadow-sm flex items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
+              This tour is on the <span className="font-bold">{city.plan_tier}</span> plan.
+              Publish your changes from the button above.
+            </p>
+            <ManageBillingButton citySlug={citySlug} />
+          </div>
+        ) : (
+          <GoLivePanel citySlug={citySlug} />
+        )}
+      </section>
 
       {isAdmin && (
         <section className="mb-12">

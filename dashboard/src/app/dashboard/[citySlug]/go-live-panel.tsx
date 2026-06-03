@@ -42,10 +42,10 @@ export function GoLivePanel({ citySlug }: { citySlug: string }) {
       <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
         Ready to go live
       </p>
-      <h2 className="text-2xl font-semibold mb-1">Choose a plan to publish</h2>
+      <h2 className="text-2xl font-semibold mb-1">Start your 7-day free trial</h2>
       <p className="text-sm text-gray-600 mb-5">
-        Your tour stays free to build and preview. Pick a plan to put it live.
-        Cancel anytime.
+        Pick a plan to put your tour live and view it for real. The first 7 days
+        are free, and you can cancel any time before then at no charge.
       </p>
 
       <div className="inline-flex rounded-full border border-gray-200 p-1 mb-5 text-sm">
@@ -88,7 +88,7 @@ export function GoLivePanel({ citySlug }: { citySlug: string }) {
               disabled={loading !== null}
               className="w-full py-2 rounded-full bg-accent text-primary font-bold text-sm hover:bg-accent-light transition disabled:opacity-50"
             >
-              {loading === p.tier ? 'Opening…' : `Publish on ${p.name}`}
+              {loading === p.tier ? 'Opening…' : `Start free on ${p.name}`}
             </button>
           </div>
         ))}
