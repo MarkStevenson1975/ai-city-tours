@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PublishButton } from './publish-button';
@@ -52,6 +52,12 @@ export default async function CityOverview({
         .select('id', { count: 'exact', head: true })
         .eq('city_slug', citySlug),
     ]);
+
+  // A tour with no stops yet drops straight into the guided AI build journey
+  // rather than showing an empty editor.
+  if (!stops || stops.length === 0) {
+    redirect(`/dashboard/${citySlug}/build`);
+  }
 
   // Has the draft been edited since the last publish?
   const draftUpdated = city.draft_updated_at

@@ -41,5 +41,5 @@ export async function createMyTour(formData: FormData) {
     redirect(`/dashboard/new?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect(`/dashboard/${createdSlug}?created=1`);
+  redirect(`/dashboard/${createdSlug}/build`);
 }
