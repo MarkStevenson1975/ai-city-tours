@@ -56,11 +56,10 @@ export default async function DashboardLayout({
               </Link>
             </>
           )}
+          <SidebarPreview />
         </nav>
 
-        <SidebarPreview />
-
-        <div className="text-xs border-t border-white/10 pt-4 mt-6 space-y-2">
+        <div className="text-xs border-t border-white/10 pt-4 space-y-2">
           <p className="text-cream/70 truncate" title={user.email ?? ''}>
             {user.email}
           </p>
