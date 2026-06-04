@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { PublishButton } from './publish-button';
 import { InviteOperatorForm } from './invite-operator-form';
 import { StopsReorder } from './stops-reorder';
-import { GoLivePanel, ManageBillingButton } from './go-live-panel';
+import { ManageBillingButton } from './go-live-panel';
+import { SeeItLiveButton } from './subscribe-modal';
 
 export default async function CityOverview({
   params,
@@ -141,7 +142,7 @@ export default async function CityOverview({
             <ManageBillingButton citySlug={citySlug} />
           </div>
         ) : (
-          <GoLivePanel citySlug={citySlug} />
+          <SeeItLiveButton citySlug={citySlug} totalStops={stops?.length ?? 0} />
         )}
       </section>
 

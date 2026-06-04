@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { SidebarPreview } from './sidebar-preview';
 
 export default async function DashboardLayout({
   children,
@@ -57,7 +58,9 @@ export default async function DashboardLayout({
           )}
         </nav>
 
-        <div className="text-xs border-t border-white/10 pt-4 space-y-2">
+        <SidebarPreview />
+
+        <div className="text-xs border-t border-white/10 pt-4 mt-6 space-y-2">
           <p className="text-cream/70 truncate" title={user.email ?? ''}>
             {user.email}
           </p>
