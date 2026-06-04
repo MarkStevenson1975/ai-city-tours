@@ -10,6 +10,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/:slug", "destination": "/tour.html" }
+    { "source": "/:slug", "destination": "/tour" }
   ]
 }
