@@ -2,7 +2,12 @@
 // Small payload powering the live preview pinned in the dashboard sidebar.
 // Returns the tour name, stop count, subscription status, and the first stop.
 import { NextResponse } from 'next/server';
+import QRCode from 'qrcode';
 import { createClient } from '@/lib/supabase/server';
+
+// Public tour base URL (storied-tours). Override with PUBLIC_TOUR_URL if the
+// tour moves to its own domain.
+const TOUR_BASE = process.env.PUBLIC_TOUR_URL ?? 'https://storied-tours.vercel.app';
 
 export async function GET(
   _req: Request,
@@ -35,10 +40,26 @@ export async function GET(
     .eq('city_id', city.id);
 
   const first = stops?.[0];
+
+  // Once live, expose the public URL and a QR code so the operator can open
+  // or scan their tour straight from the sidebar.
+  const isLive = city.subscription_status === 'active';
+  const liveUrl = isLive ? `${TOUR_BASE}/${slug}` : null;
+  let qrDataUrl: string | null = null;
+  if (liveUrl) {
+    try {
+      qrDataUrl = await QRCode.toDataURL(liveUrl, { margin: 1, width: 240 });
+    } catch {
+      qrDataUrl = null;
+    }
+  }
+
   return NextResponse.json({
     name: city.name,
     subscriptionStatus: city.subscription_status,
     totalStops: count ?? 0,
+    liveUrl,
+    qrDataUrl,
     firstStop: first
       ? {
           name: first.name,

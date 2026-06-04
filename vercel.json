@@ -8,5 +8,8 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/:slug", "destination": "/tour.html" }
   ]
 }

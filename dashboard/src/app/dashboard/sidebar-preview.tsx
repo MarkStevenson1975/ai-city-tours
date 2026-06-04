@@ -11,6 +11,8 @@ type Preview = {
   name: string;
   subscriptionStatus: string;
   totalStops: number;
+  liveUrl: string | null;
+  qrDataUrl: string | null;
   firstStop: { name: string; shortDescription: string | null; image: string | null } | null;
 };
 
@@ -48,6 +50,35 @@ export function SidebarPreview() {
   if (!slug || !data) return null;
 
   const fs = data.firstStop;
+
+  // Once the tour is live, show the public URL and a scannable QR code.
+  if (data.liveUrl && data.qrDataUrl) {
+    return (
+      <div className="mt-6">
+        <p className="text-[10px] tracking-widest text-cream/60 mb-2">YOUR TOUR IS LIVE</p>
+        <div className="bg-white rounded-2xl p-3 flex flex-col items-center text-gray-900">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={data.qrDataUrl} alt="QR code for your live tour" className="w-28 h-28" />
+          <p className="text-[10px] text-gray-500 mt-2 text-center">Scan to open on a phone</p>
+        </div>
+        <a
+          href={data.liveUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-[11px] font-bold text-accent hover:underline mt-2 break-all"
+        >
+          Open my live tour ↗
+        </a>
+        <button
+          type="button"
+          onClick={() => navigator.clipboard?.writeText(data.liveUrl ?? '')}
+          className="block w-full text-center text-[10px] text-cream/60 hover:text-cream mt-1"
+        >
+          Copy link
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-6">
