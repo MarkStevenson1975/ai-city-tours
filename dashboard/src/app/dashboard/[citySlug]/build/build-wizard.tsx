@@ -122,7 +122,7 @@ export function BuildWizard({
     setError(null);
     const r = await saveDraftStops(citySlug, drafts);
     if (r.ok) {
-      router.push(`/dashboard/${citySlug}?built=${r.count}`);
+      router.push(`/dashboard/${citySlug}/finish`);
       router.refresh();
     } else {
       setError(r.error);
