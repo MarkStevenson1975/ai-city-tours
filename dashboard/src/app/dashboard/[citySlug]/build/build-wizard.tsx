@@ -138,13 +138,13 @@ export function BuildWizard({
       <div className="space-y-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
-            Review your drafts
+            Here&apos;s your tour
           </p>
-          <h1 className="text-3xl font-semibold">{drafts.length} stops drafted</h1>
+          <h1 className="text-3xl font-semibold">{drafts.length} stops created for you</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Each one is narrated in {guideName}&apos;s voice, with its photo and
-            Google listing attached. Save them and you can edit, reorder or
-            regenerate any stop.
+            This is what we&apos;ve created for you, each narrated in {guideName}&apos;s
+            voice with its photo and Google listing. You can edit, reorder or
+            regenerate anything in the next stage.
           </p>
         </div>
         {drafts.map((d) => (
