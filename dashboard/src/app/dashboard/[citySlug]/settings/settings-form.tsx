@@ -127,7 +127,7 @@ export function SettingsForm({ city }: { city: City }) {
               type="text"
               value={operatorName}
               onChange={(e) => setOperatorName(e.target.value)}
-              placeholder="e.g. Hereford BID"
+              placeholder="e.g. Tourist Information Centre or BID"
               className={inputCls}
             />
           </Field>
@@ -206,7 +206,7 @@ export function SettingsForm({ city }: { city: City }) {
               onChange={(e) => setSplashIntro(e.target.value)}
               rows={5}
               maxLength={800}
-              placeholder="Hello, I'm Harriet. I'll be your guide today as we walk through some of Hereford's most fascinating places. Along the way I'll share stories, hidden details, and a few local secrets. Whenever you're ready, let's begin."
+              placeholder="Hello, I'm Harriet. I'll be your guide today as we walk through some of the town's most fascinating places. Along the way I'll share stories, hidden details, and a few local secrets. Whenever you're ready, let's begin."
               className={inputCls}
             />
           </Field>
@@ -326,7 +326,7 @@ export function SettingsForm({ city }: { city: City }) {
               type="text"
               value={tcSponsorName}
               onChange={(e) => setTcSponsorName(e.target.value)}
-              placeholder="e.g. Hereford Building Society"
+              placeholder="e.g. a local business or society"
               maxLength={100}
               className={inputCls}
             />
@@ -355,13 +355,13 @@ export function SettingsForm({ city }: { city: City }) {
           </Field>
           <Field
             label="Sponsor tagline"
-            hint="Optional short line shown below the sponsor name (e.g. 'Supporting Hereford since 1892')."
+            hint="Optional short line shown below the sponsor name (e.g. 'Proudly supporting the local community')."
           >
             <input
               type="text"
               value={tcSponsorTagline}
               onChange={(e) => setTcSponsorTagline(e.target.value)}
-              placeholder="Supporting Hereford since 1892"
+              placeholder="Proudly supporting the local community"
               maxLength={120}
               className={inputCls}
             />

@@ -113,7 +113,7 @@ export default function SignupPage() {
               id="organisation"
               name="organisation"
               type="text"
-              placeholder="e.g. Hereford BID"
+              placeholder="e.g. Tourist Information Centre or BID"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>

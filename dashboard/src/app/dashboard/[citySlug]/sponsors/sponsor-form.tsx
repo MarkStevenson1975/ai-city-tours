@@ -168,7 +168,7 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
             onChange={(e) => setName(e.target.value)}
             required
             maxLength={25}
-            placeholder="The Nest Hereford"
+            placeholder="e.g. a local cafe or shop"
             className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <p className="text-xs text-gray-400 mt-1 text-right">{name.length}/25</p>
@@ -298,7 +298,7 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
             type="text"
             value={ctaUrl}
             onChange={(e) => setCtaUrl(e.target.value)}
-            placeholder="https://thenesthereford.co.uk"
+            placeholder="https://example.co.uk"
             className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono text-sm"
           />
         </Field>

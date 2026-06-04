@@ -70,7 +70,7 @@ export function SponsorSection({ cityId, citySlug, logoUrl, name, tagline, url }
           <input
             value={n}
             onChange={(e) => setN(e.target.value)}
-            placeholder="e.g. The Lichfield Vaults"
+            placeholder="e.g. a local business"
             className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
           />
         </div>

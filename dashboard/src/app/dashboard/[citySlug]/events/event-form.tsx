@@ -112,7 +112,7 @@ export function EventForm({ citySlug, cityId, event }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="Hereford May Fair"
+              placeholder="e.g. May Fair"
               className={inputCls}
             />
           </Field>
@@ -226,7 +226,7 @@ export function EventForm({ citySlug, cityId, event }: Props) {
             value={upcomingText}
             onChange={(e) => setUpcomingText(e.target.value)}
             rows={2}
-            placeholder="The Hereford May Fair is coming up soon..."
+            placeholder="The May Fair is coming up soon..."
             className={inputCls}
           />
         </Field>
@@ -235,7 +235,7 @@ export function EventForm({ citySlug, cityId, event }: Props) {
             value={duringText}
             onChange={(e) => setDuringText(e.target.value)}
             rows={2}
-            placeholder="The Hereford May Fair is on right now..."
+            placeholder="The May Fair is on right now..."
             className={inputCls}
           />
         </Field>
@@ -244,7 +244,7 @@ export function EventForm({ citySlug, cityId, event }: Props) {
             value={recentText}
             onChange={(e) => setRecentText(e.target.value)}
             rows={2}
-            placeholder="The Hereford May Fair has just finished..."
+            placeholder="The May Fair has just finished..."
             className={inputCls}
           />
         </Field>

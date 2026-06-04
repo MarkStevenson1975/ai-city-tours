@@ -33,7 +33,7 @@ export function InviteOperatorForm({ citySlug }: { citySlug: string }) {
             id="display_name"
             name="display_name"
             type="text"
-            placeholder="Hereford BID"
+            placeholder="e.g. Tourist Information Centre or BID"
             className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
