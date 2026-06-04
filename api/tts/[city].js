@@ -29,12 +29,21 @@ export default async function handler(req, res) {
     });
   }
 
-  const { text, voiceId } = req.query;
+  const { text } = req.query;
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ error: 'Missing text' });
   }
-  if (!voiceId || !/^[A-Za-z0-9_-]{4,40}$/.test(voiceId)) {
-    return res.status(400).json({ error: 'Missing or invalid voiceId' });
+  // Default to the Harriet voice when a tour has no custom voice set, so new
+  // self-serve tours never fall back to the browser's robotic voice.
+  const DEFAULT_VOICE_ID = process.env.DEFAULT_VOICE_ID || 'NTqGiNK8P02i66yY2GOH';
+  let voiceId = (req.query.voiceId || '').toString();
+  if (
+    !voiceId ||
+    voiceId === 'null' ||
+    voiceId === 'undefined' ||
+    !/^[A-Za-z0-9_-]{4,40}$/.test(voiceId)
+  ) {
+    voiceId = DEFAULT_VOICE_ID;
   }
   if (text.length > 5000) {
     return res.status(400).json({ error: 'Text too long (max 5000 chars)' });
