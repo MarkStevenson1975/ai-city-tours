@@ -34,12 +34,23 @@ function categoryFor(types: string[]): string {
   return 'Place';
 }
 
+// Resolve a postcode/area to coordinates. Uses the Places Text Search API
+// (the same API the tour app already relies on) rather than the separate
+// Geocoding API, which may not be enabled on the key. Returns coordinates or
+// a status string for diagnostics.
 async function geocode(query: string, apiKey: string) {
-  const params = new URLSearchParams({ address: query, region: 'gb', key: apiKey });
-  const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`);
+  const params = new URLSearchParams({
+    query: `${query}, UK`,
+    region: 'gb',
+    key: apiKey,
+  });
+  const r = await fetch(
+    `https://maps.googleapis.com/maps/api/place/textsearch/json?${params}`
+  );
   const j = await r.json();
   const loc = j?.results?.[0]?.geometry?.location;
-  return loc ? { lat: loc.lat as number, lng: loc.lng as number } : null;
+  if (loc) return { lat: loc.lat as number, lng: loc.lng as number, status: 'OK' };
+  return { lat: null, lng: null, status: (j?.status as string) || 'UNKNOWN' };
 }
 
 async function nearby(lat: number, lng: number, radius: number, type: string, apiKey: string) {
@@ -82,14 +93,22 @@ export async function POST(req: NextRequest) {
 
   try {
     const center = await geocode(where, apiKey);
-    if (!center) {
+    if (center.lat === null || center.lng === null) {
+      const detail =
+        center.status === 'REQUEST_DENIED'
+          ? ' (the place search API key may need attention)'
+          : center.status === 'ZERO_RESULTS'
+            ? ''
+            : ` (${center.status})`;
       return NextResponse.json(
-        { error: 'Could not find that postcode or area. Check it and try again.' },
+        {
+          error: `Could not find that postcode or area${detail}. Check it and try again.`,
+        },
         { status: 404 }
       );
     }
 
-    const lists = await Promise.all(TYPES.map((t) => nearby(center.lat, center.lng, radius, t, apiKey)));
+    const lists = await Promise.all(TYPES.map((t) => nearby(center.lat!, center.lng!, radius, t, apiKey)));
 
     const seen = new Map<string, Suggestion>();
     for (const list of lists) {

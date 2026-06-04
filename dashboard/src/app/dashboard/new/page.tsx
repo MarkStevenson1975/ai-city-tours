@@ -40,7 +40,7 @@ export default async function NewTourPage({
             name="name"
             type="text"
             required
-            placeholder="Hereford"
+            placeholder="i.e. Town Tour"
             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -57,7 +57,10 @@ export default async function NewTourPage({
             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <p className="text-xs text-gray-500 mt-1">
-            The voice that narrates your tour. Harriet is the StorieD default.
+            The name of the voice that narrates your tour. Harriet is the StorieD
+            default. For now every tour is narrated by a female voice, so you can
+            rename the guide, but a male name may sound a little out of place until
+            we add more voices.
           </p>
         </div>
 
