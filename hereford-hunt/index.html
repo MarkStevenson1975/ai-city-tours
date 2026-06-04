@@ -810,8 +810,31 @@ async function handleEmailAuth() {
   if (btn) { btn.textContent = 'Save my progress and start the hunt'; btn.disabled = false; }
 }
 
+// Google blocks OAuth inside in-app browsers (the embedded webviews you get
+// from links opened in WhatsApp, Instagram, Facebook, some QR scanners, etc.)
+// with "Error 403: disallowed_useragent". Detect those and steer the visitor
+// to email sign-in or "continue without saving" instead.
+function isEmbeddedBrowser() {
+  const ua = (navigator.userAgent || '').toLowerCase();
+  return /fban|fbav|fb_iab|instagram|line\/|messenger|twitter|musical_ly|tiktok|snapchat|micromessenger|gsa\//.test(ua)
+    || /;\s*wv\)/.test(ua)
+    || /\bwv\b/.test(ua);
+}
+function hideGoogleIfEmbedded() {
+  if (!isEmbeddedBrowser()) return;
+  const g = document.querySelector('.btn-auth-google');
+  if (g) g.style.display = 'none';
+  const div = document.querySelector('#auth-form-panel .auth-divider');
+  if (div) div.style.display = 'none';
+}
+try { hideGoogleIfEmbedded(); } catch (e) {}
+
 async function handleGoogleAuth() {
   if (!sbClient) { showToast('Auth not available.'); return; }
+  if (isEmbeddedBrowser()) {
+    showToast('Google sign-in is not allowed inside in-app browsers. Open this tour in Safari or Chrome, or just continue without saving.');
+    return;
+  }
   const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin + window.location.pathname }

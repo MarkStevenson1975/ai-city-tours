@@ -387,7 +387,7 @@
         <div id="auth-error" class="auth-error hidden"></div>
         <button class="btn-auth-submit" id="btn-auth-submit" onclick="handleEmailAuth()">Save my progress and start tour</button>
         <div class="auth-divider">or</div>
-        <button class="btn-auth-google" onclick="handleGoogleAuth()">
+        <button class="btn-auth-google" id="btn-auth-google" onclick="handleGoogleAuth()">
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908C18.619 14.007 17.64 11.698 17.64 9.2z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A9 9 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A9 9 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
           Continue with Google and start tour
         </button>
@@ -813,8 +813,32 @@ async function handleEmailAuth() {
   if (btn) { btn.textContent = 'Save my progress and start tour'; btn.disabled = false; }
 }
 
+// Google blocks OAuth inside in-app browsers (the embedded webviews you get
+// from links opened in WhatsApp, Instagram, Facebook, some QR scanners, etc.)
+// with "Error 403: disallowed_useragent". Detect those and steer the visitor
+// to email sign-in or "continue without saving" instead.
+function isEmbeddedBrowser() {
+  const ua = (navigator.userAgent || '').toLowerCase();
+  return /fban|fbav|fb_iab|instagram|line\/|messenger|twitter|musical_ly|tiktok|snapchat|micromessenger|gsa\//.test(ua)
+    || /;\s*wv\)/.test(ua)
+    || /\bwv\b/.test(ua);
+}
+
+function hideGoogleIfEmbedded() {
+  if (!isEmbeddedBrowser()) return;
+  const g = document.getElementById('btn-auth-google');
+  if (g) g.style.display = 'none';
+  const div = document.querySelector('#auth-form-panel .auth-divider');
+  if (div) div.style.display = 'none';
+}
+try { hideGoogleIfEmbedded(); } catch (e) {}
+
 async function handleGoogleAuth() {
   if (!sbClient) { showToast('Auth not available.'); return; }
+  if (isEmbeddedBrowser()) {
+    showToast('Google sign-in is not allowed inside in-app browsers. Open this tour in Safari or Chrome, or just continue without saving.');
+    return;
+  }
   const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin + window.location.pathname }
