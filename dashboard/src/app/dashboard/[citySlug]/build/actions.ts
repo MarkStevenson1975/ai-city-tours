@@ -42,6 +42,72 @@ async function fetchAndStorePhoto(
   }
 }
 
+// Generate ~20 standalone "Interesting <town> fact" entries with Claude,
+// avoiding anything already said on the stops, and store them as ambient
+// location facts (no coordinates) so they power the city-fact button only.
+async function generateTownFacts(
+  admin: ReturnType<typeof createAdminClient>,
+  cityId: string,
+  area: string,
+  existingFacts: string[],
+  apiKey: string | undefined
+) {
+  if (!apiKey) return;
+  // Don't duplicate if this tour already has ambient facts.
+  const { count } = await admin
+    .from('location_facts')
+    .select('id', { count: 'exact', head: true })
+    .eq('city_id', cityId);
+  if ((count ?? 0) > 0) return;
+
+  const avoid = existingFacts.slice(0, 80).map((f) => `- ${f}`).join('\n');
+  const prompt = `You are writing standalone "did you know" facts for a walking tour of ${area}.
+Produce exactly 20 short, accurate, interesting facts about ${area}: history, geography, culture, notable people, architecture, industry, quirks.
+British English. No em dashes. Each fact is one self-contained sentence under 30 words.
+Do NOT repeat or paraphrase any of these facts already used on the tour stops:
+${avoid || '(none)'}
+Return ONLY a JSON array of 20 strings, nothing else.`;
+
+  let parsed: unknown = [];
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!r.ok) return;
+    const j = await r.json();
+    const text: string = j?.content?.[0]?.text ?? '';
+    const s = text.indexOf('[');
+    const e = text.lastIndexOf(']');
+    if (s === -1 || e === -1) return;
+    parsed = JSON.parse(text.slice(s, e + 1));
+  } catch {
+    return;
+  }
+
+  const rows = (Array.isArray(parsed) ? parsed : [])
+    .map((t) => String(t).trim())
+    .filter(Boolean)
+    .slice(0, 20)
+    .map((t) => ({
+      city_id: cityId,
+      text: t,
+      lat: null,
+      lng: null,
+      radius_metres: null,
+      fact_type: 'fact',
+      priority: 100,
+    }));
+  if (rows.length) {
+    try { await admin.from('location_facts').insert(rows); } catch { /* non-blocking */ }
+  }
+}
+
 /**
  * Save AI-drafted stops to a city. Appends after any existing stops. Pulls a
  * Google photo and the Google listing URL for each. RLS access is verified
@@ -58,7 +124,7 @@ export async function saveDraftStops(citySlug: string, stops: DraftStop[]) {
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id')
+    .select('id, name')
     .eq('slug', citySlug)
     .single();
   if (!city) return { ok: false as const, error: 'Tour not found' };
@@ -107,6 +173,12 @@ export async function saveDraftStops(citySlug: string, stops: DraftStop[]) {
   }
 
   if (saved === 0) return { ok: false as const, error: 'Could not save the stops' };
+
+  // Pre-populate ~20 standalone town facts, deduped against the stop facts.
+  try {
+    const existingFacts = stops.flatMap((s) => s.facts ?? []);
+    await generateTownFacts(admin, city.id, city.name ?? citySlug, existingFacts, process.env.CLAUDE_API_KEY);
+  } catch { /* non-blocking */ }
 
   await admin
     .from('cities')
