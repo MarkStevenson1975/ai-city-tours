@@ -72,7 +72,7 @@ export function SidebarPreview() {
         <button
           type="button"
           onClick={() => navigator.clipboard?.writeText(data.liveUrl ?? '')}
-          className="block w-full text-center text-[10px] text-cream/60 hover:text-cream mt-1"
+          className="block w-full text-center text-[11px] text-cream/70 hover:text-cream mt-1"
         >
           Copy link
         </button>
