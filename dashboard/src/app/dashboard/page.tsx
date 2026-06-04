@@ -42,26 +42,29 @@ export default async function DashboardHome() {
       </p>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-4xl font-semibold">Areas</h1>
-        {isAdmin && (
-          <Link
-            href="/dashboard/admin/cities/new"
-            className="px-5 py-2.5 rounded-full bg-primary text-cream text-sm font-bold hover:bg-primary-light transition"
-          >
-            + Add area
-          </Link>
-        )}
+        <Link
+          href={isAdmin ? '/dashboard/admin/cities/new' : '/dashboard/new'}
+          className="px-5 py-2.5 rounded-full bg-primary text-cream text-sm font-bold hover:bg-primary-light transition"
+        >
+          {isAdmin ? '+ Add area' : '+ New tour'}
+        </Link>
       </div>
 
       {!cities || cities.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center">
           <p className="font-display text-xl mb-2">
-            No areas accessible to you yet.
+            You haven&apos;t created a tour yet.
           </p>
-          <p className="text-sm text-gray-600">
-            Ask the platform admin to assign you to an area, or if you
-            <em> are</em> the admin make sure your user profile&apos;s role
-            is set to <code className="bg-cream px-1.5 py-0.5 rounded">admin</code>.
+          <p className="text-sm text-gray-600 mb-5">
+            Start your first tour. We&apos;ll find your local landmarks and the
+            AI will draft each stop for you. It&apos;s free to build and preview.
           </p>
+          <Link
+            href="/dashboard/new"
+            className="inline-block px-6 py-3 rounded-full bg-primary text-cream text-sm font-bold hover:bg-primary-light transition"
+          >
+            Create your tour
+          </Link>
         </div>
       ) : (
         <div className="space-y-3">
