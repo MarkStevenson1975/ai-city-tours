@@ -4,9 +4,9 @@ import { createClient } from '@/lib/supabase/server';
 import { PublishButton } from './publish-button';
 import { InviteOperatorForm } from './invite-operator-form';
 import { StopsReorder } from './stops-reorder';
-import { ManageBillingButton } from './go-live-panel';
+import { ManageBillingButton, UpgradeButton } from './go-live-panel';
 import { SeeItLiveButton } from './subscribe-modal';
-import { PLAN_STOP_LIMIT, PLAN_LABEL, type Tier } from '@/lib/plans';
+import { PLAN_STOP_LIMIT, PLAN_TOUR_LIMIT, PLAN_LABEL, nextTier, type Tier } from '@/lib/plans';
 
 export default async function CityOverview({
   params,
@@ -25,10 +25,12 @@ export default async function CityOverview({
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role')
+    .select('role, plan_tier, subscription_status')
     .single();
 
   const isAdmin = profile?.role === 'admin';
+  const subscribed =
+    profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing';
 
   const [{ data: stops }, sponsorCount, factCount, eventCount, visitorCount] =
     await Promise.all([
@@ -72,7 +74,7 @@ export default async function CityOverview({
     !publishedAt || (draftUpdated && draftUpdated > publishedAt);
 
   // Stop allowance for the current plan (Trail 10, Town 20, Destination null = unlimited).
-  const planTier = ((city.plan_tier as string) ?? 'trail') as Tier;
+  const planTier = ((profile?.plan_tier as string) ?? 'trail') as Tier;
   const stopLimit = PLAN_STOP_LIMIT[planTier] ?? null;
   const stopCount = stops?.length ?? 0;
   const atStopLimit = stopLimit !== null && stopCount >= stopLimit;
@@ -140,13 +142,24 @@ export default async function CityOverview({
       </div>
 
       <section className="mb-12">
-        {city.subscription_status === 'active' ? (
-          <div className="bg-white rounded-xl p-5 shadow-sm flex items-center justify-between gap-4">
+        {subscribed ? (
+          <div className="bg-white rounded-xl p-5 shadow-sm flex items-center justify-between gap-4 flex-wrap">
             <p className="text-sm text-gray-600">
-              This tour is on the <span className="font-bold">{city.plan_tier}</span> plan.
-              Publish your changes from the button above.
+              Your account is on the <span className="font-bold">{PLAN_LABEL[planTier]}</span> plan
+              {' '}({PLAN_TOUR_LIMIT[planTier] === null
+                ? 'unlimited tours'
+                : `${PLAN_TOUR_LIMIT[planTier]} tour${PLAN_TOUR_LIMIT[planTier] === 1 ? '' : 's'}`}
+              {stopLimit === null ? ', unlimited stops' : `, up to ${stopLimit} stops each`}).
             </p>
-            <ManageBillingButton citySlug={citySlug} />
+            <div className="flex items-center gap-4">
+              {nextTier(planTier) && (
+                <UpgradeButton
+                  tier={nextTier(planTier) as string}
+                  label={`Upgrade to ${PLAN_LABEL[nextTier(planTier) as Tier]}`}
+                />
+              )}
+              <ManageBillingButton citySlug={citySlug} />
+            </div>
           </div>
         ) : (
           <SeeItLiveButton citySlug={citySlug} totalStops={stops?.length ?? 0} />

@@ -22,7 +22,7 @@ export async function GET(
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, name, subscription_status')
+    .select('id, name, published_version, published_config')
     .eq('slug', slug)
     .single();
   if (!city) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -41,9 +41,9 @@ export async function GET(
 
   const first = stops?.[0];
 
-  // Once live, expose the public URL and a QR code so the operator can open
-  // or scan their tour straight from the sidebar.
-  const isLive = city.subscription_status === 'active';
+  // Once the tour is actually published (live), expose the public URL and a QR
+  // code so the operator can open or scan it straight from the sidebar.
+  const isLive = (city.published_version ?? 0) > 0 && city.published_config != null;
   const liveUrl = isLive ? `${TOUR_BASE}/${slug}` : null;
   let qrDataUrl: string | null = null;
   if (liveUrl) {
@@ -56,7 +56,7 @@ export async function GET(
 
   return NextResponse.json({
     name: city.name,
-    subscriptionStatus: city.subscription_status,
+    published: isLive,
     totalStops: count ?? 0,
     liveUrl,
     qrDataUrl,

@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 type Preview = {
   name: string;
-  subscriptionStatus: string;
+  published: boolean;
   totalStops: number;
   liveUrl: string | null;
   qrDataUrl: string | null;

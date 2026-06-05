@@ -99,6 +99,43 @@ export function GoLivePanel({ citySlug }: { citySlug: string }) {
   );
 }
 
+export function UpgradeButton({ tier, label }: { tier: string; label: string }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function go() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/stripe/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upgrade failed');
+      window.location.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upgrade failed');
+      setLoading(false);
+    }
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        onClick={go}
+        disabled={loading}
+        className="px-4 py-2 rounded-full bg-accent text-primary text-sm font-bold hover:bg-accent-light transition disabled:opacity-50"
+      >
+        {loading ? 'Upgrading…' : label}
+      </button>
+      {error && <span className="text-xs text-red-700">{error}</span>}
+    </span>
+  );
+}
+
 export function ManageBillingButton({ citySlug }: { citySlug: string }) {
   const [loading, setLoading] = useState(false);
 

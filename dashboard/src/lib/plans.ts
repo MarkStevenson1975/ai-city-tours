@@ -11,6 +11,21 @@ export const PLAN_STOP_LIMIT: Record<Tier, number | null> = {
   destination: null, // unlimited
 };
 
+// Tours an operator may publish on each plan (null = unlimited).
+export const PLAN_TOUR_LIMIT: Record<Tier, number | null> = {
+  trail: 1,
+  town: 3,
+  destination: null,
+};
+
+// Plan ordering, for "is this an upgrade" checks and next-tier suggestions.
+export const TIER_ORDER: Tier[] = ['trail', 'town', 'destination'];
+
+export function nextTier(tier: Tier): Tier | null {
+  const i = TIER_ORDER.indexOf(tier);
+  return i >= 0 && i < TIER_ORDER.length - 1 ? TIER_ORDER[i + 1] : null;
+}
+
 export const PLAN_LABEL: Record<Tier, string> = {
   trail: 'Trail',
   town: 'Town',
@@ -40,9 +55,15 @@ export function priceIdFor(tier: Tier, interval: Interval): string | undefined {
 
 // Reverse lookup so the webhook can map a Stripe price back to a tier.
 export function tierFromPriceId(priceId: string): Tier | undefined {
+  return planFromPriceId(priceId)?.tier;
+}
+
+// Reverse lookup returning both tier and billing interval, used when upgrading
+// so we keep the operator on the same monthly/annual cadence.
+export function planFromPriceId(priceId: string): { tier: Tier; interval: Interval } | undefined {
   for (const tier of ['trail', 'town', 'destination'] as Tier[]) {
     for (const interval of ['monthly', 'annual'] as Interval[]) {
-      if (priceIdFor(tier, interval) === priceId) return tier;
+      if (priceIdFor(tier, interval) === priceId) return { tier, interval };
     }
   }
   return undefined;
