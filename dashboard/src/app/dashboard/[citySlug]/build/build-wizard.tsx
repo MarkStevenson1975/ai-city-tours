@@ -142,9 +142,9 @@ export function BuildWizard({
           </p>
           <h1 className="text-3xl font-semibold">{drafts.length} stops created for you</h1>
           <p className="text-sm text-gray-600 mt-1">
-            This is what we&apos;ve created for you, each narrated in {guideName}&apos;s
-            voice with its photo and Google listing. You can edit, reorder or
-            regenerate anything in the next stage.
+            These are just some stops to get you started, each narrated in {guideName}&apos;s
+            voice with its photo and Google listing. You can edit, reorder, remove or
+            add more stops at any time in the next stage.
           </p>
         </div>
         {drafts.map((d) => (
@@ -231,7 +231,8 @@ export function BuildWizard({
             Step 2 · Pick your stops
           </p>
           <p className="text-sm text-gray-600 mb-3">
-            Tick the ones you want. Each becomes a fully drafted stop you can edit.
+            These are just some local sites to get you started. Tick the ones you
+            want, and you can add more stops later.
           </p>
           <div className="grid sm:grid-cols-2 gap-2">
             {suggestions.map((s) => {

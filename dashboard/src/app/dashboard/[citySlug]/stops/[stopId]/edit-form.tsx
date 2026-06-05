@@ -22,6 +22,8 @@ interface Stop {
 interface Props {
   citySlug: string;
   cityId: string;
+  /** Town/area name, used as context for AI narration generation */
+  cityName?: string;
   /** Existing stop for edit mode, or undefined for new */
   stop?: Stop;
   /** Suggested next-available position when creating a new stop */
@@ -31,6 +33,7 @@ interface Props {
 export function StopEditForm({
   citySlug,
   cityId,
+  cityName,
   stop,
   suggestedPosition,
 }: Props) {
@@ -39,6 +42,34 @@ export function StopEditForm({
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [genLoading, setGenLoading] = useState(false);
+
+  async function generateNarration() {
+    if (!name.trim()) {
+      setError('Add the stop name first, then generate the narration.');
+      return;
+    }
+    setError(null);
+    setGenLoading(true);
+    try {
+      const res = await fetch('/api/build/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ citySlug, name, area: cityName || citySlug, guideName: 'Harriet' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not generate narration');
+      if (data.narration) setNarration(data.narration);
+      if (data.shortDescription && !shortDescription.trim()) setShortDescription(data.shortDescription);
+      if (Array.isArray(data.facts) && facts.filter((f) => f.trim()).length === 0) {
+        setFacts(data.facts);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not generate narration');
+    } finally {
+      setGenLoading(false);
+    }
+  }
 
   const [position, setPosition] = useState(
     stop?.position
@@ -375,6 +406,19 @@ export function StopEditForm({
         title="Narration"
         subtitle="The 3 to 5 minute audio script the guide reads at this stop. Plain text. Paragraphs separated by blank lines."
       >
+        <div className="mb-3 flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={generateNarration}
+            disabled={genLoading || isPending}
+            className="px-4 py-2 text-sm font-bold rounded-full bg-accent text-primary hover:bg-accent-light transition disabled:opacity-50"
+          >
+            {genLoading ? 'Generating…' : '✨ Generate narration with AI'}
+          </button>
+          <span className="text-xs text-gray-500">
+            Drafts a 3 to 5 minute script (and fills the description and facts if empty) from the stop name. Edit it afterwards.
+          </span>
+        </div>
         <textarea
           value={narration}
           onChange={(e) => setNarration(e.target.value)}

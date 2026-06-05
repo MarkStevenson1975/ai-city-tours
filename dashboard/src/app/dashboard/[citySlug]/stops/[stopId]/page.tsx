@@ -37,7 +37,7 @@ export default async function StopEditPage({
         <h1 className="text-4xl font-semibold">{stop.name}</h1>
       </header>
 
-      <StopEditForm stop={stop} citySlug={citySlug} cityId={city.id} />
+      <StopEditForm stop={stop} citySlug={citySlug} cityId={city.id} cityName={city.name} />
     </div>
   );
 }

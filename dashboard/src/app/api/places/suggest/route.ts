@@ -17,7 +17,20 @@ type Suggestion = {
   photoRef: string | null;
 };
 
-const TYPES = ['tourist_attraction', 'museum', 'art_gallery', 'church', 'park'];
+const TYPES = ['tourist_attraction', 'museum', 'art_gallery', 'church', 'place_of_worship', 'park'];
+
+// Drop anything that is really a business rather than a visitor site, even if
+// Google tagged it with a tourist type as well.
+const EXCLUDE_TYPES = new Set([
+  'restaurant', 'cafe', 'bar', 'meal_takeaway', 'meal_delivery', 'food',
+  'bakery', 'store', 'supermarket', 'grocery_or_supermarket', 'shopping_mall',
+  'clothing_store', 'home_goods_store', 'furniture_store', 'hardware_store',
+  'funeral_home', 'cemetery', 'lodging', 'bank', 'finance', 'atm',
+  'real_estate_agency', 'insurance_agency', 'lawyer', 'accounting',
+  'doctor', 'dentist', 'hospital', 'pharmacy', 'veterinary_care',
+  'car_dealer', 'car_repair', 'car_rental', 'gas_station',
+  'gym', 'hair_care', 'beauty_salon', 'spa', 'night_club', 'liquor_store',
+]);
 
 const CATEGORY_LABEL: Record<string, string> = {
   tourist_attraction: 'Landmark',
@@ -115,6 +128,9 @@ export async function POST(req: NextRequest) {
       for (const p of list) {
         if (!p.geometry?.location || p.business_status === 'CLOSED_PERMANENTLY') continue;
         if (seen.has(p.place_id)) continue;
+        // Skip businesses (cafes, funeral directors, shops, etc.).
+        const ptypes: string[] = p.types ?? [];
+        if (ptypes.some((t) => EXCLUDE_TYPES.has(t))) continue;
         seen.set(p.place_id, {
           place_id: p.place_id,
           name: p.name,

@@ -51,14 +51,7 @@ export default async function FinishPage({
         />
       </div>
 
-      <SponsorSection
-        cityId={city.id}
-        citySlug={city.slug}
-        logoUrl={city.tc_sponsor_logo_url}
-        name={city.tc_sponsor_name ?? ''}
-        tagline={city.tc_sponsor_tagline ?? ''}
-        url={city.tc_sponsor_url ?? ''}
-      />
+      <SponsorSection />
 
       <div className="flex items-center gap-4 mt-8">
         <Link

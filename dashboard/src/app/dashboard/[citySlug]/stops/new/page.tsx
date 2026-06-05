@@ -80,6 +80,7 @@ export default async function NewStopPage({
       <StopEditForm
         citySlug={citySlug}
         cityId={city.id}
+        cityName={city.name}
         suggestedPosition={nextPosition}
       />
     </div>
