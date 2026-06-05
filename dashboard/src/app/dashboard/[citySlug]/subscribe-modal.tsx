@@ -1,8 +1,9 @@
 'use client';
 
 // The conversion moment: a prominent "See it live" button that opens a modal
-// over the dashboard, dimming the work behind it, prompting the operator to
-// start their 7-day free trial to publish and view the tour for real.
+// over the dashboard. The operator picks a plan and billing period, then
+// confirms with a single button before going to checkout (so a stray tap never
+// sends them straight to payment).
 import { useState } from 'react';
 
 type Tier = 'trail' | 'town' | 'destination';
@@ -23,24 +24,27 @@ export function SeeItLiveButton({
 }) {
   const [open, setOpen] = useState(false);
   const [interval, setInterval] = useState<Interval>('monthly');
-  const [loading, setLoading] = useState<Tier | null>(null);
+  const [selectedTier, setSelectedTier] = useState<Tier>('town');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function choosePlan(tier: Tier) {
-    setLoading(tier);
+  const selectedPlan = PLANS.find((p) => p.tier === selectedTier)!;
+
+  async function startCheckout() {
+    setLoading(true);
     setError(null);
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ citySlug, tier, interval }),
+        body: JSON.stringify({ citySlug, tier: selectedTier, interval }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout');
       window.location.href = data.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
-      setLoading(null);
+      setLoading(false);
     }
   }
 
@@ -66,7 +70,7 @@ export function SeeItLiveButton({
       {open && (
         <div
           className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-          onClick={() => loading === null && setOpen(false)}
+          onClick={() => !loading && setOpen(false)}
         >
           <div
             className="bg-white rounded-2xl p-7 max-w-md w-full text-center shadow-2xl"
@@ -77,8 +81,8 @@ export function SeeItLiveButton({
             </span>
             <h2 className="text-2xl font-semibold mb-2">See your tour go live</h2>
             <p className="text-sm text-gray-600 mb-5">
-              Start your 7-day free trial to publish {citySlug} and walk the real
-              thing on your phone. Cancel any time in the first week at no charge.
+              Choose a plan and billing period, then continue to start your 7-day
+              free trial. Cancel any time in the first week at no charge.
             </p>
 
             <div className="inline-flex rounded-full border border-gray-200 p-1 mb-5 text-sm">
@@ -102,34 +106,58 @@ export function SeeItLiveButton({
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {PLANS.map((p) => (
-                <button
-                  key={p.tier}
-                  type="button"
-                  onClick={() => choosePlan(p.tier)}
-                  disabled={loading !== null}
-                  className={`rounded-xl p-3 text-left transition disabled:opacity-50 ${
-                    p.featured ? 'border-2 border-primary' : 'border border-gray-200'
-                  } hover:bg-cream`}
-                >
-                  <span className="block font-bold text-sm">{p.name}</span>
-                  <span className="block text-lg font-semibold">
-                    £{interval === 'monthly' ? p.monthly : p.annual}
-                  </span>
-                  <span className="block text-[11px] text-gray-500">{p.blurb}</span>
-                  <span className="block text-[11px] font-bold text-primary mt-2">
-                    {loading === p.tier ? 'Opening…' : 'Start free'}
-                  </span>
-                </button>
-              ))}
+            <div className="grid grid-cols-3 gap-2 mb-5">
+              {PLANS.map((p) => {
+                const isSelected = selectedTier === p.tier;
+                return (
+                  <button
+                    key={p.tier}
+                    type="button"
+                    onClick={() => setSelectedTier(p.tier)}
+                    className={`relative rounded-xl p-3 text-left transition ${
+                      isSelected
+                        ? 'border-2 border-primary bg-cream'
+                        : 'border border-gray-200 hover:bg-cream/50'
+                    }`}
+                  >
+                    {p.featured && (
+                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-wider bg-primary text-cream px-2 py-0.5 rounded-full">
+                        Popular
+                      </span>
+                    )}
+                    <span className="block font-bold text-sm">{p.name}</span>
+                    <span className="block text-lg font-semibold">
+                      £{interval === 'monthly' ? p.monthly : p.annual}
+                      <span className="text-[11px] font-normal text-gray-500">
+                        /{interval === 'monthly' ? 'mo' : 'yr'}
+                      </span>
+                    </span>
+                    <span className="block text-[11px] text-gray-500">{p.blurb}</span>
+                    {isSelected && (
+                      <span className="block text-[11px] font-bold text-primary mt-2">✓ Selected</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            {error && <p className="text-red-700 text-sm mb-2">{error}</p>}
+            {error && <p className="text-red-700 text-sm mb-3">{error}</p>}
+
+            <button
+              type="button"
+              onClick={startCheckout}
+              disabled={loading}
+              className="w-full py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 mb-3"
+            >
+              {loading
+                ? 'Taking you to checkout…'
+                : `Start 7-day free trial on ${selectedPlan.name}`}
+            </button>
+
             <button
               type="button"
               onClick={() => setOpen(false)}
-              disabled={loading !== null}
+              disabled={loading}
               className="text-sm text-gray-500 hover:text-gray-800"
             >
               Keep editing
