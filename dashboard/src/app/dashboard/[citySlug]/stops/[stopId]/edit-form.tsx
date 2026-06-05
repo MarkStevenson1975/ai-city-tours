@@ -43,6 +43,38 @@ export function StopEditForm({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [genLoading, setGenLoading] = useState(false);
+  const [lookupQuery, setLookupQuery] = useState('');
+  const [lookupLoading, setLookupLoading] = useState(false);
+
+  async function lookupAndFill() {
+    if (!lookupQuery.trim()) {
+      setError('Paste a Google Maps link or type the place name first.');
+      return;
+    }
+    setError(null);
+    setLookupLoading(true);
+    try {
+      const res = await fetch('/api/build/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: lookupQuery, citySlug, area: cityName || citySlug }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lookup failed');
+      if (data.name) setName(data.name);
+      if (typeof data.lat === 'number') setLat(String(data.lat));
+      if (typeof data.lng === 'number') setLng(String(data.lng));
+      if (data.googleBusinessUrl) setGoogleBusinessUrl(data.googleBusinessUrl);
+      if (data.heroImageUrl && !(stop && stop.hero_image_override_url)) setHeroImageUrl(data.heroImageUrl);
+      if (data.shortDescription) setShortDescription(data.shortDescription);
+      if (data.narration) setNarration(data.narration);
+      if (Array.isArray(data.facts) && data.facts.length) setFacts(data.facts);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Lookup failed');
+    } finally {
+      setLookupLoading(false);
+    }
+  }
 
   async function generateNarration() {
     if (!name.trim()) {
@@ -235,6 +267,32 @@ export function StopEditForm({
       onSubmit={(e) => handleSubmit(e, false)}
       className="space-y-8 bg-white rounded-xl p-8 shadow-sm"
     >
+      {/* AI autofill */}
+      <div className="bg-cream/60 border border-accent rounded-xl p-5">
+        <h2 className="text-lg font-semibold mb-1">✨ Autofill from a Google link or place name</h2>
+        <p className="text-sm text-gray-600 mb-3">
+          Paste a Google Maps link or type the place. We&apos;ll fill the location,
+          image, description, facts and a draft narration. Edit anything afterwards.
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <input
+            type="text"
+            value={lookupQuery}
+            onChange={(e) => setLookupQuery(e.target.value)}
+            placeholder="Google Maps link or place name"
+            className={`flex-1 min-w-[220px] ${inputCls}`}
+          />
+          <button
+            type="button"
+            onClick={lookupAndFill}
+            disabled={lookupLoading || isPending}
+            className="px-5 py-2 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
+          >
+            {lookupLoading ? 'Looking up…' : 'Look up & fill'}
+          </button>
+        </div>
+      </div>
+
       {/* Identity */}
       <Section title="Identity">
         <Field
