@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
 
     const results = Array.from(seen.values())
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-      .slice(0, 15);
+      .slice(0, 10);
 
     return NextResponse.json({ results, center });
   } catch (e) {

@@ -25,9 +25,9 @@ export default async function NewTourPage({
       </p>
       <h1 className="text-4xl font-semibold mb-3">Name your tour</h1>
       <p className="text-sm text-gray-600 mb-8">
-        Usually your town or area, for example Hereford or Ledbury. You can
-        change everything else later. Next we will find your local landmarks
-        and the AI will draft each stop for you.
+        Usually your town or area. You can change everything else later. Next we
+        will find your local landmarks and we&apos;ll draft each stop for you to
+        get you started.
       </p>
 
       <form action={createMyTour} className="bg-white rounded-xl p-6 shadow-sm space-y-5">

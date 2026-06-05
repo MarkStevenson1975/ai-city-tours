@@ -6,6 +6,7 @@ import { InviteOperatorForm } from './invite-operator-form';
 import { StopsReorder } from './stops-reorder';
 import { ManageBillingButton } from './go-live-panel';
 import { SeeItLiveButton } from './subscribe-modal';
+import { PLAN_STOP_LIMIT, PLAN_LABEL, type Tier } from '@/lib/plans';
 
 export default async function CityOverview({
   params,
@@ -69,6 +70,12 @@ export default async function CityOverview({
   const publishedAt = city.published_at ? new Date(city.published_at) : null;
   const hasUnpublishedChanges =
     !publishedAt || (draftUpdated && draftUpdated > publishedAt);
+
+  // Stop allowance for the current plan (Trail 10, Town 20, Destination null = unlimited).
+  const planTier = ((city.plan_tier as string) ?? 'trail') as Tier;
+  const stopLimit = PLAN_STOP_LIMIT[planTier] ?? null;
+  const stopCount = stops?.length ?? 0;
+  const atStopLimit = stopLimit !== null && stopCount >= stopLimit;
 
   return (
     <div className="max-w-5xl">
@@ -163,14 +170,23 @@ export default async function CityOverview({
       <section className="mb-12">
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="text-3xl font-semibold">Stops</h2>
-          <Link
-            href={`/dashboard/${citySlug}/stops/new`}
-            className="px-4 py-2 rounded-full bg-primary text-cream text-sm font-bold hover:bg-primary-light transition"
-          >
-            + Add stop
-          </Link>
+          {atStopLimit ? (
+            <span
+              className="text-sm font-bold text-amber-800 bg-amber-100 px-4 py-2 rounded-full"
+              title="Upgrade your plan to add more stops"
+            >
+              {PLAN_LABEL[planTier]} limit of {stopLimit} stops reached — upgrade to add more
+            </span>
+          ) : (
+            <Link
+              href={`/dashboard/${citySlug}/stops/new`}
+              className="px-4 py-2 rounded-full bg-primary text-cream text-sm font-bold hover:bg-primary-light transition"
+            >
+              + Add stop
+            </Link>
+          )}
         </div>
-        <StopsReorder citySlug={citySlug} initialStops={stops ?? []} />
+        <StopsReorder citySlug={citySlug} initialStops={stops ?? []} stopLimit={stopLimit} />
       </section>
     </div>
   );

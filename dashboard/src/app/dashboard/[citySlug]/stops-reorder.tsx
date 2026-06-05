@@ -20,9 +20,11 @@ export type StopRow = {
 export function StopsReorder({
   citySlug,
   initialStops,
+  stopLimit,
 }: {
   citySlug: string;
   initialStops: StopRow[];
+  stopLimit: number | null;
 }) {
   const router = useRouter();
   const [stops, setStops] = useState<StopRow[]>(initialStops);
@@ -81,7 +83,7 @@ export function StopsReorder({
             }}
             className={`flex items-center gap-3 px-4 py-3 transition ${
               dragIndex === i ? 'bg-cream' : 'hover:bg-cream/50'
-            }`}
+            } ${stopLimit !== null && i >= stopLimit ? 'opacity-60' : ''}`}
           >
             <span className="cursor-grab text-gray-400 select-none" aria-hidden>
               ⠿
@@ -91,6 +93,11 @@ export function StopsReorder({
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-display text-lg truncate">{stop.name}</p>
+              {stopLimit !== null && i >= stopLimit && (
+                <span className="inline-block text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full mt-0.5">
+                  Upgrade to include this stop
+                </span>
+              )}
               {stop.short_description && (
                 <p className="text-sm text-gray-500 truncate">
                   {stop.short_description}

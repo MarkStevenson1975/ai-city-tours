@@ -3,6 +3,29 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
+// Save the operator (the organisation running the tour) name. Sets the
+// "Brought to you by" attribution shown on the welcome and finish screens.
+export async function saveOperatorDetails(
+  cityId: string,
+  citySlug: string,
+  name: string
+) {
+  const supabase = await createClient();
+  const trimmed = name.trim();
+  const { error } = await supabase
+    .from('cities')
+    .update({
+      operator_name: trimmed || null,
+      operator_attribution_text: trimmed ? `Brought to you by ${trimmed}` : null,
+      draft_updated_at: new Date().toISOString(),
+    })
+    .eq('id', cityId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/finish`);
+  return { ok: true as const };
+}
+
 // Save the completion-screen sponsor text fields. The logo itself is handled
 // by uploadTcSponsorLogo (in settings/actions).
 export async function saveSponsorDetails(

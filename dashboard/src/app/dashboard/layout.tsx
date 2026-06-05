@@ -34,6 +34,14 @@ export default async function DashboardLayout({
           >
             Areas
           </Link>
+          {profile?.role !== 'admin' && (
+            <Link
+              href="/dashboard/new"
+              className="block px-3 py-2 rounded hover:bg-white/10 transition"
+            >
+              + New tour
+            </Link>
+          )}
           {profile?.role === 'admin' && (
             <>
               <Link
