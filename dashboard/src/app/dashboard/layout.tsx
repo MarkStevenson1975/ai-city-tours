@@ -23,9 +23,10 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen flex">
       <aside className="w-60 bg-primary text-cream p-6 flex flex-col flex-shrink-0">
-        <h1 className="text-2xl font-semibold leading-tight mb-8 mt-2">
-          StorieD
-        </h1>
+        <p className="font-display text-3xl leading-none mb-8 mt-2">
+          <span className="text-cream font-semibold">Storie</span>
+          <span className="text-accent font-semibold">D</span>
+        </p>
 
         <nav className="space-y-1 flex-1 text-sm">
           <Link
