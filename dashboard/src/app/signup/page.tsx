@@ -95,7 +95,9 @@ export default function SignupPage() {
         </p>
         <h1 className="text-4xl font-semibold mb-2">Build your tour</h1>
         <p className="text-sm text-gray-600 mb-8">
-          Create your free account. You only pay when you publish.
+          Create your free account and build your tour. When you&apos;re ready to
+          go live, start a 7-day free trial. Cancel any time in the first week at
+          no charge.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
