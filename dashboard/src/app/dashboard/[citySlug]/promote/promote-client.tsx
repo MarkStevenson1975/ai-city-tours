@@ -13,6 +13,7 @@ type Props = {
   attribution: string;
   logoDataUrl: string | null;
   qrDataUrl: string;
+  stopImageDataUrl: string | null;
   liveUrl: string;
   colorPrimary: string;
   colorAccent: string;
@@ -23,6 +24,19 @@ type Posts = { facebook: string; instagram: string; linkedin: string };
 
 const A4_W = 2480; // 210mm at 300dpi
 const A4_H = 3508; // 297mm at 300dpi
+
+// Social image dimensions per platform (pixels).
+const SOCIAL_FORMATS: {
+  key: keyof Posts;
+  label: string;
+  w: number;
+  h: number;
+  dims: string;
+}[] = [
+  { key: 'facebook', label: 'Facebook', w: 1200, h: 630, dims: '1200 x 630' },
+  { key: 'instagram', label: 'Instagram', w: 1080, h: 1080, dims: '1080 x 1080' },
+  { key: 'linkedin', label: 'LinkedIn', w: 1200, h: 627, dims: '1200 x 627' },
+];
 
 function escapeXml(s: string): string {
   return s
@@ -67,22 +81,66 @@ ${logoBlock}
 </svg>`;
 }
 
-function renderCanvas(svg: string): Promise<HTMLCanvasElement> {
+// Branded social image over a stop photo. Adapts to any width/height (square
+// or landscape). The headline shrinks to fit. Used for Facebook, Instagram and
+// LinkedIn. The A4 poster is built separately by buildPosterSvg and unaffected.
+function buildSocialSvg(p: Props, width: number, height: number): string {
+  const cream = p.colorBackground;
+  const forest = p.colorPrimary;
+  const accent = p.colorAccent;
+  const cx = width / 2;
+  const pad = width * 0.06;
+  const usable = width - pad * 2;
+
+  const headline = `${p.cityName} has a story.`;
+  let hSize = Math.round(height * 0.075);
+  const est = headline.length * hSize * 0.52;
+  if (est > usable) hSize = Math.max(18, Math.floor(usable / (headline.length * 0.52)));
+
+  const wordY = Math.round(height * 0.14);
+  const head1Y = Math.round(height * 0.34);
+  const head2Y = head1Y + Math.round(hSize * 1.15);
+  const qrSize = Math.round(height * 0.26);
+  const qrX = Math.round(cx - qrSize / 2);
+  const qrY = Math.round(height * 0.52);
+  const scanY = qrY + qrSize + Math.round(height * 0.07);
+  const attrY = Math.round(height * 0.94);
+
+  const bg = p.stopImageDataUrl
+    ? `<image href="${p.stopImageDataUrl}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/>
+<rect x="0" y="0" width="${width}" height="${height}" fill="${forest}" fill-opacity="0.66"/>`
+    : `<rect x="0" y="0" width="${width}" height="${height}" fill="${forest}"/>`;
+
+  const qrInset = Math.round(qrSize * 0.09);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${width} ${height}" role="img" aria-label="Social image for the ${escapeXml(p.cityName)} tour">
+${bg}
+<text x="${cx}" y="${wordY}" text-anchor="middle" font-family="Georgia, serif" font-size="${Math.round(height * 0.05)}" font-weight="600" fill="${cream}">Storie<tspan fill="${accent}">D</tspan></text>
+<text x="${cx}" y="${head1Y}" text-anchor="middle" font-family="Georgia, serif" font-size="${hSize}" fill="${cream}">${escapeXml(headline)}</text>
+<text x="${cx}" y="${head2Y}" text-anchor="middle" font-family="Georgia, serif" font-size="${hSize}" fill="${cream}">Take the walk.</text>
+<rect x="${qrX}" y="${qrY}" width="${qrSize}" height="${qrSize}" rx="${Math.round(qrSize * 0.06)}" fill="#ffffff"/>
+<image href="${p.qrDataUrl}" x="${qrX + qrInset}" y="${qrY + qrInset}" width="${qrSize - qrInset * 2}" height="${qrSize - qrInset * 2}"/>
+<text x="${cx}" y="${scanY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${Math.round(height * 0.034)}" font-weight="bold" fill="${accent}">Scan to start walking</text>
+<text x="${cx}" y="${attrY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${Math.round(height * 0.026)}" letter-spacing="1" fill="${cream}">${escapeXml((p.attribution || '').toUpperCase())}</text>
+</svg>`;
+}
+
+function renderCanvas(svg: string, width: number, height: number): Promise<HTMLCanvasElement> {
   return new Promise((resolve, reject) => {
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = A4_W;
-      canvas.height = A4_H;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         URL.revokeObjectURL(url);
         reject(new Error('Canvas not supported'));
         return;
       }
-      ctx.drawImage(img, 0, 0, A4_W, A4_H);
+      ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
       resolve(canvas);
     };
@@ -105,9 +163,15 @@ function triggerDownload(href: string, filename: string) {
 
 export function PromoteClient(props: Props) {
   const posterSvg = useMemo(() => buildPosterSvg(props), [props]);
+  const socialSvgs = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const f of SOCIAL_FORMATS) m[f.key] = buildSocialSvg(props, f.w, f.h);
+    return m;
+  }, [props]);
 
   const [busy, setBusy] = useState<null | 'pdf' | 'png'>(null);
   const [posterError, setPosterError] = useState<string | null>(null);
+  const [imgBusy, setImgBusy] = useState<string | null>(null);
 
   const [posts, setPosts] = useState<Posts | null>(null);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -142,7 +206,7 @@ export function PromoteClient(props: Props) {
     setPosterError(null);
     setBusy('pdf');
     try {
-      const canvas = await renderCanvas(posterSvg);
+      const canvas = await renderCanvas(posterSvg, A4_W, A4_H);
       const { jsPDF } = await import('jspdf');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
@@ -158,7 +222,7 @@ export function PromoteClient(props: Props) {
     setPosterError(null);
     setBusy('png');
     try {
-      const canvas = await renderCanvas(posterSvg);
+      const canvas = await renderCanvas(posterSvg, A4_W, A4_H);
       canvas.toBlob((blob) => {
         if (!blob) {
           setPosterError('Could not build the PNG.');
@@ -172,6 +236,25 @@ export function PromoteClient(props: Props) {
       setPosterError(e instanceof Error ? e.message : 'Could not build the PNG.');
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function downloadSocialImage(key: keyof Posts) {
+    const fmt = SOCIAL_FORMATS.find((f) => f.key === key);
+    if (!fmt) return;
+    setImgBusy(key);
+    try {
+      const canvas = await renderCanvas(socialSvgs[key], fmt.w, fmt.h);
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, `${props.citySlug}-${key}.png`);
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+      }, 'image/png');
+    } catch {
+      // Non-fatal: the post text is unaffected.
+    } finally {
+      setImgBusy(null);
     }
   }
 
@@ -252,8 +335,9 @@ export function PromoteClient(props: Props) {
             </button>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Drafted for you in your tour&apos;s voice. Edit anything, then copy and
-            paste. Regenerate for a fresh angle.
+            Drafted for you in your tour&apos;s voice, each with a matching image
+            sized for that channel. Edit the words, copy and paste, and download
+            the image to attach if you like. Regenerate for a fresh angle.
           </p>
 
           {postsError && <p className="text-sm text-red-700 mb-3">{postsError}</p>}
@@ -284,6 +368,26 @@ export function PromoteClient(props: Props) {
                       className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-800 focus:border-primary focus:outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">{c.hint}</p>
+
+                    {socialSvgs[c.key] && (
+                      <div className="mt-3">
+                        <div
+                          className="rounded-lg overflow-hidden border border-gray-200 mb-2"
+                          style={{ maxWidth: 260 }}
+                          dangerouslySetInnerHTML={{ __html: socialSvgs[c.key] }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => downloadSocialImage(c.key)}
+                          disabled={imgBusy === c.key}
+                          className="px-4 py-1.5 rounded-full bg-primary text-cream text-xs font-bold hover:bg-primary-light transition disabled:opacity-50"
+                        >
+                          {imgBusy === c.key
+                            ? 'Preparing…'
+                            : `Download image (${SOCIAL_FORMATS.find((f) => f.key === c.key)?.dims})`}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

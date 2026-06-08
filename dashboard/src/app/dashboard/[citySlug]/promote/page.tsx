@@ -73,9 +73,22 @@ export default async function PromotePage({
     );
   }
 
-  const [qrDataUrl, logoDataUrl] = await Promise.all([
+  // Pick the first stop that has a photo, to use as the social image backdrop.
+  const { data: stopRows } = await supabase
+    .from('stops')
+    .select('hero_image_url, hero_image_override_url')
+    .eq('city_id', city.id)
+    .order('position')
+    .limit(8);
+  const stopImageUrl =
+    (stopRows ?? [])
+      .map((s) => s.hero_image_override_url || s.hero_image_url)
+      .find(Boolean) ?? null;
+
+  const [qrDataUrl, logoDataUrl, stopImageDataUrl] = await Promise.all([
     QRCode.toDataURL(liveUrl, { margin: 1, width: 800 }).catch(() => ''),
     toDataUri(city.operator_logo_url),
+    toDataUri(stopImageUrl),
   ]);
 
   return (
@@ -86,6 +99,7 @@ export default async function PromotePage({
       attribution={city.operator_attribution_text || city.operator_name || ''}
       logoDataUrl={logoDataUrl}
       qrDataUrl={qrDataUrl}
+      stopImageDataUrl={stopImageDataUrl}
       liveUrl={liveUrl}
       colorPrimary={city.color_primary ?? '#1B4332'}
       colorAccent={city.color_accent ?? '#C9A84C'}
