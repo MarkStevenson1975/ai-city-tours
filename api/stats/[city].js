@@ -55,6 +55,17 @@ export default async function handler(req, res) {
       if (city !== 'all') {
         url += `&city_slug=eq.${encodeURIComponent(city)}`;
       }
+      // Exclude our own (internal) devices, matching the summary report.
+      // Pass &include=internal to see everything including team devices.
+      if (req.query.include !== 'internal') {
+        const internalIds = await fetchInternalDeviceIds(SUPABASE_URL, sbHeaders);
+        if (internalIds.length) {
+          const list = internalIds
+            .map((id) => `"${id.replace(/"/g, '')}"`)
+            .join(',');
+          url += `&device_id=not.in.(${encodeURIComponent(list)})`;
+        }
+      }
       const r = await fetch(url, { headers: sbHeaders });
       if (!r.ok) {
         return res.status(502).json({ error: 'Upstream error', upstream: r.status });
@@ -106,6 +117,24 @@ export default async function handler(req, res) {
   } catch (e) {
     console.warn('stats endpoint error', e && e.message);
     return res.status(500).json({ error: 'Internal error' });
+  }
+}
+
+// Fetch the device_ids flagged as internal (team) devices. Best-effort:
+// on any problem it returns an empty list so the export still works.
+async function fetchInternalDeviceIds(SUPABASE_URL, sbHeaders) {
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/guest_internal_devices?select=device_id`,
+      { headers: sbHeaders }
+    );
+    if (!r.ok) return [];
+    const rows = await r.json();
+    return (Array.isArray(rows) ? rows : [])
+      .map((x) => x && x.device_id)
+      .filter(Boolean);
+  } catch (e) {
+    return [];
   }
 }
 

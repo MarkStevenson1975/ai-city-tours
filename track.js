@@ -43,7 +43,68 @@
   var SLUG = citySlug();
   var DID = deviceId();
 
+  // --- internal (team) device opt-out --------------------------------------
+  // A browser can be flagged as "ours" so its activity is left out of guest
+  // reporting. Open any tour with ?internal=1 to flag this browser, or
+  // ?internal=0 to undo. The flag is stored locally AND recorded server-side
+  // (so the daily report excludes it even though the row stays in the table).
+  var INTERNAL_KEY = 'storied_internal';
+  function isInternal() {
+    try { return localStorage.getItem(INTERNAL_KEY) === '1'; } catch (e) { return false; }
+  }
+  function setInternalLocal(on) {
+    try {
+      if (on) localStorage.setItem(INTERNAL_KEY, '1');
+      else localStorage.removeItem(INTERNAL_KEY);
+    } catch (e) {}
+  }
+  function postInternal(action) {
+    try {
+      fetch('/api/internal-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId: DID,
+          action: action,
+          label: 'self-flagged via ' + SLUG,
+        }),
+        keepalive: true,
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function tinyToast(msg) {
+    try {
+      var d = document.createElement('div');
+      d.textContent = msg;
+      d.style.cssText =
+        'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
+        'z-index:99999;background:#1f5c3a;color:#fff;padding:12px 18px;' +
+        'border-radius:10px;font:14px/1.3 -apple-system,Arial,sans-serif;' +
+        'box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:80%;text-align:center;';
+      var put = function () { document.body && document.body.appendChild(d); };
+      if (document.body) put(); else window.addEventListener('DOMContentLoaded', put);
+      setTimeout(function () { try { d.remove(); } catch (e) {} }, 5000);
+    } catch (e) {}
+  }
+  // Handle the flag / unflag links.
+  try {
+    var q = window.location.search || '';
+    if (/[?&]internal=1\b/.test(q)) {
+      setInternalLocal(true);
+      postInternal('add');
+      tinyToast('This device is now marked as internal and will not be counted in tour reporting.');
+    } else if (/[?&]internal=0\b/.test(q)) {
+      setInternalLocal(false);
+      postInternal('remove');
+      tinyToast('This device is no longer marked as internal. Visits will be counted again.');
+    }
+  } catch (e) {}
+
+  // If this browser is one of ours, record nothing at all.
+  var SUPPRESS = isInternal();
+
   function send(event, opts) {
+    if (SUPPRESS) return;
     try {
       opts = opts || {};
       var payload = { deviceId: DID, event: event };
