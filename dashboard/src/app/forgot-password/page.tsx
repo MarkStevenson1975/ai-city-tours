@@ -45,20 +45,24 @@ export default function ForgotPasswordPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-6 bg-primary text-cream">
       <div className="w-full max-w-md bg-cream text-gray-900 rounded-2xl shadow-2xl p-10">
-        <p className="text-xs uppercase tracking-widest text-accent font-bold mb-3">
-          StorieD
+        <p className="mb-4 font-display text-3xl leading-none">
+          <span className="text-primary font-semibold">Storie</span>
+          <span className="text-accent font-semibold">D</span>
         </p>
         <h1 className="text-4xl font-semibold mb-2">Reset password</h1>
 
         {sent ? (
           <>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 mb-4">
               We have sent a reset link to{' '}
               <span className="font-mono font-bold">{email}</span>. Click it
               to choose a new password. The link expires in one hour.
             </p>
-            <p className="text-xs text-gray-500">
-              Check your spam folder if it does not arrive within a minute.
+            <p className="text-sm text-gray-600">
+              The email comes from{' '}
+              <span className="font-bold">team@thesetupcrew.co.uk</span>. If it is
+              not in your inbox within a few minutes, please check your spam or
+              junk folder.
             </p>
           </>
         ) : (
