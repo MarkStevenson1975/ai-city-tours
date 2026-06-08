@@ -7,6 +7,7 @@ import { StopsReorder } from './stops-reorder';
 import { ManageBillingButton, UpgradeButton } from './go-live-panel';
 import { SeeItLiveButton } from './subscribe-modal';
 import { PLAN_STOP_LIMIT, PLAN_TOUR_LIMIT, PLAN_LABEL, nextTier, type Tier } from '@/lib/plans';
+import { TourActions } from './tour-actions';
 
 export default async function CityOverview({
   params,
@@ -22,6 +23,8 @@ export default async function CityOverview({
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
+  // Archived (deleted) tours are not editable from the dashboard.
+  if (city.deleted_at) redirect('/dashboard');
 
   const { data: profile } = await supabase
     .from('user_profiles')
@@ -78,6 +81,9 @@ export default async function CityOverview({
   const stopLimit = PLAN_STOP_LIMIT[planTier] ?? null;
   const stopCount = stops?.length ?? 0;
   const atStopLimit = stopLimit !== null && stopCount >= stopLimit;
+
+  // A tour is live (publicly visible) when it has a published snapshot.
+  const isLive = (city.published_version ?? 0) > 0 && city.published_config != null;
 
   return (
     <div className="max-w-5xl">
@@ -180,6 +186,27 @@ export default async function CityOverview({
         </section>
       )}
 
+      {isLive && (
+        <section className="mb-12">
+          <div className="bg-primary text-cream rounded-xl p-6 shadow-sm flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-2xl font-semibold mb-1">Tell the world</h2>
+              <p className="text-sm text-cream/80 max-w-xl">
+                Your tour is live. Grab your branded poster for windows and
+                signage, and lift ready-made Facebook, Instagram and LinkedIn
+                posts straight into your channels.
+              </p>
+            </div>
+            <Link
+              href={`/dashboard/${citySlug}/promote`}
+              className="px-6 py-3 rounded-full bg-accent text-primary font-bold hover:bg-accent-light transition whitespace-nowrap"
+            >
+              Promote my tour
+            </Link>
+          </div>
+        </section>
+      )}
+
       <section className="mb-12">
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="text-3xl font-semibold">Stops</h2>
@@ -200,6 +227,21 @@ export default async function CityOverview({
           )}
         </div>
         <StopsReorder citySlug={citySlug} initialStops={stops ?? []} stopLimit={stopLimit} />
+      </section>
+
+      <section className="mb-12 border-t border-gray-200 pt-8">
+        <h2 className="text-2xl font-semibold mb-1">Manage tour</h2>
+        <p className="text-sm text-gray-600 mb-4 max-w-xl">
+          {isLive
+            ? 'Unpublish to take this tour offline while keeping your draft, or delete it to remove it from your dashboard. Deleted tours are archived and kept for 7 years, not permanently erased.'
+            : 'Delete this tour to remove it from your dashboard. Deleted tours are archived and kept for 7 years, not permanently erased.'}
+        </p>
+        <TourActions
+          cityId={city.id}
+          citySlug={city.slug}
+          cityName={city.name}
+          isLive={isLive}
+        />
       </section>
     </div>
   );

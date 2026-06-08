@@ -56,6 +56,15 @@ export default async function FinishPage({
         logoUrl={city.operator_logo_url}
       />
 
+      <div className="bg-primary text-cream rounded-xl p-6 shadow-sm mt-6">
+        <h2 className="text-2xl font-semibold mb-1">Then tell the world</h2>
+        <p className="text-sm text-cream/80">
+          Once you publish, head to the Promote tab. You will find a branded,
+          print-ready poster with your QR code, plus ready-made Facebook,
+          Instagram and LinkedIn posts to lift straight into your channels.
+        </p>
+      </div>
+
       <div className="flex items-center gap-4 mt-8">
         <Link
           href={`/dashboard/${city.slug}`}
