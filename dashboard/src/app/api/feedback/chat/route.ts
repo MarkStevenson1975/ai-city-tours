@@ -6,7 +6,7 @@
 // the tour drafting routes).
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { enforceAiLimit } from '@/lib/ai-rate-limit';
+import { enforceAiLimit, AI_UNAVAILABLE_MESSAGE } from '@/lib/ai-rate-limit';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -105,17 +105,15 @@ export async function POST(req: NextRequest) {
 
     if (!r.ok) {
       const detail = await r.text().catch(() => '');
-      return NextResponse.json(
-        { error: `Feedback chat failed: ${r.status} ${detail.slice(0, 200)}` },
-        { status: 502 }
-      );
+      console.error('feedback/chat AI failure:', r.status, detail.slice(0, 300));
+      return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
     }
 
     const j = await r.json();
     const reply: string = (j?.content?.[0]?.text ?? '').trim();
     return NextResponse.json({ reply });
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'chat failed';
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error('feedback/chat error:', e);
+    return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
   }
 }

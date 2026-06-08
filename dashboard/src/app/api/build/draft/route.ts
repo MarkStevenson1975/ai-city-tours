@@ -6,7 +6,7 @@
 // tour app). Add it to this Vercel project.
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { enforceAiLimit } from '@/lib/ai-rate-limit';
+import { enforceAiLimit, AI_UNAVAILABLE_MESSAGE } from '@/lib/ai-rate-limit';
 
 const BANNED = [
   'nestled', 'bustling', 'hidden gem', 'rich history', 'boasts',
@@ -80,10 +80,8 @@ export async function POST(req: NextRequest) {
 
     if (!r.ok) {
       const detail = await r.text().catch(() => '');
-      return NextResponse.json(
-        { error: `AI draft failed: ${r.status} ${detail.slice(0, 200)}` },
-        { status: 502 }
-      );
+      console.error('build/draft AI failure:', r.status, detail.slice(0, 300));
+      return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
     }
 
     const j = await r.json();
@@ -93,7 +91,8 @@ export async function POST(req: NextRequest) {
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}');
     if (start === -1 || end === -1) {
-      return NextResponse.json({ error: 'AI returned an unexpected format' }, { status: 502 });
+      console.error('build/draft: unexpected AI format');
+      return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
     }
     const parsed = JSON.parse(text.slice(start, end + 1));
 
@@ -105,7 +104,7 @@ export async function POST(req: NextRequest) {
         : [],
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'draft failed';
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error('build/draft error:', e);
+    return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
   }
 }

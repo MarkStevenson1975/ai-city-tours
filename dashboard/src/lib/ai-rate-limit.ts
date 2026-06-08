@@ -8,6 +8,13 @@
 // enforces the real cap.
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// Shown to the operator when the AI service itself is unavailable (upstream
+// outage, timeout, bad response). Calm, on-brand, and reassures them their work
+// is safe and the rest of the dashboard still works. The technical detail is
+// logged server-side, never shown here.
+export const AI_UNAVAILABLE_MESSAGE =
+  'Our AI assistant is having a quiet moment and could not finish that just now. Everything else in your dashboard works as normal, and you can keep writing and editing by hand. Please try again in a few minutes.';
+
 // Calm, on-brand wording. No em dashes. They can always keep working by hand.
 const MESSAGES: Record<string, string> = {
   day: 'You have reached today’s writing limit. You can carry on editing and shaping everything by hand, and your AI drafting will be ready again tomorrow.',

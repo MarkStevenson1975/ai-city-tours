@@ -128,7 +128,13 @@ export async function POST(req: NextRequest) {
       facts: draft?.facts ?? [],
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'lookup failed';
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error('build/lookup error:', e);
+    return NextResponse.json(
+      {
+        error:
+          'We could not look that place up just now. Please try again in a moment, or add the stop details by hand.',
+      },
+      { status: 502 }
+    );
   }
 }

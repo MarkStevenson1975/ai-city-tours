@@ -915,8 +915,16 @@ async function loadConfig() {
   // within ~60 seconds (the API's edge cache TTL).
   try {
     const apiRes = await fetch('/api/config/' + citySlug);
-    if (apiRes.ok) {
-      CONFIG = await apiRes.json();
+    let data = null;
+    try { data = await apiRes.json(); } catch (_) {}
+    // Tour exists but is offline (unpublished), archived (deleted), or the slug
+    // is unknown — show a branded holding screen rather than a 404 or error.
+    if (data && data.unavailable) {
+      showHolding(data);
+      return;
+    }
+    if (apiRes.ok && data) {
+      CONFIG = data;
       init();
       return;
     }
@@ -936,6 +944,19 @@ async function loadConfig() {
     console.error('Config load failed:', e);
     showLoadError(e);
   }
+}
+function showHolding(data) {
+  const reason = (data && data.reason) || 'offline';
+  const name = (data && data.name) ? String(data.name).replace(/[<>]/g, '') : '';
+  let heading, body;
+  if (reason === 'notfound') {
+    heading = 'Tour not found';
+    body = 'We couldn\'t find a tour at this link. Please double-check the web address or QR code.';
+  } else {
+    heading = name ? (name + ' is not available right now') : 'This tour is not available right now';
+    body = 'This tour is currently offline. It may be getting an update or a refresh. Please check back again soon.';
+  }
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;font-family:Lato,sans-serif;color:#F5F0E8;background:#1B4332"><div style="max-width:380px"><p style="font-family:Cormorant Garamond,serif;font-size:1.9rem;line-height:1;margin-bottom:28px"><span style="color:#F5F0E8;font-weight:600">Storie</span><span style="color:#C9A84C;font-weight:600">D</span></p><h1 style="font-family:Cormorant Garamond,serif;font-size:1.9rem;font-weight:600;margin-bottom:16px">' + heading + '</h1><p style="opacity:.85;line-height:1.6">' + body + '</p></div></div>';
 }
 function showLoadError(e) {
   const msg = (e && e.message) || 'Unknown error';
@@ -1221,7 +1242,7 @@ function showAudioBar(label,demo){document.getElementById('audio-label').textCon
 function hideAudioBar(){document.getElementById('audio-player-bar').classList.remove('visible');document.getElementById('audio-progress-fill').style.width='0%';}
 function toggleAudioPlayPause(){if(!state.currentAudio)return;if(state.currentAudio.paused){state.currentAudio.play();document.getElementById('audio-play-pause-btn').textContent='⏸';}else{state.currentAudio.pause();document.getElementById('audio-play-pause-btn').textContent='▶';}}
 function stopAudio(){if(state.currentAudio){try{state.currentAudio.pause();}catch(e){}state.currentAudio=null;}hideAudioBar();}
-async function streamClaude(prompt,onChunk,onDone){const guideName=CONFIG.guideName||'Harriet';try{const citySlug=CONFIG.citySlug||'hereford';const res=await fetch(`/api/chat/${citySlug}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});if(!res.ok)throw new Error('Chat proxy '+res.status);const reader=res.body.getReader();const decoder=new TextDecoder();let full='';while(true){const{value,done}=await reader.read();if(done)break;const lines=decoder.decode(value).split('\n');for(const line of lines){if(!line.startsWith('data: '))continue;try{const d=JSON.parse(line.slice(6));if(d.type==='content_block_delta'){const chunk=d.delta.text||'';full+=chunk;onChunk(chunk);}}catch{}}}onDone(full);}catch(e){console.warn('Chat proxy failed:',e);const demo=`${guideName} here. I'm afraid my live connection isn't responding at the moment. Once it's back, I can tell you everything about where you're standing - the history, the architecture, the hidden stories. For now, do take a moment to simply look around. History doesn't always need narrating.`;let i=0;const iv=setInterval(()=>{if(i>=demo.length){clearInterval(iv);onDone(demo);return;}onChunk(demo[i]);i++;},15);}}
+async function streamClaude(prompt,onChunk,onDone){const guideName=CONFIG.guideName||'Harriet';try{const citySlug=CONFIG.citySlug||'hereford';const res=await fetch(`/api/chat/${citySlug}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});if(!res.ok)throw new Error('Chat proxy '+res.status);const reader=res.body.getReader();const decoder=new TextDecoder();let full='';while(true){const{value,done}=await reader.read();if(done)break;const lines=decoder.decode(value).split('\n');for(const line of lines){if(!line.startsWith('data: '))continue;try{const d=JSON.parse(line.slice(6));if(d.type==='content_block_delta'){const chunk=d.delta.text||'';full+=chunk;onChunk(chunk);}}catch{}}}onDone(full);}catch(e){console.warn('Chat proxy failed:',e);const demo=`${guideName} here. My connection has gone quiet for a moment, so I cannot bring you that just now. Do try again shortly. In the meantime, take a look around you. Some of the best stories are the ones you notice for yourself.`;let i=0;const iv=setInterval(()=>{if(i>=demo.length){clearInterval(iv);onDone(demo);return;}onChunk(demo[i]);i++;},15);}}
 function openTellMeMore(){const stop=CONFIG.stops[state.currentStopIndex];const guideName=CONFIG.guideName||'Harriet';if(state.harrietCallCount>=10){document.getElementById('tmm-modal-title').textContent=`${guideName} — session limit reached`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='none';const el=document.getElementById('tmm-response');el.classList.remove('hidden');el.innerHTML=`<p>You've had a wonderfully curious session — ${guideName} has answered ten questions for you today, which is her limit per visit. She'll be just as happy to chat on your next tour. In the meantime, keep exploring — there's always more to discover.</p>`;document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');return;}state.harrietCallCount++;state.tmmStopId=stop.id;state.tmmFullText='';document.getElementById('tmm-modal-title').textContent=`${guideName} on ${stop.name}`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');const prompt=`You are ${guideName}, a warm, knowledgeable, and quietly witty British walking guide. The visitor is currently standing at ${stop.name} in ${CONFIG.city}.\n\nTell them about this specific location, drawing only on established, reliable sources: encyclopaedic history, official heritage records, well-documented cultural and architectural accounts. Focus on:\n- Historic context: who built what, when, and why\n- Notable people connected to this place\n- Architectural details worth looking up at\n- Geographic and demographic context that helps the visitor understand the area\n- Stories or anecdotes from credible historical sources\n\nKeep the tone warm, positive, and factual. Avoid current news, contemporary politics, controversies, or anything with negative or contested framing. If you don't know something with confidence from reliable sources, say so plainly rather than speculate.\n\nWrite 3 to 4 engaging paragraphs in a conversational tone, as though speaking directly to the visitor. Include at least one genuinely surprising fact. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
 function hearTellMeMore(){if(state.tmmFullText){playHarriet(state.tmmFullText,'Tell Me More');closeModal('tellmore');}}
 function findSomethingCustom(){const inp=document.getElementById('fs-custom-input');const query=inp?inp.value.trim():'';if(!query)return;findSomething(query,null);}
@@ -1272,7 +1293,7 @@ async function findSomething(query,chipEl){
   }catch(e){
     console.warn('findnearby failed:',e);
     document.getElementById('fs-typing').classList.add('hidden');
-    showFsMessage(`I'm having trouble looking around right now. Try again in a moment.`);
+    showFsMessage(`I cannot look around just now. Please try again in a moment. Everything on your tour is still here for you.`);
   }
 }
 function showFsMessage(text){
