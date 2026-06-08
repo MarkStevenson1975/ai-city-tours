@@ -5,6 +5,59 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
+ * Take a published tour offline. Keeps the tour and its draft; the public page
+ * shows a holding message instead of the tour. Re-publish to bring it back.
+ */
+export async function unpublishCity(cityId: string, citySlug: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not signed in' };
+
+  const { error } = await supabase
+    .from('cities')
+    .update({
+      published_config: null,
+      published_at: null,
+      unpublished_at: new Date().toISOString(),
+    })
+    .eq('id', cityId);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath('/dashboard');
+  return { ok: true as const };
+}
+
+/**
+ * Archive (soft-delete) a tour. It is hidden from the operator's dashboard and
+ * taken offline, but the record is retained (deleted_at) for 7 years before any
+ * purge. Not a hard delete.
+ */
+export async function deleteCity(cityId: string, citySlug: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not signed in' };
+
+  const { error } = await supabase
+    .from('cities')
+    .update({
+      deleted_at: new Date().toISOString(),
+      published_config: null,
+      published_at: null,
+      unpublished_at: new Date().toISOString(),
+    })
+    .eq('id', cityId);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath('/dashboard');
+  return { ok: true as const };
+}
+
+/**
  * Reorder a city's stops. orderedStopIds is the full list of stop ids in the
  * desired order; positions are reassigned 1..N. The caller's access is
  * verified via an RLS-scoped read before the trusted reorder runs.
