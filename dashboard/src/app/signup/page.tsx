@@ -66,13 +66,20 @@ export default function SignupPage() {
     return (
       <main className="min-h-screen flex items-center justify-center p-6 bg-primary text-cream">
         <div className="w-full max-w-md bg-cream text-gray-900 rounded-2xl shadow-2xl p-10 text-center">
-          <p className="text-xs uppercase tracking-widest text-accent font-bold mb-3">
-            StorieD
+          <p className="mb-4 font-display text-3xl leading-none">
+            <span className="text-primary font-semibold">Storie</span>
+            <span className="text-accent font-semibold">D</span>
           </p>
           <h1 className="text-3xl font-semibold mb-3">Check your email</h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 mb-4">
             We have sent you a link to confirm your account. Click it and you
             will drop straight into building your first tour.
+          </p>
+          <p className="text-sm text-gray-600">
+            The email comes from{' '}
+            <span className="font-bold">team@thesetupcrew.co.uk</span>. If it is
+            not in your inbox within a few minutes, please check your spam or
+            junk folder.
           </p>
         </div>
       </main>
@@ -82,8 +89,9 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-6 bg-primary text-cream">
       <div className="w-full max-w-md bg-cream text-gray-900 rounded-2xl shadow-2xl p-10">
-        <p className="text-xs uppercase tracking-widest text-accent font-bold mb-3">
-          StorieD
+        <p className="mb-4 font-serif text-3xl leading-none">
+          <span className="text-primary font-semibold">Storie</span>
+          <span className="text-accent font-semibold">D</span>
         </p>
         <h1 className="text-4xl font-semibold mb-2">Build your tour</h1>
         <p className="text-sm text-gray-600 mb-8">
