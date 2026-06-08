@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { enforceAiLimit } from '@/lib/ai-rate-limit';
 
 export type DraftStop = {
   name: string;
@@ -175,9 +176,14 @@ export async function saveDraftStops(citySlug: string, stops: DraftStop[]) {
   if (saved === 0) return { ok: false as const, error: 'Could not save the stops' };
 
   // Pre-populate ~20 standalone town facts, deduped against the stop facts.
+  // Skip silently if the operator is over their AI limit; stops are already
+  // saved, and the facts are a nice-to-have they can generate later.
   try {
-    const existingFacts = stops.flatMap((s) => s.facts ?? []);
-    await generateTownFacts(admin, city.id, city.name ?? citySlug, existingFacts, process.env.CLAUDE_API_KEY);
+    const factsLimit = await enforceAiLimit(supabase, 'build_town_facts');
+    if (factsLimit.ok) {
+      const existingFacts = stops.flatMap((s) => s.facts ?? []);
+      await generateTownFacts(admin, city.id, city.name ?? citySlug, existingFacts, process.env.CLAUDE_API_KEY);
+    }
   } catch { /* non-blocking */ }
 
   await admin

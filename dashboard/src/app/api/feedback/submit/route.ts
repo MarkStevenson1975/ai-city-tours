@@ -6,6 +6,7 @@
 // (both server only). Returns { ok: true }.
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { enforceAiLimit } from '@/lib/ai-rate-limit';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -79,11 +80,12 @@ export async function POST(req: NextRequest) {
     .map((m) => `${m.role === 'user' ? 'Operator' : 'Assistant'}: ${m.content.trim()}`)
     .join('\n');
 
-  // Compile a tidy summary. If the AI step fails, we still send the raw
-  // transcript so feedback is never lost.
+  // Compile a tidy summary. If the AI step fails or the operator is over their
+  // AI limit, we still send the raw transcript so feedback is never lost.
   let summary: Record<string, string> | null = null;
   const apiKey = process.env.CLAUDE_API_KEY;
-  if (apiKey) {
+  const aiLimit = await enforceAiLimit(supabase, 'feedback_summary');
+  if (apiKey && aiLimit.ok) {
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',

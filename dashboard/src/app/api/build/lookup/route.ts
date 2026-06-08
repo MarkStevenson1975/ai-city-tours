@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { enforceAiLimit } from '@/lib/ai-rate-limit';
 
 const BANNED = [
   'nestled', 'bustling', 'hidden gem', 'rich history', 'boasts',
@@ -57,6 +58,9 @@ export async function POST(req: NextRequest) {
   const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
   const claudeKey = process.env.CLAUDE_API_KEY;
   if (!mapsKey) return NextResponse.json({ error: 'Place lookup is not configured.' }, { status: 503 });
+
+  const limit = await enforceAiLimit(supabase, 'build_lookup');
+  if (!limit.ok) return NextResponse.json({ error: limit.message }, { status: limit.status });
 
   const body = await req.json().catch(() => ({}));
   let query = String(body.query ?? '').trim();

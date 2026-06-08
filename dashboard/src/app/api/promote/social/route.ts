@@ -5,6 +5,7 @@
 // only, same key as the tour builder). Returns { facebook, instagram, linkedin }.
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { enforceAiLimit } from '@/lib/ai-rate-limit';
 
 const TOUR_BASE = process.env.PUBLIC_TOUR_URL ?? 'https://storied-tours.vercel.app';
 
@@ -60,6 +61,11 @@ export async function POST(req: NextRequest) {
       { error: 'Social drafting is not configured (CLAUDE_API_KEY).' },
       { status: 503 }
     );
+  }
+
+  const limit = await enforceAiLimit(supabase, 'promote_social');
+  if (!limit.ok) {
+    return NextResponse.json({ error: limit.message }, { status: limit.status });
   }
 
   const body = await req.json().catch(() => ({}));
