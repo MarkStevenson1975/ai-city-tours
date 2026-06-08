@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { SidebarPreview } from './sidebar-preview';
+import { FeedbackWidget } from './feedback-widget';
 
 export default async function DashboardLayout({
   children,
@@ -87,6 +88,8 @@ export default async function DashboardLayout({
       </aside>
 
       <main className="flex-1 p-10 overflow-y-auto">{children}</main>
+
+      <FeedbackWidget />
     </div>
   );
 }
