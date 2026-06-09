@@ -161,14 +161,14 @@ export default async function CityOverview({
               {stopLimit === null ? ', unlimited stops' : `, up to ${stopLimit} stops each`}).
             </p>
             <div className="flex items-center gap-4">
+              <PauseButton />
+              <ManageBillingButton citySlug={citySlug} />
               {nextTier(planTier) && (
                 <UpgradeButton
                   tier={nextTier(planTier) as string}
                   label={`Upgrade to ${PLAN_LABEL[nextTier(planTier) as Tier]}`}
                 />
               )}
-              <PauseButton />
-              <ManageBillingButton citySlug={citySlug} />
             </div>
           </div>
         ) : paused ? (
