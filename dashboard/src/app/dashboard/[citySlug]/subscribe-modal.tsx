@@ -1,9 +1,11 @@
 'use client';
 
-// The conversion moment: a prominent "See it live" button that opens a modal
-// over the dashboard. The operator picks a plan and billing period, then
-// confirms with a single button before going to checkout (so a stray tap never
-// sends them straight to payment).
+// The conversion moment: a plan-picker modal that goes to Stripe checkout.
+// Reused in two places: the "See it live" banner button, and the publish gate
+// (when an operator without an active or trial subscription tries to publish).
+// The operator picks a plan and billing period, then confirms with a single
+// button before going to checkout (so a stray tap never sends them straight to
+// payment).
 import { useState } from 'react';
 
 type Tier = 'trail' | 'town' | 'destination';
@@ -15,14 +17,23 @@ const PLANS: { tier: Tier; name: string; monthly: number; annual: number; blurb:
   { tier: 'destination', name: 'Destination', monthly: 199, annual: 1990, blurb: 'Unlimited tours and stops' },
 ];
 
-export function SeeItLiveButton({
+// The reusable plan-picker + checkout modal. Pass `ctaLabel` to change the
+// final button text (defaults to the free-trial copy).
+export function SubscribeModal({
   citySlug,
-  totalStops,
+  open,
+  onClose,
+  title = 'See your tour go live',
+  intro = 'Choose a plan and billing period, then continue to start your 7-day free trial. Cancel any time in the first week at no charge.',
+  ctaLabel,
 }: {
   citySlug: string;
-  totalStops: number;
+  open: boolean;
+  onClose: () => void;
+  title?: string;
+  intro?: string;
+  ctaLabel?: string;
 }) {
-  const [open, setOpen] = useState(false);
   const [interval, setInterval] = useState<Interval>('monthly');
   const [selectedTier, setSelectedTier] = useState<Tier>('town');
   const [loading, setLoading] = useState(false);
@@ -48,6 +59,114 @@ export function SeeItLiveButton({
     }
   }
 
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={() => !loading && onClose()}
+    >
+      <div
+        className="bg-white rounded-2xl p-7 max-w-md w-full text-center shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="inline-flex w-12 h-12 rounded-full bg-green-100 text-green-800 items-center justify-center mb-3 text-2xl">
+          ★
+        </span>
+        <h2 className="text-2xl font-semibold mb-2">{title}</h2>
+        <p className="text-sm text-gray-600 mb-5">{intro}</p>
+
+        <div className="inline-flex rounded-full border border-gray-200 p-1 mb-5 text-sm">
+          <button
+            type="button"
+            onClick={() => setInterval('monthly')}
+            className={`px-4 py-1.5 rounded-full font-bold transition ${
+              interval === 'monthly' ? 'bg-primary text-cream' : 'text-gray-600'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => setInterval('annual')}
+            className={`px-4 py-1.5 rounded-full font-bold transition ${
+              interval === 'annual' ? 'bg-primary text-cream' : 'text-gray-600'
+            }`}
+          >
+            Annual · 2 months free
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mb-5">
+          {PLANS.map((p) => {
+            const isSelected = selectedTier === p.tier;
+            return (
+              <button
+                key={p.tier}
+                type="button"
+                onClick={() => setSelectedTier(p.tier)}
+                className={`relative rounded-xl p-3 text-left transition ${
+                  isSelected
+                    ? 'border-2 border-primary bg-cream'
+                    : 'border border-gray-200 hover:bg-cream/50'
+                }`}
+              >
+                {p.featured && (
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-wider bg-primary text-cream px-2 py-0.5 rounded-full">
+                    Popular
+                  </span>
+                )}
+                <span className="block font-bold text-sm">{p.name}</span>
+                <span className="block text-lg font-semibold">
+                  £{interval === 'monthly' ? p.monthly : p.annual}
+                  <span className="text-[11px] font-normal text-gray-500">
+                    /{interval === 'monthly' ? 'mo' : 'yr'}
+                  </span>
+                </span>
+                <span className="block text-[11px] text-gray-500">{p.blurb}</span>
+                {isSelected && (
+                  <span className="block text-[11px] font-bold text-primary mt-2">✓ Selected</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {error && <p className="text-red-700 text-sm mb-3">{error}</p>}
+
+        <button
+          type="button"
+          onClick={startCheckout}
+          disabled={loading}
+          className="w-full py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 mb-3"
+        >
+          {loading
+            ? 'Taking you to checkout…'
+            : (ctaLabel ?? `Start 7-day free trial on ${selectedPlan.name}`)}
+        </button>
+
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={loading}
+          className="text-sm text-gray-500 hover:text-gray-800"
+        >
+          Keep editing
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function SeeItLiveButton({
+  citySlug,
+  totalStops,
+}: {
+  citySlug: string;
+  totalStops: number;
+}) {
+  const [open, setOpen] = useState(false);
+
   return (
     <>
       <div className="bg-white rounded-xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -67,104 +186,7 @@ export function SeeItLiveButton({
         </button>
       </div>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-          onClick={() => !loading && setOpen(false)}
-        >
-          <div
-            className="bg-white rounded-2xl p-7 max-w-md w-full text-center shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="inline-flex w-12 h-12 rounded-full bg-green-100 text-green-800 items-center justify-center mb-3 text-2xl">
-              ★
-            </span>
-            <h2 className="text-2xl font-semibold mb-2">See your tour go live</h2>
-            <p className="text-sm text-gray-600 mb-5">
-              Choose a plan and billing period, then continue to start your 7-day
-              free trial. Cancel any time in the first week at no charge.
-            </p>
-
-            <div className="inline-flex rounded-full border border-gray-200 p-1 mb-5 text-sm">
-              <button
-                type="button"
-                onClick={() => setInterval('monthly')}
-                className={`px-4 py-1.5 rounded-full font-bold transition ${
-                  interval === 'monthly' ? 'bg-primary text-cream' : 'text-gray-600'
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                onClick={() => setInterval('annual')}
-                className={`px-4 py-1.5 rounded-full font-bold transition ${
-                  interval === 'annual' ? 'bg-primary text-cream' : 'text-gray-600'
-                }`}
-              >
-                Annual · 2 months free
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 mb-5">
-              {PLANS.map((p) => {
-                const isSelected = selectedTier === p.tier;
-                return (
-                  <button
-                    key={p.tier}
-                    type="button"
-                    onClick={() => setSelectedTier(p.tier)}
-                    className={`relative rounded-xl p-3 text-left transition ${
-                      isSelected
-                        ? 'border-2 border-primary bg-cream'
-                        : 'border border-gray-200 hover:bg-cream/50'
-                    }`}
-                  >
-                    {p.featured && (
-                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-wider bg-primary text-cream px-2 py-0.5 rounded-full">
-                        Popular
-                      </span>
-                    )}
-                    <span className="block font-bold text-sm">{p.name}</span>
-                    <span className="block text-lg font-semibold">
-                      £{interval === 'monthly' ? p.monthly : p.annual}
-                      <span className="text-[11px] font-normal text-gray-500">
-                        /{interval === 'monthly' ? 'mo' : 'yr'}
-                      </span>
-                    </span>
-                    <span className="block text-[11px] text-gray-500">{p.blurb}</span>
-                    {isSelected && (
-                      <span className="block text-[11px] font-bold text-primary mt-2">✓ Selected</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {error && <p className="text-red-700 text-sm mb-3">{error}</p>}
-
-            <button
-              type="button"
-              onClick={startCheckout}
-              disabled={loading}
-              className="w-full py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 mb-3"
-            >
-              {loading
-                ? 'Taking you to checkout…'
-                : `Start 7-day free trial on ${selectedPlan.name}`}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              disabled={loading}
-              className="text-sm text-gray-500 hover:text-gray-800"
-            >
-              Keep editing
-            </button>
-          </div>
-        </div>
-      )}
+      <SubscribeModal citySlug={citySlug} open={open} onClose={() => setOpen(false)} />
     </>
   );
 }

@@ -100,6 +100,25 @@ export async function reorderStops(citySlug: string, orderedStopIds: string[]) {
  */
 export async function publishCity(cityId: string, citySlug: string, notes?: string) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not signed in' };
+
+  // Pay-to-publish gate: an operator can only publish on an active or trial
+  // subscription. Admins are exempt so platform-managed tours still publish.
+  const { data: gateProfile } = await supabase
+    .from('user_profiles')
+    .select('role, subscription_status')
+    .eq('id', user.id)
+    .single();
+  const isAdmin = gateProfile?.role === 'admin';
+  const subscribed =
+    gateProfile?.subscription_status === 'active' ||
+    gateProfile?.subscription_status === 'trialing';
+  if (!isAdmin && !subscribed) {
+    return { ok: false as const, error: 'subscription_required' };
+  }
 
   const { data, error } = await supabase.rpc('publish_city', {
     p_city_id: cityId,

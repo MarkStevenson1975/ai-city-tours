@@ -122,6 +122,7 @@ export default async function CityOverview({
             publishedAt={publishedAt}
             hasUnpublishedChanges={Boolean(hasUnpublishedChanges)}
             paused={paused}
+            canPublish={subscribed || isAdmin}
           />
         </div>
       </header>
@@ -293,6 +294,7 @@ function PublishStatus({
   publishedAt,
   hasUnpublishedChanges,
   paused,
+  canPublish,
 }: {
   cityId: string;
   citySlug: string;
@@ -300,6 +302,7 @@ function PublishStatus({
   publishedAt: Date | null;
   hasUnpublishedChanges: boolean;
   paused?: boolean;
+  canPublish: boolean;
 }) {
   // While paused, publishing is blocked so tours stay offline until the
   // operator resumes and republishes.
@@ -321,6 +324,7 @@ function PublishStatus({
         cityId={cityId}
         citySlug={citySlug}
         hasChanges={hasUnpublishedChanges}
+        canPublish={canPublish}
       />
       <p className="text-xs text-gray-500 mt-2">
         {publishedVersion > 0 ? `Published v${publishedVersion}` : 'Never published'}

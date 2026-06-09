@@ -3,25 +3,34 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { publishCity } from './actions';
+import { SubscribeModal } from './subscribe-modal';
 
 export function PublishButton({
   cityId,
   citySlug,
   hasChanges,
+  canPublish,
 }: {
   cityId: string;
   citySlug: string;
   hasChanges: boolean;
+  canPublish: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
   const [notes, setNotes] = useState('');
   const [result, setResult] = useState<
     { ok: true; version: number } | { ok: false; error: string } | null
   >(null);
 
   function startPublish() {
+    // No active or trial subscription: send them to start one before publishing.
+    if (!canPublish) {
+      setSubscribeOpen(true);
+      return;
+    }
     setConfirming(true);
     setResult(null);
   }
@@ -97,6 +106,14 @@ export function PublishButton({
           Published version {result.version} · live now
         </p>
       )}
+      <SubscribeModal
+        citySlug={citySlug}
+        open={subscribeOpen}
+        onClose={() => setSubscribeOpen(false)}
+        title="Review your tour live"
+        intro="To publish and walk your tour for real, start your 7-day free trial. Pick a plan, then continue. Cancel any time in the first week at no charge."
+        ctaLabel="Review my tour →"
+      />
     </>
   );
 }
