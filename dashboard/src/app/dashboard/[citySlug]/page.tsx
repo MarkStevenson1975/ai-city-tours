@@ -167,7 +167,7 @@ export default async function CityOverview({
                   label={`Upgrade to ${PLAN_LABEL[nextTier(planTier) as Tier]}`}
                 />
               )}
-              {profile?.subscription_status === 'active' && <PauseButton />}
+              <PauseButton />
               <ManageBillingButton citySlug={citySlug} />
             </div>
           </div>

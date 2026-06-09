@@ -48,9 +48,13 @@ export async function POST(req: NextRequest) {
   }
 
   const alreadyPaused = profile?.subscription_status === 'paused';
-  if (!alreadyPaused && profile?.subscription_status !== 'active') {
+  const canPause =
+    alreadyPaused ||
+    profile?.subscription_status === 'active' ||
+    profile?.subscription_status === 'trialing';
+  if (!canPause) {
     return NextResponse.json(
-      { error: 'You can pause once your subscription is active (after the free trial).' },
+      { error: 'You need an active subscription to pause.' },
       { status: 400 }
     );
   }
