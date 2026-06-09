@@ -8,6 +8,7 @@ import { ManageBillingButton, UpgradeButton } from './go-live-panel';
 import { SeeItLiveButton } from './subscribe-modal';
 import { PLAN_STOP_LIMIT, PLAN_TOUR_LIMIT, PLAN_LABEL, nextTier, type Tier } from '@/lib/plans';
 import { TourActions } from './tour-actions';
+import { PauseButton, PausedPanel } from './pause-controls';
 
 export default async function CityOverview({
   params,
@@ -28,12 +29,13 @@ export default async function CityOverview({
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, plan_tier, subscription_status')
+    .select('role, plan_tier, subscription_status, pause_resume_at')
     .single();
 
   const isAdmin = profile?.role === 'admin';
   const subscribed =
     profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing';
+  const paused = profile?.subscription_status === 'paused';
 
   const [{ data: stops }, sponsorCount, factCount, eventCount, visitorCount] =
     await Promise.all([
@@ -119,6 +121,7 @@ export default async function CityOverview({
             publishedVersion={city.published_version || 0}
             publishedAt={publishedAt}
             hasUnpublishedChanges={Boolean(hasUnpublishedChanges)}
+            paused={paused}
           />
         </div>
       </header>
@@ -164,9 +167,12 @@ export default async function CityOverview({
                   label={`Upgrade to ${PLAN_LABEL[nextTier(planTier) as Tier]}`}
                 />
               )}
+              {profile?.subscription_status === 'active' && <PauseButton />}
               <ManageBillingButton citySlug={citySlug} />
             </div>
           </div>
+        ) : paused ? (
+          <PausedPanel resumeAt={profile?.pause_resume_at ?? null} />
         ) : (
           <SeeItLiveButton citySlug={citySlug} totalStops={stops?.length ?? 0} />
         )}
@@ -286,13 +292,29 @@ function PublishStatus({
   publishedVersion,
   publishedAt,
   hasUnpublishedChanges,
+  paused,
 }: {
   cityId: string;
   citySlug: string;
   publishedVersion: number;
   publishedAt: Date | null;
   hasUnpublishedChanges: boolean;
+  paused?: boolean;
 }) {
+  // While paused, publishing is blocked so tours stay offline until the
+  // operator resumes and republishes.
+  if (paused) {
+    return (
+      <div className="text-right flex-shrink-0 min-w-[200px]">
+        <span className="inline-block text-sm font-bold text-amber-800 bg-amber-100 px-4 py-2 rounded-full">
+          Paused — resume to publish
+        </span>
+        <p className="text-xs text-gray-500 mt-2">
+          {publishedVersion > 0 ? `Published v${publishedVersion}` : 'Never published'}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="text-right flex-shrink-0 min-w-[200px]">
       <PublishButton

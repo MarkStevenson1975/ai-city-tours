@@ -953,8 +953,8 @@ function showHolding(data) {
     heading = 'Tour not found';
     body = 'We couldn\'t find a tour at this link. Please double-check the web address or QR code.';
   } else {
-    heading = name ? (name + ' is not available right now') : 'This tour is not available right now';
-    body = 'This tour is currently offline. It may be getting an update or a refresh. Please check back again soon.';
+    heading = name ? (name + ' is taking a break') : 'This tour is taking a break';
+    body = 'We are having a short break right now. Please check back again soon.';
   }
   document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;font-family:Lato,sans-serif;color:#F5F0E8;background:#1B4332"><div style="max-width:380px"><p style="font-family:Cormorant Garamond,serif;font-size:1.9rem;line-height:1;margin-bottom:28px"><span style="color:#F5F0E8;font-weight:600">Storie</span><span style="color:#C9A84C;font-weight:600">D</span></p><h1 style="font-family:Cormorant Garamond,serif;font-size:1.9rem;font-weight:600;margin-bottom:16px">' + heading + '</h1><p style="opacity:.85;line-height:1.6">' + body + '</p></div></div>';
 }

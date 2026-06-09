@@ -68,16 +68,25 @@ export async function POST(req: NextRequest) {
         const priceId = priceIdFromSubscription(sub);
         const tier = priceId ? tierFromPriceId(priceId) : undefined;
 
+        // A paused subscription keeps Stripe status 'active' but carries a
+        // pause_collection. Treat that as our 'paused' state and mirror the
+        // restart date; clearing the pause returns it to its real status.
+        const paused = Boolean(sub.pause_collection);
         const status =
-          sub.status === 'active' ? 'active'
+          paused ? 'paused'
+          : sub.status === 'active' ? 'active'
           : sub.status === 'trialing' ? 'trialing'
           : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due'
           : sub.status === 'canceled' ? 'canceled'
           : sub.status;
 
+        const resumesAt = sub.pause_collection?.resumes_at;
         const update = {
           subscription_status: status,
           plan_tier: tier ?? undefined,
+          pause_resume_at: paused
+            ? (resumesAt ? new Date(resumesAt * 1000).toISOString() : undefined)
+            : null,
           subscription_current_period_end: sub.current_period_end
             ? new Date(sub.current_period_end * 1000).toISOString()
             : undefined,
