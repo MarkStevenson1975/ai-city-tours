@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const url =
       `${SUPABASE_URL}/rest/v1/cities` +
       `?slug=eq.${encodeURIComponent(city)}` +
-      `&select=published_config,published_version,published_at`;
+      `&select=name,published_config,published_version,published_at,deleted_at`;
 
     const r = await fetch(url, {
       headers: {
@@ -52,14 +52,26 @@ export default async function handler(req, res) {
 
     const rows = await r.json();
     if (!Array.isArray(rows) || rows.length === 0) {
-      return res.status(404).json({ error: 'City not found' });
+      // Unknown slug — let the tour page show a friendly "not found" holding
+      // screen rather than a raw 404.
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30');
+      return res
+        .status(404)
+        .json({ unavailable: true, reason: 'notfound' });
     }
 
     const row = rows[0];
-    if (!row.published_config) {
-      return res
-        .status(404)
-        .json({ error: 'City has no published config yet' });
+    // Archived (deleted) or unpublished tours have no published_config. Return a
+    // holding payload so the tour page shows a branded "not available" screen
+    // instead of a 404. Kept short-cached so re-publishing shows through quickly.
+    if (row.deleted_at || !row.published_config) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30');
+      return res.status(200).json({
+        unavailable: true,
+        reason: row.deleted_at ? 'archived' : 'offline',
+        name: row.name || null,
+      });
     }
 
     // Cache for 60s at the edge — busted on publish via cache-control

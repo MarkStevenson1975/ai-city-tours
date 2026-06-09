@@ -22,6 +22,7 @@ export default async function DashboardHome() {
     .select(
       'id, slug, name, operator_name, subscription_status, published_version, published_at'
     )
+    .is('deleted_at', null)
     .order('name');
 
   if (error) {
