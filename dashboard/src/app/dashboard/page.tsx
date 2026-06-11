@@ -39,7 +39,7 @@ export default async function DashboardHome() {
   return (
     <div>
       <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
-        Dashboard
+        {isAdmin ? 'Dashboard' : 'Mission Control'}
       </p>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-4xl font-semibold">Areas</h1>
