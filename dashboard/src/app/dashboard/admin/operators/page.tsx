@@ -3,11 +3,13 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { DeleteOperatorButton } from './delete-operator-button';
 
+type AssignedArea = { city_name: string; city_slug: string; archived: boolean };
+
 type OperatorProfile = {
   id: string;
   role: string;
   display_name: string | null;
-  city_assignments: { city_name: string; city_slug: string }[];
+  city_assignments: AssignedArea[];
 };
 
 export default async function AdminOperatorsPage() {
@@ -31,27 +33,61 @@ export default async function AdminOperatorsPage() {
     .in('role', ['operator', 'admin'])
     .order('role');
 
-  // Get city assignments for all these users
   const profileIds = (profiles ?? []).map((p) => p.id);
+
+  // An operator's areas come from two places:
+  //  1) city_operators — the admin-invite assignment table (legacy / admin flow)
+  //  2) cities.created_by — self-serve operators who built their own tour
+  // Self-serve sign-ups only populate (2), so we must union both or their tours
+  // never appear here.
   const { data: assignments } = await admin
     .from('city_operators')
-    .select('user_id, cities(name, slug)')
+    .select('user_id, cities(name, slug, deleted_at)')
     .in('user_id', profileIds);
+
+  const { data: ownedCities } = await admin
+    .from('cities')
+    .select('created_by, name, slug, deleted_at')
+    .in('created_by', profileIds);
 
   // Get emails from auth (paginated — up to 1000 users)
   const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const emailMap = new Map(authUsers.map((u) => [u.id, u.email ?? '']));
 
-  // Build combined operator list
+  // Build combined operator list, de-duplicating areas by slug.
   const operators: OperatorProfile[] = (profiles ?? []).map((p) => {
-    const cityAssignments = (assignments ?? [])
+    const bySlug = new Map<string, AssignedArea>();
+
+    (assignments ?? [])
       .filter((a) => a.user_id === p.id)
-      .map((a) => {
+      .forEach((a) => {
         const raw = a.cities;
-        const city = Array.isArray(raw) ? raw[0] : raw as { name: string; slug: string } | null;
-        return city ? { city_name: city.name, city_slug: city.slug } : null;
-      })
-      .filter(Boolean) as { city_name: string; city_slug: string }[];
+        const city = (Array.isArray(raw) ? raw[0] : raw) as
+          | { name: string; slug: string; deleted_at: string | null }
+          | null;
+        if (city) {
+          bySlug.set(city.slug, {
+            city_name: city.name,
+            city_slug: city.slug,
+            archived: Boolean(city.deleted_at),
+          });
+        }
+      });
+
+    (ownedCities ?? [])
+      .filter((c) => c.created_by === p.id)
+      .forEach((c) => {
+        bySlug.set(c.slug, {
+          city_name: c.name,
+          city_slug: c.slug,
+          archived: Boolean(c.deleted_at),
+        });
+      });
+
+    // Active areas first, then archived.
+    const cityAssignments = Array.from(bySlug.values()).sort(
+      (a, b) => Number(a.archived) - Number(b.archived) || a.city_name.localeCompare(b.city_name)
+    );
 
     return {
       id: p.id,
@@ -127,9 +163,15 @@ export default async function AdminOperatorsPage() {
                           {op.city_assignments.map((a) => (
                             <span
                               key={a.city_slug}
-                              className="inline-block bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+                              className={`inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                                a.archived
+                                  ? 'bg-gray-100 text-gray-400 line-through'
+                                  : 'bg-primary/10 text-primary'
+                              }`}
+                              title={a.archived ? 'Archived (deleted) tour' : undefined}
                             >
                               {a.city_name}
+                              {a.archived ? ' · archived' : ''}
                             </span>
                           ))}
                         </div>
