@@ -7,31 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { enforceAiLimit, AI_UNAVAILABLE_MESSAGE } from '@/lib/ai-rate-limit';
-
-const BANNED = [
-  'nestled', 'bustling', 'hidden gem', 'rich history', 'boasts',
-  'stands as a testament', 'in the heart of', 'whether you', 'no visit is complete',
-];
-
-function buildPrompt(name: string, area: string, guideName: string) {
-  return `You are ${guideName}, the warm, vivid walking-tour guide for StorieD.
-Write a tour stop for "${name}" in ${area}.
-
-Rules:
-- Second person, spoken aloud, as if standing in front of it.
-- Warm and human, never flowery or salesy.
-- British English.
-- Do NOT use em dashes anywhere. Use full stops or commas.
-- Do NOT use any of these words or phrases: ${BANNED.join(', ')}.
-- If you are unsure of a fact, keep it general rather than inventing specifics.
-
-Return ONLY valid JSON, no markdown, in exactly this shape:
-{
-  "shortDescription": "one sentence, under 30 words",
-  "narration": "180 to 320 words of spoken narration",
-  "facts": ["fact one", "fact two", "fact three"]
-}`;
-}
+import { generateNarration } from '@/lib/narration';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -63,48 +39,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing place name' }, { status: 400 });
   }
 
-  try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1200,
-        messages: [{ role: 'user', content: buildPrompt(name, area, guideName) }],
-      }),
-    });
-
-    if (!r.ok) {
-      const detail = await r.text().catch(() => '');
-      console.error('build/draft AI failure:', r.status, detail.slice(0, 300));
-      return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
-    }
-
-    const j = await r.json();
-    const text: string = j?.content?.[0]?.text ?? '';
-
-    // Pull the JSON object out of the response, tolerating any stray text.
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start === -1 || end === -1) {
-      console.error('build/draft: unexpected AI format');
-      return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
-    }
-    const parsed = JSON.parse(text.slice(start, end + 1));
-
-    return NextResponse.json({
-      shortDescription: String(parsed.shortDescription ?? '').trim(),
-      narration: String(parsed.narration ?? '').trim(),
-      facts: Array.isArray(parsed.facts)
-        ? parsed.facts.slice(0, 3).map((f: unknown) => String(f).trim())
-        : [],
-    });
-  } catch (e) {
-    console.error('build/draft error:', e);
+  const draft = await generateNarration(apiKey, name, area, guideName);
+  if (!draft) {
     return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
   }
+  return NextResponse.json(draft);
 }

@@ -8,46 +8,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { enforceAiLimit } from '@/lib/ai-rate-limit';
-
-const BANNED = [
-  'nestled', 'bustling', 'hidden gem', 'rich history', 'boasts',
-  'stands as a testament', 'in the heart of', 'whether you', 'no visit is complete',
-];
+import { generateNarration } from '@/lib/narration';
 
 function nameFromMapsUrl(u: string): string | null {
   const m = u.match(/\/place\/([^/@]+)/) || u.match(/\/search\/([^/@]+)/);
   if (m) {
     try { return decodeURIComponent(m[1].replace(/\+/g, ' ')).trim(); } catch { return m[1]; }
   }
-  return null;
-}
-
-async function draftStop(name: string, area: string, apiKey: string) {
-  const prompt = `You are Harriet, the warm, vivid walking-tour guide for StorieD.
-Write a tour stop for "${name}"${area ? ` in ${area}` : ''}.
-Rules: second person, spoken aloud as if standing in front of it; warm and human, never flowery; British English; no em dashes; do not use any of these words: ${BANNED.join(', ')}; if unsure of a fact, keep it general.
-Return ONLY valid JSON: {"shortDescription":"one sentence under 30 words","narration":"180 to 320 words","facts":["fact one","fact two","fact three"]}`;
+  // Fall back to a ?q= / &query= parameter (some resolved links use these).
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] }),
-    });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const text: string = j?.content?.[0]?.text ?? '';
-    const s = text.indexOf('{');
-    const e = text.lastIndexOf('}');
-    if (s === -1 || e === -1) return null;
-    const parsed = JSON.parse(text.slice(s, e + 1));
-    return {
-      shortDescription: String(parsed.shortDescription ?? '').trim(),
-      narration: String(parsed.narration ?? '').trim(),
-      facts: Array.isArray(parsed.facts) ? parsed.facts.slice(0, 5).map((f: unknown) => String(f).trim()) : [],
-    };
-  } catch {
-    return null;
-  }
+    const url = new URL(u);
+    const q = url.searchParams.get('q') || url.searchParams.get('query');
+    if (q && !/^[-\d.,]+$/.test(q)) return q.trim();
+  } catch { /* ignore */ }
+  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -69,9 +43,13 @@ export async function POST(req: NextRequest) {
   if (!query) return NextResponse.json({ error: 'Paste a Google Maps link or type the place name.' }, { status: 400 });
 
   // Resolve a short Google link to its full URL so we can read the place name.
-  if (/maps\.app\.goo\.gl|goo\.gl\/maps/.test(query)) {
+  // Covers maps.app.goo.gl, goo.gl/maps and the newer share.google links.
+  if (/maps\.app\.goo\.gl|goo\.gl\/maps|share\.google/.test(query)) {
     try {
-      const r = await fetch(query, { redirect: 'follow' });
+      const r = await fetch(query, {
+        redirect: 'follow',
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StorieD/1.0)' },
+      });
       if (r.url) query = r.url;
     } catch { /* ignore */ }
   }
@@ -115,7 +93,7 @@ export async function POST(req: NextRequest) {
       } catch { /* image is best-effort */ }
     }
 
-    const draft = claudeKey ? await draftStop(name, area, claudeKey) : null;
+    const draft = claudeKey ? await generateNarration(claudeKey, name, area, 'Harriet') : null;
 
     return NextResponse.json({
       name,
