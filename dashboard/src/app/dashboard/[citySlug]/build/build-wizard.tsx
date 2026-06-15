@@ -223,6 +223,16 @@ export function BuildWizard({
             {loading ? 'Finding…' : 'Find sites'}
           </button>
         </div>
+        <p className="text-sm text-gray-500 mt-3">
+          Prefer to add your stops yourself?{' '}
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/${citySlug}/stops/new`)}
+            className="font-bold text-primary hover:underline"
+          >
+            Add stops manually
+          </button>
+        </p>
       </div>
 
       {suggestions.length > 0 && (
@@ -283,10 +293,10 @@ export function BuildWizard({
           {!drafting && (
             <button
               type="button"
-              onClick={() => router.push(`/dashboard/${citySlug}`)}
+              onClick={() => router.push(`/dashboard/${citySlug}/stops/new`)}
               className="text-sm font-bold text-gray-500 hover:text-gray-800"
             >
-              Skip and build manually
+              Skip and add stops myself
             </button>
           )}
         </div>
