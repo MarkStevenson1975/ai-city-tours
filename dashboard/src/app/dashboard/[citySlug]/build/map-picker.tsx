@@ -222,14 +222,6 @@ export function MapPicker({
           )}
         </>
       )}
-
-      <div className="flex items-center gap-3 my-6">
-        <span className="h-px bg-gray-200 flex-1" />
-        <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">
-          or search by postcode
-        </span>
-        <span className="h-px bg-gray-200 flex-1" />
-      </div>
     </div>
   );
 }

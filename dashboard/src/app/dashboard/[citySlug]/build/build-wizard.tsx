@@ -40,6 +40,10 @@ export function BuildWizard({
   const [drafts, setDrafts] = useState<Drafted[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The map leads. Postcode search is hidden behind a toggle, but if there is
+  // no map key it has nothing to hide behind, so open it by default.
+  const hasMap = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+  const [showPostcode, setShowPostcode] = useState(!hasMap);
 
   async function findSites() {
     setLoading(true);
@@ -230,41 +234,17 @@ export function BuildWizard({
       <MapPicker area={defaultArea} onConfirm={addMapPicks} disabled={drafting} />
 
       <div>
-        <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
-          Search by postcode
-        </p>
-        <p className="text-sm text-gray-600 mb-2">
-          Enter a postcode near the centre of your tour and how far around it to look.
-        </p>
-        <div className="flex flex-wrap gap-2 items-center">
-          <input
-            value={postcode}
-            onChange={(e) => setPostcode(e.target.value)}
-            placeholder="e.g. WR14 4QA"
-            className="flex-1 min-w-[160px] px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-          <select
-            value={radiusMiles}
-            onChange={(e) => setRadiusMiles(Number(e.target.value))}
-            className="px-3 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-          >
-            {RADIUS_OPTIONS.map((m) => (
-              <option key={m} value={m}>
-                {m} mile{m === 1 ? '' : 's'}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={findSites}
-            disabled={loading || !postcode.trim()}
-            className="px-5 py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
-          >
-            {loading ? 'Finding…' : 'Find sites'}
-          </button>
-        </div>
-        <p className="text-sm text-gray-500 mt-3">
-          Prefer to add your stops yourself?{' '}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          {hasMap && (
+            <button
+              type="button"
+              onClick={() => setShowPostcode((v) => !v)}
+              className="font-bold text-primary hover:underline"
+            >
+              {showPostcode ? 'Hide postcode search' : 'Prefer to search by postcode?'}
+            </button>
+          )}
+          {hasMap && <span className="text-gray-300">·</span>}
           <button
             type="button"
             onClick={() => router.push(`/dashboard/${citySlug}/stops/new`)}
@@ -272,7 +252,45 @@ export function BuildWizard({
           >
             Add stops manually
           </button>
-        </p>
+        </div>
+
+        {showPostcode && (
+          <div className="mt-4">
+            <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
+              Search by postcode
+            </p>
+            <p className="text-sm text-gray-600 mb-2">
+              Enter a postcode near the centre of your tour and how far around it to look.
+            </p>
+            <div className="flex flex-wrap gap-2 items-center">
+              <input
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                placeholder="e.g. WR14 4QA"
+                className="flex-1 min-w-[160px] px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              <select
+                value={radiusMiles}
+                onChange={(e) => setRadiusMiles(Number(e.target.value))}
+                className="px-3 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
+              >
+                {RADIUS_OPTIONS.map((m) => (
+                  <option key={m} value={m}>
+                    {m} mile{m === 1 ? '' : 's'}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={findSites}
+                disabled={loading || !postcode.trim()}
+                className="px-5 py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
+              >
+                {loading ? 'Finding…' : 'Find sites'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {suggestions.length > 0 && (
