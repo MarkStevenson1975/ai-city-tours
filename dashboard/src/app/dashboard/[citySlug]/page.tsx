@@ -18,6 +18,11 @@ export default async function CityOverview({
   const { citySlug } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
   const { data: city } = await supabase
     .from('cities')
     .select('*')
@@ -27,9 +32,13 @@ export default async function CityOverview({
   // Archived (deleted) tours are not editable from the dashboard.
   if (city.deleted_at) redirect('/dashboard');
 
+  // Fetch THIS user's profile specifically. Admins can read all profiles under
+  // RLS, so without the id filter .single() would match multiple rows, return
+  // null, and wrongly treat the admin as a non-admin (gating publish).
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('role, plan_tier, subscription_status, pause_resume_at')
+    .eq('id', user.id)
     .single();
 
   const isAdmin = profile?.role === 'admin';
