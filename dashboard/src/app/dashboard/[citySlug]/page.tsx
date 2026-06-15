@@ -79,8 +79,9 @@ export default async function CityOverview({
     !publishedAt || (draftUpdated && draftUpdated > publishedAt);
 
   // Stop allowance for the current plan (Trail 10, Town 20, Destination null = unlimited).
+  // Admins are not a billing entity, so they have no stop limit.
   const planTier = ((profile?.plan_tier as string) ?? 'trail') as Tier;
-  const stopLimit = PLAN_STOP_LIMIT[planTier] ?? null;
+  const stopLimit = isAdmin ? null : (PLAN_STOP_LIMIT[planTier] ?? null);
   const stopCount = stops?.length ?? 0;
   const atStopLimit = stopLimit !== null && stopCount >= stopLimit;
 
@@ -151,6 +152,7 @@ export default async function CityOverview({
         />
       </div>
 
+      {!isAdmin && (
       <section className="mb-12">
         {subscribed ? (
           <div className="bg-white rounded-xl p-5 shadow-sm flex items-center justify-between gap-4 flex-wrap">
@@ -178,6 +180,7 @@ export default async function CityOverview({
           <SeeItLiveButton citySlug={citySlug} totalStops={stops?.length ?? 0} />
         )}
       </section>
+      )}
 
       {isAdmin && (
         <section className="mb-12">
