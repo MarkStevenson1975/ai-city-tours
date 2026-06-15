@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveDraftStops, type DraftStop } from './actions';
+import { MapPicker, type MapPick } from './map-picker';
 
 type Suggestion = {
   place_id: string;
@@ -66,6 +67,43 @@ export function BuildWizard({
       const next = { ...prev };
       if (next[s.place_id]) delete next[s.place_id];
       else next[s.place_id] = s;
+      return next;
+    });
+  }
+
+  // Map picks: enrich the chosen place_ids into full suggestions (name, photo,
+  // coords) so they draft and save exactly like the list picks, then merge.
+  async function addMapPicks(picks: MapPick[]) {
+    if (!picks.length) return;
+    setError(null);
+    let enriched: Suggestion[] = [];
+    try {
+      const res = await fetch('/api/places/details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeIds: picks.map((p) => p.place_id) }),
+      });
+      const data = await res.json();
+      if (res.ok) enriched = data.results || [];
+    } catch {
+      /* fall back to the basic pick below */
+    }
+    setSelected((prev) => {
+      const next = { ...prev };
+      for (const p of picks) {
+        const e = enriched.find((x) => x.place_id === p.place_id);
+        next[p.place_id] =
+          e ?? {
+            place_id: p.place_id,
+            name: p.name,
+            address: '',
+            rating: null,
+            lat: p.lat,
+            lng: p.lng,
+            category: 'Place',
+            photoRef: null,
+          };
+      }
       return next;
     });
   }
@@ -189,9 +227,11 @@ export function BuildWizard({
   // ---- Location + pick sites ----
   return (
     <div className="space-y-6">
+      <MapPicker area={defaultArea} onConfirm={addMapPicks} disabled={drafting} />
+
       <div>
         <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
-          Step 1 · Where is your tour?
+          Search by postcode
         </p>
         <p className="text-sm text-gray-600 mb-2">
           Enter a postcode near the centre of your tour and how far around it to look.
@@ -279,7 +319,31 @@ export function BuildWizard({
 
       {error && <p className="text-red-700 text-sm">{error}</p>}
 
-      {suggestions.length > 0 && (
+      {selectedCount > 0 && (
+        <div>
+          <p className="text-sm font-bold mb-2">Your selected stops ({selectedCount})</p>
+          <div className="flex flex-wrap gap-2">
+            {Object.values(selected).map((s) => (
+              <span
+                key={s.place_id}
+                className="inline-flex items-center gap-2 bg-cream border border-gray-200 rounded-full pl-3 pr-2 py-1 text-sm"
+              >
+                {s.name}
+                <button
+                  type="button"
+                  onClick={() => toggle(s)}
+                  className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 text-xs"
+                  aria-label={`Remove ${s.name}`}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(suggestions.length > 0 || selectedCount > 0) && (
         <div className="flex items-center gap-4">
           <button
             type="button"
