@@ -134,11 +134,20 @@ export async function inviteOperator(formData: FormData) {
     newUserId = inviteData.user.id;
   }
 
-  // Create or update user_profiles row
+  // Create or update the user_profiles row. Never downgrade an existing admin
+  // to operator (e.g. if an admin is invited to a city). New/other users become
+  // operators. Keep any existing display name when none is supplied.
+  const { data: existingProfile } = await admin
+    .from('user_profiles')
+    .select('role, display_name')
+    .eq('id', newUserId)
+    .maybeSingle();
+
+  const role = existingProfile?.role === 'admin' ? 'admin' : 'operator';
   await admin.from('user_profiles').upsert({
     id: newUserId,
-    role: 'operator',
-    display_name: displayName || null,
+    role,
+    display_name: displayName || existingProfile?.display_name || null,
   });
 
   // Link new operator to city
