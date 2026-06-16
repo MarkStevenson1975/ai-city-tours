@@ -114,8 +114,10 @@ export default async function CityOverview({
           <h1 className="text-5xl font-semibold mb-2">{city.name}</h1>
           <p className="text-gray-600">
             <span className="font-mono">/{city.slug}</span> · Guide:{' '}
-            {city.guide_name} · Subscription:{' '}
-            <span className="font-bold">{city.subscription_status}</span>
+            {city.guide_name} ·{' '}
+            <span className="font-bold">
+              {isLive ? 'Live' : (city.published_version ?? 0) > 0 ? 'Offline' : 'Draft'}
+            </span>
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
