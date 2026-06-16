@@ -71,8 +71,10 @@
     .auth-error{color:#FFB4AB;font-size:.82rem;margin-bottom:8px;text-align:left}
     .auth-consent-note{font-size:.72rem;opacity:.6;text-align:center;line-height:1.5;margin:0 0 14px}
     .auth-consent-note a{color:var(--color-accent);text-decoration:none}
-    .btn-auth-skip{background:transparent;color:var(--color-text-light);font-size:.85rem;opacity:.6;text-decoration:underline;padding:4px;cursor:pointer}
-    .auth-skip-note{font-size:.72rem;opacity:.4;margin-top:4px}
+    .btn-auth-skip{background:transparent;color:var(--color-text-light);font-size:.85rem;opacity:.85;text-decoration:underline;padding:4px;cursor:pointer}
+    .auth-skip-note{font-size:.75rem;opacity:.55;margin-top:4px}
+    .auth-skip-lead{margin-top:14px}
+    .auth-skip-divider{height:1px;background:rgba(255,255,255,.15);margin:18px 10px}
     .auth-signed-in-box{background:rgba(255,255,255,.1);border-radius:var(--radius);padding:14px 16px;text-align:left;width:100%}
     .auth-signed-in-msg{font-size:.88rem;margin-bottom:8px}
     .auth-signed-in-email{font-weight:700;color:var(--color-accent)}
@@ -378,7 +380,6 @@
     <!-- Welcome + auth -->
     <div class="auth-section" id="auth-section">
       <h1 class="auth-welcome-title">Welcome to<br><span id="auth-city-name">Hereford</span></h1>
-      <p class="auth-welcome-sub">Sign up to save your progress and pick up where you left off.</p>
       <!-- Signed-in state -->
       <div id="auth-signed-in-panel" class="auth-signed-in-box hidden">
         <p class="auth-signed-in-msg">Progress saving enabled for<br><span class="auth-signed-in-email" id="auth-user-email"></span></p>
@@ -386,6 +387,12 @@
       </div>
       <!-- Sign-up / sign-in form -->
       <div id="auth-form-panel">
+        <div class="auth-skip-lead">
+          <button class="btn-auth-skip" onclick="skipAuth()">Continue without saving</button>
+          <p class="auth-skip-note">Progress will be lost if you close this page.</p>
+        </div>
+        <div class="auth-skip-divider"></div>
+        <p class="auth-welcome-sub">Sign up to save your progress and pick up where you left off.</p>
         <input class="auth-input" id="auth-email" type="email" placeholder="Email address" autocomplete="email" inputmode="email">
         <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password">
         <button class="btn-forgot-password" type="button" onclick="showForgotPassword()">Forgot password?</button>
@@ -397,8 +404,6 @@
           Continue with Google and start tour
         </button>
         <p class="auth-consent-note">By saving your progress, you agree to your email being stored for this purpose only. We will not share your data. <a href="/privacy" target="_blank">Privacy policy</a></p>
-        <button class="btn-auth-skip" onclick="skipAuth()">Continue without saving</button>
-        <p class="auth-skip-note">Progress will be lost if you close this page.</p>
       </div>
       <!-- Forgot password panel -->
       <div class="auth-forgot-panel" id="auth-forgot-panel">
