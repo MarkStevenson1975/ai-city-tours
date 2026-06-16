@@ -92,25 +92,44 @@ export async function POST(req: NextRequest) {
             : undefined,
         };
 
-        if (userId) await admin.from('user_profiles').update(update).eq('id', userId);
-        else await admin.from('user_profiles').update(update).eq('stripe_subscription_id', sub.id);
+        // Only update the account whose CURRENT subscription is this one, so a
+        // stale/old subscription event cannot overwrite a newer subscription on
+        // the same account. Match by subscription id first; fall back to the
+        // metadata user only if they have no current subscription yet (covers
+        // the race where this arrives before checkout.completed stored the id).
+        const { data: bySub } = await admin
+          .from('user_profiles')
+          .select('id')
+          .eq('stripe_subscription_id', sub.id)
+          .maybeSingle();
+        let targetId = bySub?.id as string | undefined;
+        if (!targetId && userId) {
+          const { data: byMeta } = await admin
+            .from('user_profiles')
+            .select('id, stripe_subscription_id')
+            .eq('id', userId)
+            .maybeSingle();
+          if (byMeta && (!byMeta.stripe_subscription_id || byMeta.stripe_subscription_id === sub.id)) {
+            targetId = byMeta.id;
+          }
+        }
+        if (targetId) await admin.from('user_profiles').update(update).eq('id', targetId);
         break;
       }
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        const userId = sub.metadata?.user_id;
 
-        // Resolve the operator if metadata is missing.
-        let ownerId = userId;
-        if (!ownerId) {
-          const { data: prof } = await admin
-            .from('user_profiles')
-            .select('id')
-            .eq('stripe_subscription_id', sub.id)
-            .single();
-          ownerId = prof?.id;
-        }
+        // Only act if this is the account's CURRENT subscription. A previously
+        // cancelled/replaced subscription (e.g. an old one being tidied up in
+        // Stripe) must never cancel a newer subscription on the same account or
+        // unpublish their live tours.
+        const { data: prof } = await admin
+          .from('user_profiles')
+          .select('id')
+          .eq('stripe_subscription_id', sub.id)
+          .maybeSingle();
+        const ownerId = prof?.id;
 
         if (ownerId) {
           await admin

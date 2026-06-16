@@ -32,7 +32,11 @@ export default function handler(req, res) {
     return res.status(400).send('Invalid origin — expected lat,lng');
   }
 
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  // The embed URL is loaded in the visitor's browser, so it needs a key that is
+  // restricted by HTTP referrer (to the tour domains), NOT the server key used
+  // for Places lookups. Prefer a dedicated browser key; fall back to the shared
+  // key so nothing breaks before GOOGLE_MAPS_EMBED_KEY is set.
+  const apiKey = process.env.GOOGLE_MAPS_EMBED_KEY || process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return res.status(503).send('Maps Embed service not configured');
   }

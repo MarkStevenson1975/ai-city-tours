@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No billing account yet' }, { status: 400 });
   }
 
-  const baseUrl = process.env.DASHBOARD_URL ?? new URL(req.url).origin;
+  // Return to the SAME domain the operator is on (e.g. app.storiedtours.co.uk)
+  // so their session cookie survives the round-trip. Falls back to the
+  // configured URL only if no origin is present.
+  const baseUrl = req.headers.get('origin') ?? process.env.DASHBOARD_URL ?? new URL(req.url).origin;
   const body = await req.json().catch(() => ({}));
   const citySlug = String(body.citySlug ?? '').trim();
 

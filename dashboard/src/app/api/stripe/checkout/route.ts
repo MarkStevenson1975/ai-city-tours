@@ -64,7 +64,10 @@ export async function POST(req: NextRequest) {
     await admin.from('user_profiles').update({ stripe_customer_id: customerId }).eq('id', user.id);
   }
 
-  const baseUrl = process.env.DASHBOARD_URL ?? new URL(req.url).origin;
+  // Return to the SAME domain the operator started on (e.g.
+  // app.storiedtours.co.uk) so their login session survives the Stripe
+  // round-trip. Falls back to the configured URL only if no origin header.
+  const baseUrl = req.headers.get('origin') ?? process.env.DASHBOARD_URL ?? new URL(req.url).origin;
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
