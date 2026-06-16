@@ -24,6 +24,13 @@ export type NarrationDraft = {
   facts: string[];
 };
 
+// Standard spoken closing appended to the end of every stop, in Harriet's
+// voice. Tells the visitor to log the stop (Log Visit, top right) and then go
+// back to choose the next one (Tour, top left). Kept identical across all
+// stops so the instructions are always correct. No em dashes (brand rule).
+export const STOP_CLOSING =
+  'Take some time to look around and explore this stop. When you are ready, tap Log Visit in the top right corner of your screen to save your visit, then tap Tour in the top left corner to go back to your stop list and choose your next stop.';
+
 // Best-effort: fetch a plain-text Wikipedia extract for the place to give the
 // model accurate, specific historical material. Returns '' on any problem.
 export async function fetchResearch(name: string, area: string): Promise<string> {
@@ -90,7 +97,7 @@ NARRATION STRUCTURE (450 to 700 words, flowing spoken prose, adapt freely):
 3. Stories and significance (150-200 words): what happened here, who came, why it is worth stopping.
 4. Details to notice from outside (50-100 words): draw the eye to a specific exterior detail they might miss.
 5. The invitation inside (2-4 sentences, only if it has a worthwhile interior): warmly encourage them in and name one specific thing to look for. If there is no interior, use a short closing reflection instead.
-6. Log Visit close (mandatory final 1-2 sentences, in ${guideName}'s warm, direct voice): tell the visitor that when they are ready to move on they should press the Log Visit button in the top right corner of their screen, which records their stop so they can move on to the next one. Keep "Log Visit button" and "top right corner" exact.
+6. Closing (1-2 sentences): end with a lingering thought about this place. Do NOT mention the app, any buttons, Log Visit, or moving to the next stop. A standard closing with those instructions is added automatically, so end purely on the story.
 
 SHORT DESCRIPTION: one or two short factual sentences, a vivid teaser, 140 characters or fewer, no banned words, no em dashes, no exclamation marks.
 
@@ -133,9 +140,11 @@ export async function generateNarration(
     const e = text.lastIndexOf('}');
     if (s === -1 || e === -1) return null;
     const parsed = JSON.parse(text.slice(s, e + 1));
+    const body = String(parsed.narration ?? '').trim();
     return {
       shortDescription: String(parsed.shortDescription ?? '').trim(),
-      narration: String(parsed.narration ?? '').trim(),
+      // Always end every stop with the same correct Log Visit + next-stop close.
+      narration: body ? `${body}\n\n${STOP_CLOSING}` : body,
       facts: Array.isArray(parsed.facts)
         ? parsed.facts.slice(0, 3).map((f: unknown) => String(f).trim())
         : [],
