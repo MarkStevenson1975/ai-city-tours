@@ -24,17 +24,21 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen flex">
       <aside className="w-60 bg-primary text-cream p-6 flex flex-col flex-shrink-0">
-        <p className="font-display text-3xl leading-none mb-8 mt-2">
+        <Link
+          href="/dashboard"
+          title="Mission Control"
+          className="block font-display text-3xl leading-none mb-8 mt-2"
+        >
           <span className="text-cream font-semibold">Storie</span>
           <span className="text-accent font-semibold">D</span>
-        </p>
+        </Link>
 
         <nav className="space-y-1 flex-1 text-sm">
           <Link
             href="/dashboard"
             className="block px-3 py-2 rounded hover:bg-white/10 transition"
           >
-            Areas
+            Mission Control
           </Link>
           {profile?.role !== 'admin' && (
             <Link

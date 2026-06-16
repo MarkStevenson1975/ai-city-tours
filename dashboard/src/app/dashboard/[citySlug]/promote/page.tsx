@@ -41,7 +41,7 @@ export default async function PromotePage({
   const { data: city } = await supabase
     .from('cities')
     .select(
-      'id, slug, name, operator_name, operator_attribution_text, operator_logo_url, color_primary, color_accent, color_background, published_version, published_config'
+      'id, slug, name, splash_image_url, operator_name, operator_attribution_text, operator_logo_url, color_primary, color_accent, color_background, published_version, published_config'
     )
     .eq('slug', citySlug)
     .single();
@@ -73,22 +73,26 @@ export default async function PromotePage({
     );
   }
 
-  // Pick the first stop that has a photo, to use as the social image backdrop.
-  const { data: stopRows } = await supabase
-    .from('stops')
-    .select('hero_image_url, hero_image_override_url')
-    .eq('city_id', city.id)
-    .order('position')
-    .limit(8);
-  const stopImageUrl =
-    (stopRows ?? [])
-      .map((s) => s.hero_image_override_url || s.hero_image_url)
-      .find(Boolean) ?? null;
+  // Use the tour's hero (splash) image for the social posts. Fall back to the
+  // first stop photo only if no hero image has been set, so it is never blank.
+  let socialImageUrl: string | null = city.splash_image_url ?? null;
+  if (!socialImageUrl) {
+    const { data: stopRows } = await supabase
+      .from('stops')
+      .select('hero_image_url, hero_image_override_url')
+      .eq('city_id', city.id)
+      .order('position')
+      .limit(8);
+    socialImageUrl =
+      (stopRows ?? [])
+        .map((s) => s.hero_image_override_url || s.hero_image_url)
+        .find(Boolean) ?? null;
+  }
 
   const [qrDataUrl, logoDataUrl, stopImageDataUrl] = await Promise.all([
     QRCode.toDataURL(liveUrl, { margin: 1, width: 800 }).catch(() => ''),
     toDataUri(city.operator_logo_url),
-    toDataUri(stopImageUrl),
+    toDataUri(socialImageUrl),
   ]);
 
   return (
