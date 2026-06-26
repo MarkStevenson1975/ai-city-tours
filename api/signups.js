@@ -83,7 +83,7 @@ function summarise(cities, profiles) {
   const now = Date.now();
   const t24 = now - 24 * 60 * 60 * 1000;
   const t7 = now - 7 * 24 * 60 * 60 * 1000;
-  const t30 = now - 30 * 24 * 60 * 60 * 1000;
+  const t14 = now - 14 * 24 * 60 * 60 * 1000;
   const ms = (d) => (d ? new Date(d).getTime() : 0);
 
   const profileById = {};
@@ -112,7 +112,7 @@ function summarise(cities, profiles) {
   const draftTours = active.filter((c) => liveStatus(c) === 'Draft').length;
 
   const recentTours = (cities || [])
-    .filter((c) => ms(c.created_at) >= t30)
+    .filter((c) => ms(c.created_at) >= t14)
     .map((c) => {
       const op = c.created_by ? profileById[c.created_by] : null;
       return {
@@ -127,7 +127,7 @@ function summarise(cities, profiles) {
     });
 
   const recentOperators = operators
-    .filter((p) => ms(p.created_at) >= t30)
+    .filter((p) => ms(p.created_at) >= t14)
     .map((p) => ({
       name: p.display_name || 'Operator',
       created_at: p.created_at,
@@ -221,7 +221,7 @@ function toEmailHtml(stats) {
     )
     .join('');
   if (!tourRows) {
-    tourRows = `<tr><td ${td} colspan="6" style="padding:16px;color:#777;font-size:14px;">No new tours created in the last 30 days.</td></tr>`;
+    tourRows = `<tr><td ${td} colspan="6" style="padding:16px;color:#777;font-size:14px;">No new tours created in the last 14 days.</td></tr>`;
   }
 
   let opRows = (stats.recent_operators || [])
@@ -235,7 +235,7 @@ function toEmailHtml(stats) {
     )
     .join('');
   if (!opRows) {
-    opRows = `<tr><td ${td} colspan="4" style="padding:16px;color:#777;font-size:14px;">No new operator accounts in the last 30 days.</td></tr>`;
+    opRows = `<tr><td ${td} colspan="4" style="padding:16px;color:#777;font-size:14px;">No new operator accounts in the last 14 days.</td></tr>`;
   }
 
   const tot = stats.totals || {};
@@ -273,7 +273,7 @@ function toEmailHtml(stats) {
           ${tile(tot.draft_tours || 0, 'drafts')}
         </div>
 
-        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">New tours (last 30 days)</div>
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">New tours (last 14 days)</div>
         <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;margin-bottom:22px;">
           <thead><tr>
             <th ${th}>Tour</th>
@@ -286,7 +286,7 @@ function toEmailHtml(stats) {
           <tbody>${tourRows}</tbody>
         </table>
 
-        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">New operator accounts (last 30 days)</div>
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">New operator accounts (last 14 days)</div>
         <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;">
           <thead><tr>
             <th ${th}>Operator</th>
