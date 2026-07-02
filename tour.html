@@ -1400,6 +1400,7 @@ function applyCityFactButtonLabel(){const btn=document.getElementById('btn-city-
 function applyAreaLabels(){
   if(!CONFIG||!CONFIG.city)return;
   const g=CONFIG.guideName||'Harriet';
+  document.title='Explore '+CONFIG.city+' with '+g;
   const ng=document.querySelector('.nav-guide-name'); if(ng)ng.textContent=g+' · '+CONFIG.city;
   document.querySelectorAll('.city-name').forEach(el=>{el.textContent=CONFIG.city+' Walk';});
   const ev=document.querySelector('.ev-label'); if(ev)ev.textContent='📅 Happening in '+CONFIG.city;
