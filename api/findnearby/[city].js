@@ -16,6 +16,8 @@
 // ~6,000 Nearby Search calls. Realistic usage for one city sits
 // comfortably inside that.
 
+import { checkGuestRateLimit, sendRateLimited } from '../_lib/ratelimit.js';
+
 const SEARCH_RADIUS_M = 800;
 const MAX_RESULTS = 5;
 
@@ -45,6 +47,10 @@ export default async function handler(req, res) {
   if (!city || !/^[a-z0-9-]{1,40}$/.test(city)) {
     return res.status(400).json({ error: 'Invalid city slug' });
   }
+
+  // Per-IP rate limit (fail-open: never blocks the tour if the check errors).
+  const rl = await checkGuestRateLimit(req, 'findnearby');
+  if (!rl.allowed) return sendRateLimited(res, rl.reason);
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {

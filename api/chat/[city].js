@@ -8,6 +8,8 @@
 // The API key never reaches the client — same security pattern as
 // the TTS proxy.
 
+import { checkGuestRateLimit, sendRateLimited } from '../_lib/ratelimit.js';
+
 const MAX_PROMPT_CHARS = 8000;
 
 export default async function handler(req, res) {
@@ -20,6 +22,10 @@ export default async function handler(req, res) {
   if (!city || !/^[a-z0-9-]{1,40}$/.test(city)) {
     return res.status(400).json({ error: 'Invalid city slug' });
   }
+
+  // Per-IP rate limit (fail-open: never blocks the tour if the check errors).
+  const rl = await checkGuestRateLimit(req, 'chat');
+  if (!rl.allowed) return sendRateLimited(res, rl.reason);
 
   const apiKey = process.env.CLAUDE_API_KEY;
   if (!apiKey) {

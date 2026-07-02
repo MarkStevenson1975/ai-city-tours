@@ -4,6 +4,8 @@
 // served from edge on repeat visits, saving ElevenLabs credits.
 // The ElevenLabs API key never reaches the browser (stored in Vercel env vars).
 
+import { checkGuestRateLimit, sendRateLimited } from '../_lib/ratelimit.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -14,6 +16,13 @@ export default async function handler(req, res) {
   if (!city || !/^[a-z0-9-]{1,40}$/.test(city)) {
     return res.status(400).json({ error: 'Invalid city slug' });
   }
+
+  // Per-IP rate limit. Only counts requests that reach this function — edge
+  // cache hits (repeat plays of the same clip) never touch it, so normal tour
+  // listening stays well inside the limits. Fail-open by design, and the 429
+  // is sent with no-store so it can never be cached in place of real audio.
+  const rl = await checkGuestRateLimit(req, 'tts');
+  if (!rl.allowed) return sendRateLimited(res, rl.reason);
 
   // Look up the per-city key first (ELEVENLABS_KEY_HEREFORD etc.).
   // Falls back to ELEVENLABS_API_KEY (shared key), then to
