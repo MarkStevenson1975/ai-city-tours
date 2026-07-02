@@ -79,15 +79,24 @@ function buildPosterSvg(p: Props): string {
   const attrLines = attr ? wrapWords(attr, 44) : [];
   const n = attrLines.length;
 
-  // Stack, top to bottom: "BROUGHT TO YOU BY" label, then the logo, then the
-  // attribution lines. Anchored to the bottom and grown upward so nothing clips.
-  const attrFirstY = 576 - (n > 0 ? (n - 1) * attrLineH : 0);
-  const logoBottom = n > 0 ? attrFirstY - 20 : 576;
-  const logoTop = logoBottom - 44;
-  const eyebrowY = hasLogo ? logoTop - 8 : (n > 0 ? attrFirstY - 20 : 576);
+  // Larger logo (50% up on the old 160x44).
+  const logoW = 240;
+  const logoH = 66;
+
+  // Bottom credit stack (top to bottom): "BROUGHT TO YOU BY" label, then the
+  // logo, then the attribution lines. Anchored to the bottom, grown upward.
+  const attrFirstY = 574 - (n > 0 ? (n - 1) * attrLineH : 0);
+  const logoBottom = n > 0 ? attrFirstY - 20 : 574;
+  const logoTop = logoBottom - logoH;
+  const eyebrowY = hasLogo ? logoTop - 12 : (n > 0 ? attrFirstY - 20 : 574);
+
+  // Scan text and the divider sit above the credit. The divider is centred
+  // between the scan line and the "BROUGHT TO YOU BY" label.
+  const scanY = 410;
+  const dividerY = showCredit ? Math.round((scanY + eyebrowY) / 2) : scanY + 34;
 
   const logoBlock = hasLogo
-    ? `<image href="${p.logoDataUrl}" x="130" y="${logoTop}" width="160" height="44" preserveAspectRatio="xMidYMid meet"/>`
+    ? `<image href="${p.logoDataUrl}" x="${210 - logoW / 2}" y="${logoTop}" width="${logoW}" height="${logoH}" preserveAspectRatio="xMidYMid meet"/>`
     : '';
   const eyebrowBlock = showCredit
     ? `<text x="210" y="${eyebrowY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" letter-spacing="2" fill="${cream}" opacity="0.75">BROUGHT TO YOU BY</text>`
@@ -99,16 +108,16 @@ function buildPosterSvg(p: Props): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 420 594" role="img" aria-label="Poster for the ${escapeXml(p.cityName)} tour">
 <rect x="0" y="0" width="420" height="594" fill="${forest}"/>
 <rect x="10" y="10" width="400" height="574" rx="6" fill="none" stroke="${accent}" stroke-width="0.5" opacity="0.45"/>
-<text x="210" y="64" text-anchor="middle" font-family="Georgia, serif" font-size="26" font-weight="600" fill="${cream}">Storie<tspan fill="${accent}">D</tspan></text>
-<line x1="178" y1="80" x2="242" y2="80" stroke="${accent}" stroke-width="1"/>
-<text x="210" y="${136}" text-anchor="middle" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">${escapeXml(headline)}</text>
-<text x="210" y="${136 + headSize + 8}" text-anchor="middle" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">Take the walk.</text>
-<text x="210" y="226" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12.5" fill="${cream}">A free guided walking tour, straight to your phone.</text>
-<text x="210" y="246" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12.5" fill="${cream}">No app to download. Just scan and go.</text>
-<rect x="135" y="278" width="150" height="150" rx="8" fill="#ffffff"/>
-<image href="${p.qrDataUrl}" x="147" y="290" width="126" height="126"/>
-<text x="210" y="456" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="bold" fill="${accent}">Scan to start walking</text>
-<line x1="120" y1="484" x2="300" y2="484" stroke="${accent}" stroke-width="0.5" opacity="0.5"/>
+<text x="210" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="26" font-weight="600" fill="${cream}">Storie<tspan fill="${accent}">D</tspan></text>
+<line x1="178" y1="76" x2="242" y2="76" stroke="${accent}" stroke-width="1"/>
+<text x="210" y="${124}" text-anchor="middle" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">${escapeXml(headline)}</text>
+<text x="210" y="${124 + headSize + 8}" text-anchor="middle" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">Take the walk.</text>
+<text x="210" y="200" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12.5" fill="${cream}">A free guided walking tour, straight to your phone.</text>
+<text x="210" y="218" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12.5" fill="${cream}">No app to download. Just scan and go.</text>
+<rect x="135" y="238" width="150" height="150" rx="8" fill="#ffffff"/>
+<image href="${p.qrDataUrl}" x="147" y="250" width="126" height="126"/>
+<text x="210" y="${scanY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="bold" fill="${accent}">Scan to start walking</text>
+<line x1="120" y1="${dividerY}" x2="300" y2="${dividerY}" stroke="${accent}" stroke-width="0.5" opacity="0.5"/>
 ${logoBlock}
 ${eyebrowBlock}
 ${attrBlock}
