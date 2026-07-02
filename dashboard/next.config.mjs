@@ -1,3 +1,9 @@
+import { checkEnv } from './check-env.mjs';
+
+// Fail the build loudly (with a list of what is missing) rather than letting
+// checkout, narration or webhooks fail silently at runtime.
+checkEnv();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Allow remote images from Wikipedia / OSM / Supabase Storage
