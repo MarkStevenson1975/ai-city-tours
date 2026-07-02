@@ -5,6 +5,7 @@
 // voice. All images in the poster are inlined as data URIs by the server, so
 // rasterising to PNG never taints the canvas.
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 
 type Props = {
   citySlug: string;
@@ -331,7 +332,19 @@ export function PromoteClient(props: Props) {
 
   return (
     <div className="max-w-5xl">
-      <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">Promote</p>
+      <Link
+        href={`/dashboard/${props.citySlug}`}
+        className="text-sm text-gray-500 hover:text-primary transition"
+      >
+        ← Back to {props.cityName}
+      </Link>
+      <Link
+        href="/dashboard"
+        className="text-sm text-gray-500 hover:text-primary transition ml-4"
+      >
+        ← Mission Control
+      </Link>
+      <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2 mt-4">Promote</p>
       <h1 className="text-4xl font-semibold mb-2">Tell the world about {props.cityName}</h1>
       <p className="text-gray-600 mb-8 max-w-2xl">
         Your tour is live. Download the poster for windows, A-boards and signage,
