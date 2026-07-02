@@ -46,6 +46,21 @@ function escapeXml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
+// Word-wrap a string into lines no longer than maxChars, so long attribution
+// text is fully captured on the poster / social image instead of being clipped.
+function wrapWords(text: string, maxChars: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    if (!cur) { cur = w; continue; }
+    if ((cur + ' ' + w).length <= maxChars) cur += ' ' + w;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
 function buildPosterSvg(p: Props): string {
   const cream = p.colorBackground;
   const forest = p.colorPrimary;
@@ -53,14 +68,33 @@ function buildPosterSvg(p: Props): string {
   const headline = `${p.cityName} has a story.`;
   // Shrink the headline if the town name makes it long, so it always fits.
   const headSize = Math.max(20, Math.min(30, Math.floor(360 / (headline.length * 0.52))));
-  const attr = (p.attribution || '').toUpperCase();
+  const rawAttr = (p.attribution || '').trim();
+  // Strip a leading "brought to you by" from the text so it is not repeated:
+  // the "BROUGHT TO YOU BY" label is printed above the logo instead.
+  const attr = rawAttr.replace(/^brought to you by[\s,:-]*/i, '').trim().toUpperCase();
   const hasLogo = Boolean(p.logoDataUrl);
+  const showCredit = Boolean(rawAttr) || hasLogo;
+  const attrSize = 11;
+  const attrLineH = 14;
+  const attrLines = attr ? wrapWords(attr, 44) : [];
+  const n = attrLines.length;
+
+  // Stack, top to bottom: "BROUGHT TO YOU BY" label, then the logo, then the
+  // attribution lines. Anchored to the bottom and grown upward so nothing clips.
+  const attrFirstY = 576 - (n > 0 ? (n - 1) * attrLineH : 0);
+  const logoBottom = n > 0 ? attrFirstY - 20 : 576;
+  const logoTop = logoBottom - 44;
+  const eyebrowY = hasLogo ? logoTop - 8 : (n > 0 ? attrFirstY - 20 : 576);
 
   const logoBlock = hasLogo
-    ? `<image href="${p.logoDataUrl}" x="130" y="498" width="160" height="44" preserveAspectRatio="xMidYMid meet"/>`
+    ? `<image href="${p.logoDataUrl}" x="130" y="${logoTop}" width="160" height="44" preserveAspectRatio="xMidYMid meet"/>`
     : '';
-  const byY = hasLogo ? 562 : 524;
-  const attrY = hasLogo ? 582 : 548;
+  const eyebrowBlock = showCredit
+    ? `<text x="210" y="${eyebrowY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" letter-spacing="2" fill="${cream}" opacity="0.75">BROUGHT TO YOU BY</text>`
+    : '';
+  const attrBlock = attrLines
+    .map((ln, i) => `<text x="210" y="${attrFirstY + i * attrLineH}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${attrSize}" letter-spacing="1" font-weight="bold" fill="${cream}">${escapeXml(ln)}</text>`)
+    .join('\n');
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 420 594" role="img" aria-label="Poster for the ${escapeXml(p.cityName)} tour">
 <rect x="0" y="0" width="420" height="594" fill="${forest}"/>
@@ -76,8 +110,8 @@ function buildPosterSvg(p: Props): string {
 <text x="210" y="456" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="bold" fill="${accent}">Scan to start walking</text>
 <line x1="120" y1="484" x2="300" y2="484" stroke="${accent}" stroke-width="0.5" opacity="0.5"/>
 ${logoBlock}
-<text x="210" y="${byY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" letter-spacing="2" fill="${cream}" opacity="0.75">BROUGHT TO YOU BY</text>
-<text x="210" y="${attrY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" letter-spacing="1" font-weight="bold" fill="${cream}">${escapeXml(attr)}</text>
+${eyebrowBlock}
+${attrBlock}
 </svg>`;
 }
 
@@ -106,6 +140,17 @@ function buildSocialSvg(p: Props, width: number, height: number): string {
   const scanY = qrY + qrSize + Math.round(height * 0.07);
   const attrY = Math.round(height * 0.94);
 
+  // Wrap the attribution so the full text shows on the social image too.
+  const attrS = (p.attribution || '').trim().toUpperCase();
+  const attrFont = Math.round(height * 0.026);
+  const attrMaxChars = Math.max(12, Math.floor(usable / (attrFont * 0.62)));
+  const attrLines = attrS ? wrapWords(attrS, attrMaxChars) : [];
+  const attrLineH = Math.round(attrFont * 1.25);
+  const attrFirstY = attrY - Math.max(0, attrLines.length - 1) * attrLineH;
+  const attrBlock = attrLines
+    .map((ln, i) => `<text x="${cx}" y="${attrFirstY + i * attrLineH}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${attrFont}" letter-spacing="1" fill="${cream}">${escapeXml(ln)}</text>`)
+    .join('');
+
   const bg = p.stopImageDataUrl
     ? `<image href="${p.stopImageDataUrl}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/>
 <rect x="0" y="0" width="${width}" height="${height}" fill="${forest}" fill-opacity="0.66"/>`
@@ -121,7 +166,7 @@ ${bg}
 <rect x="${qrX}" y="${qrY}" width="${qrSize}" height="${qrSize}" rx="${Math.round(qrSize * 0.06)}" fill="#ffffff"/>
 <image href="${p.qrDataUrl}" x="${qrX + qrInset}" y="${qrY + qrInset}" width="${qrSize - qrInset * 2}" height="${qrSize - qrInset * 2}"/>
 <text x="${cx}" y="${scanY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${Math.round(height * 0.034)}" font-weight="bold" fill="${accent}">Scan to start walking</text>
-<text x="${cx}" y="${attrY}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${Math.round(height * 0.026)}" letter-spacing="1" fill="${cream}">${escapeXml((p.attribution || '').toUpperCase())}</text>
+${attrBlock}
 </svg>`;
 }
 
