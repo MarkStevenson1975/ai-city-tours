@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   };
 
   try {
-    const [cities, profiles] = await Promise.all([
+    const [cities, profiles, guest, userTours] = await Promise.all([
       fetchAll(
         `${SUPABASE_URL}/rest/v1/cities` +
           `?select=name,slug,operator_name,operator_email,plan_tier,subscription_status,` +
@@ -52,9 +52,16 @@ export default async function handler(req, res) {
           `&order=created_at.desc`,
         sbHeaders
       ),
+      // Guest (anonymous) usage across all tours.
+      fetchGuestStats(SUPABASE_URL, sbHeaders),
+      // Logged-in tour visitors (accounts) with first/last visit per tour.
+      fetchAll(
+        `${SUPABASE_URL}/rest/v1/user_tours?select=user_id,city_slug,first_visited_at`,
+        sbHeaders
+      ).catch(() => []),
     ]);
 
-    const stats = summarise(cities, profiles);
+    const stats = summarise(cities, profiles, guest, userTours);
 
     if (format === 'email' || format === 'html') {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -79,7 +86,23 @@ async function fetchAll(url, headers) {
   return r.json();
 }
 
-function summarise(cities, profiles) {
+// Aggregated guest usage via the guest_stats RPC (excludes internal devices).
+// Best-effort: returns null on any problem so the rest of the report still sends.
+async function fetchGuestStats(url, headers) {
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/guest_stats`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_city: null }),
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+function summarise(cities, profiles, guest, userTours) {
   const now = Date.now();
   const t24 = now - 24 * 60 * 60 * 1000;
   const t7 = now - 7 * 24 * 60 * 60 * 1000;
@@ -135,6 +158,49 @@ function summarise(cities, profiles) {
       subscription: p.subscription_status || 'none',
     }));
 
+  // ---- Tour usage: guests (anonymous devices) vs accounts (signed-in) ----
+  const g = guest || {};
+  const gTot = g.totals || {};
+  const guestUsage = {
+    t24: (g.last_24h && g.last_24h.unique_devices) || 0,
+    t7: g.unique_devices_7d || 0,
+    all: gTot.unique_devices || 0,
+  };
+
+  const uts = Array.isArray(userTours) ? userTours : [];
+  const distinct = (rows) => new Set(rows.map((u) => u.user_id)).size;
+  const accountUsage = {
+    t24: distinct(uts.filter((u) => ms(u.first_visited_at) >= t24)),
+    t7: distinct(uts.filter((u) => ms(u.first_visited_at) >= t7)),
+    all: distinct(uts),
+  };
+
+  // Per-tour visitors in the last 7 days: guests (from guest_stats by_area)
+  // plus signed-in accounts (from user_tours first_visited_at).
+  const nameBySlug = {};
+  (cities || []).forEach((c) => { nameBySlug[c.slug] = c.name; });
+  const byArea = Array.isArray(g.by_area) ? g.by_area : [];
+  const acct7BySlug = {};
+  uts.filter((u) => ms(u.first_visited_at) >= t7).forEach((u) => {
+    (acct7BySlug[u.city_slug] = acct7BySlug[u.city_slug] || new Set()).add(u.user_id);
+  });
+  const slugs = new Set([...byArea.map((a) => a.city), ...Object.keys(acct7BySlug)]);
+  const accessed = [...slugs]
+    .map((slug) => {
+      const area = byArea.find((a) => a.city === slug) || {};
+      const guest7 = area.unique_devices_7d || 0;
+      const acct7 = acct7BySlug[slug] ? acct7BySlug[slug].size : 0;
+      return {
+        slug,
+        name: nameBySlug[slug] || slug,
+        guest7,
+        acct7,
+        total7: guest7 + acct7,
+      };
+    })
+    .filter((x) => x.total7 > 0)
+    .sort((a, b) => b.total7 - a.total7);
+
   return {
     generated_at: new Date().toISOString(),
     last_24h: { new_operators: newOperators24, new_tours: newTours24 },
@@ -149,6 +215,11 @@ function summarise(cities, profiles) {
     },
     recent_tours: recentTours,
     recent_operators: recentOperators,
+    usage: {
+      guest: guestUsage,
+      account: accountUsage,
+      accessed,
+    },
   };
 }
 
@@ -240,6 +311,23 @@ function toEmailHtml(stats) {
 
   const tot = stats.totals || {};
 
+  const u = stats.usage || {};
+  const gu = u.guest || { t24: 0, t7: 0, all: 0 };
+  const au = u.account || { t24: 0, t7: 0, all: 0 };
+  let accessedRows = (u.accessed || [])
+    .map(
+      (a) => `<tr>
+        <td ${td}>${esc(a.name)}<br><span style="color:#999;font-size:12px;">/${esc(a.slug)}</span></td>
+        <td ${td}>${esc(a.guest7)}</td>
+        <td ${td}>${esc(a.acct7)}</td>
+        <td ${td}><strong>${esc(a.total7)}</strong></td>
+      </tr>`
+    )
+    .join('');
+  if (!accessedRows) {
+    accessedRows = `<tr><td ${td} colspan="4" style="padding:16px;color:#777;font-size:14px;">No tours accessed by visitors in the last 7 days.</td></tr>`;
+  }
+
   return `<!doctype html><html><body style="margin:0;padding:0;background:#F5F0E8;">
   <div style="max-width:660px;margin:0 auto;padding:24px;font-family:Arial,Helvetica,sans-serif;">
     <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
@@ -273,6 +361,38 @@ function toEmailHtml(stats) {
           ${tile(tot.draft_tours || 0, 'drafts')}
         </div>
 
+        <div style="height:1px;background:${border};margin:6px 0 20px;"></div>
+        <p style="margin:0 0 6px;font-size:15px;color:#1A1A1A;font-weight:bold;">Tour usage</p>
+        <p style="margin:0 0 14px;font-size:13px;color:#555;">How many people are using the live tours, split by guests and signed-in accounts.</p>
+
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Last 24 hours</div>
+        <div style="margin-bottom:14px;">
+          ${tile(gu.t24 || 0, 'guest visitors')}
+          ${tile(au.t24 || 0, 'signed-in visitors')}
+        </div>
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Last 7 days</div>
+        <div style="margin-bottom:14px;">
+          ${tile(gu.t7 || 0, 'guest visitors')}
+          ${tile(au.t7 || 0, 'signed-in visitors')}
+        </div>
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">All time</div>
+        <div style="margin-bottom:18px;">
+          ${tile(gu.all || 0, 'guest visitors')}
+          ${tile(au.all || 0, 'signed-in visitors')}
+        </div>
+
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Tours accessed by visitors (last 7 days)</div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;margin-bottom:22px;">
+          <thead><tr>
+            <th ${th}>Tour</th>
+            <th ${th}>Guests</th>
+            <th ${th}>Signed in</th>
+            <th ${th}>Total</th>
+          </tr></thead>
+          <tbody>${accessedRows}</tbody>
+        </table>
+
+        <div style="height:1px;background:${border};margin:0 0 20px;"></div>
         <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">New tours (last 14 days)</div>
         <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;margin-bottom:22px;">
           <thead><tr>
