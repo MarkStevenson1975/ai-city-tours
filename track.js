@@ -161,7 +161,10 @@
         if (typeof state !== 'undefined' && typeof CONFIG !== 'undefined') {
           var s = CONFIG.stops && CONFIG.stops[state.currentStopIndex];
           if (s && !(state.visitedStops && state.visitedStops.has && state.visitedStops.has(s.id))) {
-            send('stop_logged', { stopId: s.id, meta: { name: s.name } });
+            // Prefer the stop's permanent uid (survives reordering/renaming);
+            // fall back to the display number for configs published before
+            // uid existed. The name is captured as it was at this moment.
+            send('stop_logged', { stopId: s.uid || s.id, meta: { name: s.name } });
           }
         } else {
           send('stop_logged');

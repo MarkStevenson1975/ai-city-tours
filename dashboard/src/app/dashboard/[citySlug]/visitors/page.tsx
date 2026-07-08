@@ -6,6 +6,7 @@ type StopStat = { stop_name: string; visit_count: number };
 
 type KpiResult = {
   total_visitors: number;
+  guest_visitors: number;
   returning_visitors: number;
   avg_stops_completed: number;
   most_visited_stops: StopStat[] | null;
@@ -42,7 +43,7 @@ export default async function CityVisitorsPage({
   const kpi: KpiResult | null =
     kpiRows && kpiRows.length > 0 ? kpiRows[0] : null;
 
-  const hasData = kpi && kpi.total_visitors > 0;
+  const hasData = kpi && (kpi.total_visitors > 0 || kpi.guest_visitors > 0);
 
   return (
     <div className="max-w-4xl">
@@ -86,12 +87,12 @@ export default async function CityVisitorsPage({
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
             <KpiCard
-              label="Total visitors"
+              label="Registered visitors"
               value={kpi.total_visitors}
             />
             <KpiCard
-              label="Return visitors"
-              value={kpi.returning_visitors}
+              label="Guest visitors"
+              value={kpi.guest_visitors}
             />
             <KpiCard
               label="Visits last 7 days"
@@ -110,7 +111,7 @@ export default async function CityVisitorsPage({
               </h2>
               <div className="space-y-4">
                 <Metric
-                  label="Avg stops completed per visitor"
+                  label="Avg stops completed per registered visitor"
                   value={String(kpi.avg_stops_completed)}
                 />
                 <Metric
@@ -133,9 +134,12 @@ export default async function CityVisitorsPage({
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h2 className="text-xs uppercase tracking-widest font-bold text-gray-500 mb-4">
+              <h2 className="text-xs uppercase tracking-widest font-bold text-gray-500 mb-1">
                 Most visited stops
               </h2>
+              <p className="text-xs text-gray-400 mb-4">
+                Every logged visit, guests included.
+              </p>
               {!kpi.most_visited_stops || kpi.most_visited_stops.length === 0 ? (
                 <p className="text-sm text-gray-400 italic">
                   No stop visits recorded yet.
