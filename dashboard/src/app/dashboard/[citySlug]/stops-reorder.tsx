@@ -91,6 +91,31 @@ export function StopsReorder({
             <span className="w-7 h-7 rounded-full bg-primary text-cream text-sm font-bold flex items-center justify-center flex-shrink-0">
               {i + 1}
             </span>
+            {(() => {
+              const thumb = stop.hero_image_override_url || stop.hero_image_url;
+              return thumb ? (
+                <div className="relative w-16 h-11 rounded-md overflow-hidden bg-cream flex-shrink-0 border border-gray-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={thumb}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget.style.display = 'none');
+                    }}
+                  />
+                  {stop.hero_image_override_url && (
+                    <span className="absolute bottom-0 right-0 bg-green-700 text-white text-[8px] font-bold px-1 rounded-tl uppercase tracking-wide">
+                      Custom
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="w-16 h-11 rounded-md bg-cream border border-dashed border-gray-300 flex items-center justify-center text-[9px] text-gray-400 flex-shrink-0 text-center leading-tight">
+                  No image
+                </div>
+              );
+            })()}
             <div className="min-w-0 flex-1">
               <p className="font-display text-lg truncate">{stop.name}</p>
               {stopLimit !== null && i >= stopLimit && (
