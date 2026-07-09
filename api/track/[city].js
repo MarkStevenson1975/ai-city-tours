@@ -16,6 +16,10 @@ const ALLOWED_EVENTS = new Set([
   'find_nearby',
   'sponsor_shown',
   'tour_complete',
+  // end-of-tour feedback capture (rating on tap, comment on send) + upsell click
+  'tour_feedback',
+  'tour_feedback_comment',
+  'create_own_click',
 ]);
 
 export default async function handler(req, res) {

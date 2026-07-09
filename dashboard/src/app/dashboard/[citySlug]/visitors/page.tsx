@@ -4,6 +4,21 @@ import { createClient } from '@/lib/supabase/server';
 
 type StopStat = { stop_name: string; visit_count: number };
 
+type FeedbackComment = {
+  rating: string | null;
+  comment: string;
+  created_at: string;
+};
+
+type FeedbackResult = {
+  great_count: number;
+  ok_count: number;
+  sad_count: number;
+  total_ratings: number;
+  create_own_clicks: number;
+  comments: FeedbackComment[] | null;
+};
+
 type KpiResult = {
   total_visitors: number;
   guest_visitors: number;
@@ -44,6 +59,18 @@ export default async function CityVisitorsPage({
     kpiRows && kpiRows.length > 0 ? kpiRows[0] : null;
 
   const hasData = kpi && (kpi.total_visitors > 0 || kpi.guest_visitors > 0);
+
+  const { data: feedbackRows } = await supabase.rpc('city_visitor_feedback', {
+    p_city_slug: citySlug,
+  });
+  const feedback: FeedbackResult | null =
+    feedbackRows && feedbackRows.length > 0 ? feedbackRows[0] : null;
+  const comments = feedback?.comments ?? [];
+  const hasFeedback =
+    !!feedback &&
+    (feedback.total_ratings > 0 ||
+      feedback.create_own_clicks > 0 ||
+      comments.length > 0);
 
   return (
     <div className="max-w-4xl">
@@ -172,8 +199,106 @@ export default async function CityVisitorsPage({
           </div>
         </>
       )}
+
+      {hasFeedback && feedback && (
+        <div className="mt-10 bg-white rounded-xl p-6 shadow-sm">
+          <h2 className="text-xs uppercase tracking-widest font-bold text-gray-500 mb-1">
+            Tour feedback
+          </h2>
+          <p className="text-xs text-gray-400 mb-5">
+            How walkers rated the {city.name} tour at the finish screen, and any
+            comments they left. Anonymous.
+          </p>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <RatingTile label="Loved it" value={feedback.great_count} tone="good" />
+            <RatingTile label="It was OK" value={feedback.ok_count} tone="mid" />
+            <RatingTile label="Not great" value={feedback.sad_count} tone="poor" />
+            <RatingTile
+              label="Create-your-own clicks"
+              value={feedback.create_own_clicks}
+              tone="neutral"
+            />
+          </div>
+
+          <h3 className="text-xs uppercase tracking-widest font-bold text-gray-500 mb-3">
+            Comments
+          </h3>
+          {comments.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">
+              No written comments yet.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {comments.map((c, i) => (
+                <li
+                  key={i}
+                  className="border border-cream rounded-lg p-3 flex gap-3 items-start"
+                >
+                  <span
+                    className={`text-[0.65rem] font-bold uppercase tracking-wide px-2 py-1 rounded-full whitespace-nowrap ${ratingChip(
+                      c.rating
+                    )}`}
+                  >
+                    {ratingLabel(c.rating)}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700">{c.comment}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {formatDate(c.created_at)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+function RatingTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: 'good' | 'mid' | 'poor' | 'neutral';
+}) {
+  const toneClass =
+    tone === 'good'
+      ? 'text-primary'
+      : tone === 'poor'
+        ? 'text-red-600'
+        : tone === 'mid'
+          ? 'text-amber-600'
+          : 'text-gray-700';
+  return (
+    <div className="bg-cream/40 rounded-xl p-5">
+      <p className={`text-4xl font-display font-semibold ${toneClass}`}>
+        {value}
+      </p>
+      <p className="text-xs uppercase tracking-wider text-gray-600 mt-1 font-bold">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function ratingLabel(rating: string | null): string {
+  if (rating === 'great') return 'Loved it';
+  if (rating === 'ok') return 'OK';
+  if (rating === 'sad') return 'Not great';
+  return 'Rated';
+}
+
+function ratingChip(rating: string | null): string {
+  if (rating === 'great') return 'bg-primary/10 text-primary';
+  if (rating === 'sad') return 'bg-red-100 text-red-700';
+  if (rating === 'ok') return 'bg-amber-100 text-amber-700';
+  return 'bg-gray-100 text-gray-600';
 }
 
 function KpiCard({ label, value }: { label: string; value: number }) {

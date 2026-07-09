@@ -348,6 +348,25 @@
     .open-badge{display:inline-flex;align-items:center;gap:3px;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:50px;vertical-align:middle;margin-left:6px}
     .open-badge.open{background:rgba(64,145,108,.25);color:#6fcf97}
     .open-badge.closed{background:rgba(220,38,38,.2);color:#f87171}
+    /* end-of-tour feedback card (light card on the green overlay; buttons follow brand hex) */
+    .tc-feedback{background:#fff;border-radius:var(--radius);padding:18px 16px;margin-bottom:20px;text-align:center}
+    .tc-fb-label{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-primary);margin-bottom:14px}
+    .tc-fb-faces{display:flex;gap:10px}
+    .tc-fb-face{flex:1;height:46px;background:var(--color-primary);color:#fff;border:none;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s ease,opacity .12s ease}
+    .tc-fb-face svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8}
+    .tc-fb-face:active{transform:scale(.94)}
+    .tc-fb-face.dim{opacity:.35}
+    .tc-fb-face.chosen{outline:3px solid var(--color-accent);outline-offset:2px}
+    .tc-fb-hint{font-size:.68rem;color:#6b7d73;margin-top:10px}
+    .tc-fb-followup{display:none;margin-top:14px}
+    .tc-fb-followup.show{display:block}
+    .tc-fb-comment{width:100%;border:1px solid #d8ddd9;border-radius:10px;padding:10px 12px;font-family:var(--font-body);font-size:.85rem;color:var(--color-primary);resize:vertical;box-sizing:border-box}
+    .tc-fb-comment:focus{outline:none;border-color:var(--color-primary)}
+    .tc-fb-send{margin-top:10px;background:var(--color-primary);color:#fff;border:none;border-radius:50px;padding:10px 22px;font-size:.82rem;font-weight:700;cursor:pointer}
+    .tc-fb-thanks{display:none;font-size:.82rem;color:var(--color-primary);font-weight:600;margin-top:6px}
+    .tc-fb-thanks.show{display:block}
+    .btn-tc-create{background:transparent;border:1.5px solid var(--color-accent);color:var(--color-accent);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+    .btn-tc-create:hover{background:rgba(201,168,76,.12)}
 
   </style>
 </head>
@@ -604,6 +623,26 @@
   <div class="tour-complete-content">
     <h2 class="tc-title">Walk Complete!</h2>
     <p class="tc-sub" id="tc-sub">You've completed the walk</p>
+    <div class="tc-feedback" id="tc-feedback">
+      <div class="tc-fb-label" id="tc-fb-label">How was your walk?</div>
+      <div class="tc-fb-faces">
+        <button type="button" class="tc-fb-face" data-rating="sad" onclick="rateWalk('sad')" aria-label="Poor">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".9" fill="currentColor" stroke="none"/><path d="M8 16 Q12 12.5 16 16" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="tc-fb-face" data-rating="ok" onclick="rateWalk('ok')" aria-label="Okay">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".9" fill="currentColor" stroke="none"/><path d="M8.5 15 H15.5" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="tc-fb-face" data-rating="great" onclick="rateWalk('great')" aria-label="Great">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".9" fill="currentColor" stroke="none"/><path d="M8 14 Q12 18 16 14" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="tc-fb-hint" id="tc-fb-hint">One tap. Optional.</div>
+      <div class="tc-fb-followup" id="tc-fb-followup">
+        <textarea id="tc-fb-comment" class="tc-fb-comment" rows="2" placeholder="Anything you'd change? (optional)"></textarea>
+        <button type="button" class="tc-fb-send" onclick="sendWalkFeedback()">Send feedback</button>
+      </div>
+      <div class="tc-fb-thanks" id="tc-fb-thanks">Thanks for the feedback.</div>
+    </div>
     <div class="tc-suggest">
       <div class="sug-label">&#10024; Harriet's final suggestion</div>
       <p id="tc-suggest-text"></p>
@@ -623,6 +662,7 @@
     </div>
     <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
     <button class="btn-tc-share" onclick="shareAchievement()">Share your achievement</button>
+    <button class="btn-tc-create" onclick="openCreateOwn()">Create your own tour &#8594;</button>
     <button class="btn-tc-back" onclick="closeTourComplete()">&#8592; Back to the tour</button>
   </div>
 </div>
@@ -1485,6 +1525,41 @@ function openTourCompleteAsk(){
   const ov=document.getElementById('tour-complete-overlay');
   if(ov)ov.classList.remove('show');
   openFindSomething();
+}
+// ── END-OF-TOUR FEEDBACK ───────────────────────────────────
+let walkRating=null;
+function rateWalk(r){
+  walkRating=r;
+  document.querySelectorAll('.tc-fb-face').forEach(function(b){
+    if(b.getAttribute('data-rating')===r){b.classList.add('chosen');b.classList.remove('dim');}
+    else{b.classList.add('dim');b.classList.remove('chosen');}
+  });
+  try{if(window.StoriedTrack)window.StoriedTrack.send('tour_feedback',{meta:{rating:r}});}catch(e){}
+  const label=document.getElementById('tc-fb-label');
+  const hint=document.getElementById('tc-fb-hint');
+  const comment=document.getElementById('tc-fb-comment');
+  const thanks=document.getElementById('tc-fb-thanks');
+  if(thanks)thanks.classList.remove('show');
+  if(label)label.textContent=(r==='great')?'Glad you enjoyed it!':'Thanks — what would have made it better?';
+  if(comment)comment.placeholder=(r==='great')?"Anything you'd change? (optional)":"Tell us what would've made it better (optional)";
+  if(hint)hint.style.display='none';
+  const fu=document.getElementById('tc-fb-followup');
+  if(fu)fu.classList.add('show');
+}
+function sendWalkFeedback(){
+  const comment=document.getElementById('tc-fb-comment');
+  const text=comment?comment.value.trim():'';
+  try{if(window.StoriedTrack)window.StoriedTrack.send('tour_feedback_comment',{meta:{rating:walkRating||'unrated',comment:text.slice(0,600)}});}catch(e){}
+  const fu=document.getElementById('tc-fb-followup');
+  if(fu)fu.classList.remove('show');
+  const label=document.getElementById('tc-fb-label');
+  if(label)label.textContent='How was your walk?';
+  const thanks=document.getElementById('tc-fb-thanks');
+  if(thanks)thanks.classList.add('show');
+}
+function openCreateOwn(){
+  try{if(window.StoriedTrack)window.StoriedTrack.send('create_own_click');}catch(e){}
+  window.open('https://storiedtours.co.uk','_blank','noopener');
 }
 
 // ── WEATHER ───────────────────────────────────────────────
