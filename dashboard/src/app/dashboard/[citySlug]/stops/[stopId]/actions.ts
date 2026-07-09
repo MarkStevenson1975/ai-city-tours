@@ -623,6 +623,42 @@ export async function uploadStopVideo(formData: FormData) {
   return { ok: true as const, url: publicUrl };
 }
 
+/** Set whether the video shows first (as the hero) ahead of the images. */
+export async function setStopVideoFirst(
+  stopId: string,
+  citySlug: string,
+  value: boolean
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
+
+  const admin = createAdminClient();
+
+  const { data: stop } = await admin
+    .from('stops')
+    .select('city_id')
+    .eq('id', stopId)
+    .single();
+
+  const { error } = await admin
+    .from('stops')
+    .update({ video_first: value })
+    .eq('id', stopId);
+  if (error) return { ok: false as const, error: error.message };
+
+  if (stop?.city_id) {
+    await admin
+      .from('cities')
+      .update({ draft_updated_at: new Date().toISOString() })
+      .eq('id', stop.city_id);
+  }
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/stops/${stopId}`);
+  return { ok: true as const, value };
+}
+
 /** Remove a stop's video and delete the file. */
 export async function removeStopVideo(stopId: string, citySlug: string) {
   const supabase = await createClient();

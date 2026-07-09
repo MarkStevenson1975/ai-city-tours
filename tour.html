@@ -144,6 +144,12 @@
     .detail-media-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);transition:background .2s ease,transform .2s ease}
     .detail-media-dots span.active{background:#fff;transform:scale(1.25)}
     .detail-media-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:50px;z-index:2}
+    .detail-media-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,.42);color:#fff;font-size:1.35rem;line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+    .detail-media-nav.prev{left:8px}
+    .detail-media-nav.next{right:8px}
+    .detail-media-nav.show{display:flex}
+    .detail-media-nav.next.hint{animation:mediaNudge 1.4s ease-in-out infinite}
+    @keyframes mediaNudge{0%,100%{transform:translateY(-50%) translateX(0)}50%{transform:translateY(-50%) translateX(3px)}}
     .btn-mark-complete{background:var(--color-accent);color:var(--color-primary);padding:5px 12px;border-radius:50px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0}
     .btn-mark-complete.already-done{background:#ccc;color:#666;cursor:default}
     .stoplist-map-wrap{height:200px;background:var(--color-muted);position:relative;touch-action:none;overflow:hidden;flex-shrink:0}
@@ -484,6 +490,8 @@
     </div>
     <div class="detail-stop-img-wrap" id="detail-stop-img-wrap">
       <div class="detail-media-track" id="detail-media-track"></div>
+      <button class="detail-media-nav prev" id="detail-media-prev" aria-label="Previous" onclick="stopMediaStep(-1)">&#8249;</button>
+      <button class="detail-media-nav next" id="detail-media-next" aria-label="More images" onclick="stopMediaStep(1)">&#8250;</button>
       <div class="detail-media-dots" id="detail-media-dots"></div>
       <div class="img-loading">Loading image</div>
     </div>
@@ -1039,6 +1047,7 @@ function loadStopMedia(stop){
   wrap.style.display='';
   wrap.classList.remove('loaded','is-fallback');
   track.innerHTML='';dots.innerHTML='';track.onscroll=null;
+  {const _p=document.getElementById('detail-media-prev'),_n=document.getElementById('detail-media-next');if(_p)_p.classList.remove('show');if(_n)_n.classList.remove('show','hint');}
   const fallbackUrl=`https://staticmap.openstreetmap.de/staticmap.php?center=${stop.coordinates.lat},${stop.coordinates.lng}&zoom=17&size=600x400&markers=${stop.coordinates.lat},${stop.coordinates.lng},red-pushpin`;
   // Candidate images: hero first, then gallery, unique, capped at 5 total
   const imgs=[];
@@ -1056,51 +1065,48 @@ function loadStopMedia(stop){
     setTimeout(()=>finish(false),8000);
     test.src=url;
   });
+  const hasVideo=stop.videoUrl&&typeof stop.videoUrl==='string';
+  const makeImg=(u)=>{const slide=document.createElement('div');slide.className='detail-media-slide';const im=document.createElement('img');im.src=u;im.alt=stop.name||'';slide.appendChild(im);return slide;};
+  const makeVid=()=>{const slide=document.createElement('div');slide.className='detail-media-slide';const v=document.createElement('video');v.src=stop.videoUrl;v.muted=true;v.loop=true;v.playsInline=true;v.preload='metadata';v.setAttribute('muted','');v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');const badge=document.createElement('div');badge.className='detail-media-badge';badge.textContent='Video';slide.appendChild(v);slide.appendChild(badge);return slide;};
   (async()=>{
     const good=[];
     for(const u of list){if(await probe(u))good.push(u);}
     let usedFallback=false;
-    if(good.length===0){if(await probe(fallbackUrl)){good.push(fallbackUrl);usedFallback=true;}}
-    // Image slides
-    good.forEach((u)=>{
-      const slide=document.createElement('div');slide.className='detail-media-slide';
-      const im=document.createElement('img');im.src=u;im.alt=stop.name||'';
-      slide.appendChild(im);track.appendChild(slide);
-    });
-    // Video slide (always muted + looping = silent by design)
-    if(stop.videoUrl&&typeof stop.videoUrl==='string'){
-      const slide=document.createElement('div');slide.className='detail-media-slide';
-      const v=document.createElement('video');
-      v.src=stop.videoUrl;v.muted=true;v.loop=true;v.playsInline=true;v.preload='metadata';
-      v.setAttribute('muted','');v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');
-      const badge=document.createElement('div');badge.className='detail-media-badge';badge.textContent='Video';
-      slide.appendChild(v);slide.appendChild(badge);track.appendChild(slide);
-    }
+    // Only fall back to a map image if there's no photo AND no video to show
+    if(good.length===0&&!hasVideo){if(await probe(fallbackUrl)){good.push(fallbackUrl);usedFallback=true;}}
+    // Order: video first (if the operator chose that), else images then video
+    if(hasVideo&&stop.videoFirst)track.appendChild(makeVid());
+    good.forEach((u)=>track.appendChild(makeImg(u)));
+    if(hasVideo&&!stop.videoFirst)track.appendChild(makeVid());
     const slides=track.children.length;
     if(slides===0){wrap.style.display='none';return;}
     if(usedFallback)wrap.classList.add('is-fallback');
     wrap.classList.add('loaded');
-    // Play the first slide's video (if the first slide is one)
-    const firstVid=track.children[0].querySelector('video');
-    if(firstVid){try{firstVid.play&&firstVid.play().catch(()=>{});}catch(e){}}
-    // Dots + active-slide tracking (also plays the visible video, pauses others)
+    // Let the browser recognise horizontal swipes on the media band when there's
+    // more than one slide (helps mobile); leave vertical scrolling alone otherwise.
+    track.style.touchAction=slides>1?'pan-x':'auto';
+    const prev=document.getElementById('detail-media-prev');
+    const next=document.getElementById('detail-media-next');
+    const updateNav=()=>{
+      const i=Math.round(track.scrollLeft/Math.max(1,track.clientWidth));
+      const n=track.children.length;
+      if(prev)prev.classList.toggle('show',i>0);
+      if(next)next.classList.toggle('show',i<n-1);
+      if(next)next.classList.toggle('hint',i===0&&n>1);
+      for(let j=0;j<dots.children.length;j++)dots.children[j].classList.toggle('active',j===i);
+      for(let j=0;j<track.children.length;j++){const vid=track.children[j].querySelector('video');if(vid){if(j===i){try{vid.play&&vid.play().catch(()=>{});}catch(e){}}else{try{vid.pause&&vid.pause();}catch(e){}}}}
+    };
     if(slides>1){
       for(let i=0;i<slides;i++){const d=document.createElement('span');if(i===0)d.className='active';dots.appendChild(d);}
       let raf=null;
-      track.onscroll=()=>{
-        if(raf)return;
-        raf=requestAnimationFrame(()=>{
-          raf=null;
-          const i=Math.round(track.scrollLeft/Math.max(1,track.clientWidth));
-          const kids=track.children;
-          for(let j=0;j<dots.children.length;j++)dots.children[j].classList.toggle('active',j===i);
-          for(let j=0;j<kids.length;j++){const vid=kids[j].querySelector('video');if(vid){if(j===i){try{vid.play&&vid.play().catch(()=>{});}catch(e){}}else{try{vid.pause&&vid.pause();}catch(e){}}}}
-        });
-      };
+      track.onscroll=()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=null;updateNav();});};
     }
     track.scrollLeft=0;
+    updateNav();
   })();
 }
+// Tap-to-advance for the stop media gallery (also works when swipe is fiddly).
+function stopMediaStep(dir){const track=document.getElementById('detail-media-track');if(!track)return;track.scrollBy({left:dir*track.clientWidth,behavior:'smooth'});}
 function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';showScreen('detail');}
 function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}

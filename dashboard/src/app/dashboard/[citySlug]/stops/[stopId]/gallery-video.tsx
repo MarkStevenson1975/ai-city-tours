@@ -7,6 +7,7 @@ import {
   removeStopGalleryImage,
   uploadStopVideo,
   removeStopVideo,
+  setStopVideoFirst,
 } from './actions';
 
 const MAX_GALLERY = 4; // plus the hero = 5 images total
@@ -17,6 +18,7 @@ interface Props {
   citySlug: string;
   initialGallery: string[];
   initialVideo: string | null;
+  initialVideoFirst: boolean;
 }
 
 export function GalleryVideoManager({
@@ -24,15 +26,31 @@ export function GalleryVideoManager({
   citySlug,
   initialGallery,
   initialVideo,
+  initialVideoFirst,
 }: Props) {
   const router = useRouter();
   const [gallery, setGallery] = useState<string[]>(initialGallery ?? []);
   const [video, setVideo] = useState<string | null>(initialVideo);
+  const [videoFirst, setVideoFirst] = useState<boolean>(initialVideoFirst);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'gallery' | 'video' | null>(null);
   const [, startTransition] = useTransition();
   const galInput = useRef<HTMLInputElement>(null);
   const vidInput = useRef<HTMLInputElement>(null);
+
+  function toggleVideoFirst(next: boolean) {
+    setVideoFirst(next);
+    setError(null);
+    startTransition(async () => {
+      const r = await setStopVideoFirst(stopId, citySlug, next);
+      if (!r.ok) {
+        setError(r.error);
+        setVideoFirst(!next); // revert on failure
+      } else {
+        router.refresh();
+      }
+    });
+  }
 
   function onGalleryFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -225,6 +243,23 @@ export function GalleryVideoManager({
                 Remove video
               </button>
             </div>
+            <label className="flex items-start gap-2 mt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={videoFirst}
+                onChange={(e) => toggleVideoFirst(e.target.checked)}
+                disabled={busy !== null}
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <span className="text-sm text-gray-700">
+                Show the video first (as the main element), with the images after
+                it.
+                <span className="block text-xs text-gray-400">
+                  Off by default: the main image shows first, then the gallery,
+                  then the video.
+                </span>
+              </span>
+            </label>
           </div>
         ) : (
           <button

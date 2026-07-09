@@ -20,6 +20,7 @@ interface Stop {
   google_business_url: string | null;
   gallery_urls: string[] | null;
   video_url: string | null;
+  video_first: boolean | null;
 }
 
 interface Props {
@@ -473,6 +474,7 @@ export function StopEditForm({
             citySlug={citySlug}
             initialGallery={stop.gallery_urls ?? []}
             initialVideo={stop.video_url ?? null}
+            initialVideoFirst={stop.video_first ?? false}
           />
         </Section>
       )}
