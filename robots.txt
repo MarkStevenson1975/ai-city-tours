@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tours.storiedtours.co.uk/sitemap.xml
