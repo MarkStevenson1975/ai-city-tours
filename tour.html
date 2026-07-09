@@ -668,10 +668,6 @@
     <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
     <button class="btn-tc-share" onclick="shareAchievement()">Share your achievement</button>
     <button class="btn-tc-create" onclick="openCreateOwn()">Create your own tour &#8594;</button>
-    <div class="tc-suggest">
-      <div class="sug-label">&#10024; Harriet's final suggestion</div>
-      <p id="tc-suggest-text"></p>
-    </div>
     <div class="tc-divider" id="tc-sponsor-divider" style="display:none"></div>
     <div id="tc-sponsor-block" class="tc-sponsor-block" style="display:none">
       <div class="tc-sponsor-label">This tour is sponsored by</div>
@@ -1525,8 +1521,6 @@ function showTourComplete(){
   const city=CONFIG.city||'the area';
   const guide=CONFIG.guideName||'Harriet';
   document.getElementById('tc-sub').textContent=`You've explored ${city} with ${guide}`;
-  const suggestText=CONFIG.tourCompleteSuggestion||`Why not find somewhere to sit and reflect? Or ask ${guide} to help you find something nearby.`;
-  document.getElementById('tc-suggest-text').textContent=suggestText;
   const harrietText=CONFIG.tourCompleteMessage||`Well done, you've done it. Every stop, every story, every stamp. ${city} has shown you what it really is. We hope it has earned a return visit.`;
   const narration=CONFIG.tourCompleteNarration||harrietText;
   playHarriet(narration,'Tour Complete');
