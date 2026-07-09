@@ -187,32 +187,29 @@ function buildLandmarkPosterSvg(p: Props): string {
   const cream = p.colorBackground;
   const forest = p.colorPrimary;
   const accent = p.colorAccent;
-  const head1 = `${p.cityName} has`;
-  const head2 = 'a story.';
-  const maxLen = Math.max(head1.length, head2.length);
-  const headSize = Math.max(20, Math.min(34, Math.floor(250 / (maxLen * 0.55))));
-  const bandTop = 410;
+  const headline = `${p.cityName} has a story.`;
+  const headSize = Math.max(20, Math.min(34, Math.floor(410 / (headline.length * 0.5))));
+  const bandTop = 288;
   const hasPhoto = Boolean(p.stopImageDataUrl);
   const bg = hasPhoto
-    ? `<image href="${p.stopImageDataUrl}" x="0" y="0" width="420" height="594" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect x="0" y="0" width="420" height="594" fill="${forest}"/>`;
+    ? `<image href="${p.stopImageDataUrl}" x="0" y="0" width="594" height="420" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect x="0" y="0" width="594" height="420" fill="${forest}"/>`;
   const attr = (p.attribution || '').trim();
-  const attrShown = attr.length > 46 ? attr.slice(0, 44) + '…' : attr;
+  const attrShown = attr.length > 52 ? attr.slice(0, 50) + '…' : attr;
   const attrLine = attr
-    ? `<text x="28" y="562" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="${cream}" opacity="0.8">${escapeXml(attrShown)}</text>`
+    ? `<text x="36" y="392" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="${cream}" opacity="0.8">${escapeXml(attrShown)}</text>`
     : '';
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 420 594" role="img" aria-label="Landmark poster for the ${escapeXml(p.cityName)} tour">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 594 420" role="img" aria-label="Landmark poster for the ${escapeXml(p.cityName)} tour">
 ${bg}
-<rect x="0" y="0" width="420" height="72" fill="${forest}" opacity="0.35"/>
-<text x="210" y="42" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" letter-spacing="3" fill="${cream}">STORIED &#183; ${escapeXml(p.cityName.toUpperCase())}</text>
-<rect x="0" y="${bandTop}" width="420" height="${594 - bandTop}" fill="${forest}"/>
-<text x="28" y="${bandTop + 46}" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">${escapeXml(head1)}</text>
-<text x="28" y="${bandTop + 46 + headSize + 6}" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">${escapeXml(head2)}</text>
-<text x="28" y="${bandTop + 46 + headSize + 6 + 30}" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="bold" fill="${accent}">Scan to walk it. It's free.</text>
+<rect x="0" y="0" width="594" height="60" fill="${forest}" opacity="0.35"/>
+<text x="36" y="38" font-family="Helvetica, Arial, sans-serif" font-size="13" letter-spacing="3" fill="${cream}">STORIED &#183; ${escapeXml(p.cityName.toUpperCase())}</text>
+<rect x="0" y="${bandTop}" width="594" height="${420 - bandTop}" fill="${forest}"/>
+<text x="36" y="${bandTop + 48}" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">${escapeXml(headline)}</text>
+<text x="36" y="${bandTop + 78}" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="bold" fill="${accent}">Scan to walk it. It's free.</text>
 ${attrLine}
-<rect x="286" y="${bandTop + 20}" width="112" height="112" rx="6" fill="#ffffff"/>
-<image href="${p.qrDataUrl}" x="296" y="${bandTop + 30}" width="92" height="92"/>
+<rect x="466" y="${bandTop + 12}" width="108" height="108" rx="6" fill="#ffffff"/>
+<image href="${p.qrDataUrl}" x="476" y="${bandTop + 22}" width="88" height="88"/>
 </svg>`;
 }
 
@@ -355,10 +352,20 @@ export function PromoteClient(props: Props) {
     setPosterError(null);
     setBusy('pdf');
     try {
-      const canvas = await renderCanvas(posterSvg, A4_W, A4_H);
+      const landscape = posterStyle === 'landmark';
+      const canvas = await renderCanvas(
+        posterSvg,
+        landscape ? A4_H : A4_W,
+        landscape ? A4_W : A4_H
+      );
       const { jsPDF } = await import('jspdf');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+      const pdf = new jsPDF({
+        orientation: landscape ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      if (landscape) pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 297, 210);
+      else pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
       pdf.save(`${props.citySlug}-storied-poster-${posterStyle}.pdf`);
     } catch (e) {
       setPosterError(e instanceof Error ? e.message : 'Could not build the PDF.');
@@ -371,7 +378,12 @@ export function PromoteClient(props: Props) {
     setPosterError(null);
     setBusy('png');
     try {
-      const canvas = await renderCanvas(posterSvg, A4_W, A4_H);
+      const landscape = posterStyle === 'landmark';
+      const canvas = await renderCanvas(
+        posterSvg,
+        landscape ? A4_H : A4_W,
+        landscape ? A4_W : A4_H
+      );
       canvas.toBlob((blob) => {
         if (!blob) {
           setPosterError('Could not build the PNG.');
