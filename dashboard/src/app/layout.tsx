@@ -3,8 +3,12 @@ import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AI City Tours Dashboard',
-  description: 'Operator dashboard for AI-guided city tours.',
+  title: {
+    default: 'StorieD Tours',
+    template: '%s · StorieD Tours',
+  },
+  description:
+    'StorieD Tours — self-guided, AI-narrated walking tours of towns, cities and places.',
 };
 
 export default function RootLayout({
