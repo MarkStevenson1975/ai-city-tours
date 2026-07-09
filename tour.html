@@ -330,7 +330,10 @@
     .tc-sub{font-family:var(--font-display);font-size:1.1rem;font-style:italic;opacity:.75;margin-bottom:32px}
     .tc-harriet-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius);padding:20px;text-align:left;margin-bottom:20px}
     .tc-harriet-card p{font-family:var(--font-display);font-size:1.05rem;font-style:italic;line-height:1.7;opacity:.9}
-    .tc-suggest{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.35);border-radius:var(--radius);padding:18px;text-align:left;margin-bottom:28px}
+    .tc-suggest{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.35);border-radius:var(--radius);padding:18px;text-align:left;margin-bottom:16px}
+    .tc-back-top{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--color-text-light);font-family:var(--font-body);font-size:.82rem;font-weight:600;opacity:.72;padding:0;margin:0 0 16px;cursor:pointer}
+    .tc-back-top:hover{opacity:1}
+    .tc-divider{height:1px;background:rgba(255,255,255,.16);margin:0 2px 16px}
     .tc-suggest .sug-label{font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--color-accent);margin-bottom:8px}
     .tc-suggest p{font-family:var(--font-display);font-size:1rem;line-height:1.6;opacity:.88}
     .btn-tc-play{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:var(--color-text-light);padding:14px 22px;border-radius:50px;font-size:.95rem;font-weight:700;width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
@@ -639,6 +642,7 @@
 </div>
 <div id="tour-complete-overlay">
   <div class="tour-complete-content">
+    <button class="tc-back-top" onclick="closeTourComplete()">&#8592; Back to the tour</button>
     <h2 class="tc-title">Walk Complete!</h2>
     <p class="tc-sub" id="tc-sub">You've completed the walk</p>
     <div class="tc-feedback" id="tc-feedback">
@@ -661,10 +665,14 @@
       </div>
       <div class="tc-fb-thanks" id="tc-fb-thanks">Thanks for the feedback.</div>
     </div>
+    <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
+    <button class="btn-tc-share" onclick="shareAchievement()">Share your achievement</button>
+    <button class="btn-tc-create" onclick="openCreateOwn()">Create your own tour &#8594;</button>
     <div class="tc-suggest">
       <div class="sug-label">&#10024; Harriet's final suggestion</div>
       <p id="tc-suggest-text"></p>
     </div>
+    <div class="tc-divider" id="tc-sponsor-divider" style="display:none"></div>
     <div id="tc-sponsor-block" class="tc-sponsor-block" style="display:none">
       <div class="tc-sponsor-label">This tour is sponsored by</div>
       <a class="tc-sponsor-inner" id="tc-sponsor-link" href="#" target="_blank" rel="noopener">
@@ -673,15 +681,6 @@
         <div class="tc-sponsor-tagline" id="tc-sponsor-tagline" style="display:none"></div>
       </a>
     </div>
-    <div id="tc-operator-block" class="tc-operator-block" style="display:none">
-      <div class="tc-operator-label">Brought to you by</div>
-      <img class="tc-operator-logo" id="tc-operator-logo" alt="" style="display:none">
-      <div class="tc-operator-name" id="tc-operator-name"></div>
-    </div>
-    <button class="btn-tc-ask" onclick="openTourCompleteAsk()">&#128269; Ask Harriet to find somewhere</button>
-    <button class="btn-tc-share" onclick="shareAchievement()">Share your achievement</button>
-    <button class="btn-tc-create" onclick="openCreateOwn()">Create your own tour &#8594;</button>
-    <button class="btn-tc-back" onclick="closeTourComplete()">&#8592; Back to the tour</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -1544,8 +1543,9 @@ function showTourComplete(){
       operatorBlock.style.display='none';
     }
   }
-  // Sponsor block
+  // Sponsor block (with its divider shown only when a sponsor exists)
   const sponsorBlock=document.getElementById('tc-sponsor-block');
+  const sponsorDivider=document.getElementById('tc-sponsor-divider');
   if(sponsorBlock){
     if(CONFIG.tcSponsorName){
       document.getElementById('tc-sponsor-name').textContent=CONFIG.tcSponsorName;
@@ -1556,8 +1556,10 @@ function showTourComplete(){
       const linkEl=document.getElementById('tc-sponsor-link');
       if(CONFIG.tcSponsorUrl){linkEl.href=CONFIG.tcSponsorUrl;linkEl.style.cursor='pointer';}else{linkEl.removeAttribute('href');}
       sponsorBlock.style.display='';
+      if(sponsorDivider)sponsorDivider.style.display='';
     }else{
       sponsorBlock.style.display='none';
+      if(sponsorDivider)sponsorDivider.style.display='none';
     }
   }
 }
