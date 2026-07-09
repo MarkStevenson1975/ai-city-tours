@@ -135,6 +135,15 @@
     .detail-stop-img-wrap .img-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--color-text-light);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
     .detail-stop-img-wrap.loaded .img-loading{display:none}
     .detail-stop-img-wrap .img-loading::before{content:"";display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;margin-right:8px}
+    /* swipeable stop media (hero + up to 4 more images + optional muted video) */
+    .detail-media-track{display:flex;overflow-x:auto;height:100%;width:100%;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .detail-media-track::-webkit-scrollbar{display:none}
+    .detail-media-slide{flex:0 0 100%;width:100%;height:100%;scroll-snap-align:center;position:relative;background:var(--color-primary)}
+    .detail-media-slide img,.detail-media-slide video{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+    .detail-media-dots{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2;pointer-events:none}
+    .detail-media-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);transition:background .2s ease,transform .2s ease}
+    .detail-media-dots span.active{background:#fff;transform:scale(1.25)}
+    .detail-media-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:50px;z-index:2}
     .btn-mark-complete{background:var(--color-accent);color:var(--color-primary);padding:5px 12px;border-radius:50px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0}
     .btn-mark-complete.already-done{background:#ccc;color:#666;cursor:default}
     .stoplist-map-wrap{height:200px;background:var(--color-muted);position:relative;touch-action:none;overflow:hidden;flex-shrink:0}
@@ -474,7 +483,8 @@
       <button class="btn-mark-complete" id="btn-mark-complete" onclick="markStopComplete()">Log visit</button>
     </div>
     <div class="detail-stop-img-wrap" id="detail-stop-img-wrap">
-      <img id="detail-stop-img" alt="">
+      <div class="detail-media-track" id="detail-media-track"></div>
+      <div class="detail-media-dots" id="detail-media-dots"></div>
       <div class="img-loading">Loading image</div>
     </div>
     <div class="detail-body">
@@ -1017,46 +1027,81 @@ function showLoadError(e) {
   document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;font-family:Lato,sans-serif;color:#F5F0E8;background:#1B4332"><div style="max-width:360px"><h1 style="font-family:Cormorant Garamond,serif;font-size:2rem;font-weight:600;margin-bottom:16px">Tour unavailable</h1><p style="opacity:.85;line-height:1.6;margin-bottom:24px">We couldn\'t load the tour data. Please check your connection and refresh the page.</p><p style="font-size:.75rem;opacity:.5">' + msg + '</p></div></div>';
 }
 const state={weatherData:null,currentScreen:'headphones',currentStopIndex:0,visitedStops:new Set(),skippedStops:new Set(),stoplistMap:null,stoplistUserMarker:null,stoplistWatchId:null,headphones:false,map:null,userMarker:null,routeLayer:null,stopMarkers:[],osrmPath:[],osrmSteps:[],currentStepIdx:0,watchId:null,demoMode:false,demoInterval:null,demoProgress:0,firedFacts:new Set(),firedSponsors:new Set(),currentAudio:null,lastFactTime:0,tmmStopId:null,tmmFullText:'',arrivalFired:false,userLat:null,userLng:null,pendingFact:null,tourCompleted:false,harrietCallCount:0};
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('screen-'+id);if(el){el.classList.add('active');el.scrollTop=0;const body=el.querySelector('.stoplist-body,.detail-body,.stamps-body');if(body)body.scrollTop=0;}if(id!=='stoplist'&&state.stoplistWatchId){navigator.geolocation.clearWatch(state.stoplistWatchId);state.stoplistWatchId=null;}state.currentScreen=id;if(id==='stoplist'){renderStopList();initStoplistMap();startStoplistGPS();}if(id==='stamps')renderStamps();}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const el=document.getElementById('screen-'+id);if(el){el.classList.add('active');el.scrollTop=0;const body=el.querySelector('.stoplist-body,.detail-body,.stamps-body');if(body)body.scrollTop=0;}if(id!=='stoplist'&&state.stoplistWatchId){navigator.geolocation.clearWatch(state.stoplistWatchId);state.stoplistWatchId=null;}state.currentScreen=id;if(id!=='detail'){const _tk=document.getElementById('detail-media-track');if(_tk){_tk.querySelectorAll('video').forEach(v=>{try{v.pause();}catch(e){}});}}if(id==='stoplist'){renderStopList();initStoplistMap();startStoplistGPS();}if(id==='stamps')renderStamps();}
 function setHeadphones(val){state.headphones=val;showScreen('splash');}
 function renderStopList(){const body=document.getElementById('stoplist-body');if(!body)return;let banner=document.getElementById('tour-return-banner');if(state.tourCompleted){if(!banner){banner=document.createElement('div');banner.id='tour-return-banner';body.insertBefore(banner,body.firstChild);}banner.className='tour-complete-banner';banner.onclick=()=>document.getElementById('tour-complete-overlay').classList.add('show');banner.innerHTML='<span>&#127942; Tour Complete!</span><span class="btn-return-complete">View completion &#8594;</span>';}else if(banner){banner.remove();}let sc=document.getElementById('stops-container');if(!sc){sc=document.createElement('div');sc.id='stops-container';body.appendChild(sc);}sc.innerHTML=CONFIG.stops.map((stop,i)=>{const visited=state.visitedStops.has(stop.id);const skipped=state.skippedStops.has(stop.id);const cardClass=skipped?'visited skipped':visited?'visited':'';const icon=skipped?'🚶':visited?'✓':stop.id;const dist=state.userLat?formatDist(haversine(state.userLat,state.userLng,stop.coordinates.lat,stop.coordinates.lng)):'';const stopSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&s.stopNumber===stop.id);const sponsorPill=stopSponsor?`<div class="stop-card-sponsored">${stopSponsor.emoji||''} ${stopSponsor.name}</div>`:'';return`<div class="stop-card ${cardClass}${stopSponsor?' has-sponsor':''}" onclick="openStopDetail(${i})"><div class="stop-card-top"><div class="stop-number">${icon}</div><div class="stop-card-name">${stop.name}</div>${dist?`<div class="stop-card-distance"><span class="stop-card-distance-num">${dist}</span><span class="stop-card-distance-away">away</span></div>`:''}</div>${stop.shortDescription?`<div class="stop-card-desc">${stop.shortDescription}</div>`:''}${sponsorPill}</div>`;}).join('')+'<div class="ask-harriet-stoplist-wrap"><button class="btn-ask-harriet-stoplist" onclick="openFindSomething()">&#128269; Ask Harriet to find something nearby</button></div>'+(currentUser?'<div class="stoplist-signout-wrap"><button class="btn-stoplist-signout" onclick="handleSignOut()">Sign out</button></div>':'');const pct=(state.visitedStops.size/CONFIG.maxStops)*100;document.getElementById('stamp-progress-fill').style.width=pct+'%';document.getElementById('stamp-progress-label').textContent=`${state.visitedStops.size} of ${CONFIG.maxStops} stamps collected`;}
-function loadStopImage(stop){
-  const imgEl=document.getElementById('detail-stop-img');
-  const imgWrap=document.getElementById('detail-stop-img-wrap');
-  if(!imgEl||!imgWrap)return;
-  imgEl.alt=stop.name||'';
-  // Reset state — show wrap (with loading shimmer), hide image until validated
-  imgWrap.style.display='';
-  imgWrap.classList.remove('loaded','is-fallback');
-  imgEl.removeAttribute('src');
+function loadStopMedia(stop){
+  const wrap=document.getElementById('detail-stop-img-wrap');
+  const track=document.getElementById('detail-media-track');
+  const dots=document.getElementById('detail-media-dots');
+  if(!wrap||!track||!dots)return;
+  // Reset
+  wrap.style.display='';
+  wrap.classList.remove('loaded','is-fallback');
+  track.innerHTML='';dots.innerHTML='';track.onscroll=null;
   const fallbackUrl=`https://staticmap.openstreetmap.de/staticmap.php?center=${stop.coordinates.lat},${stop.coordinates.lng}&zoom=17&size=600x400&markers=${stop.coordinates.lat},${stop.coordinates.lng},red-pushpin`;
-  // Probe an image URL; only commit it to the visible <img> if it actually loads
-  const probe=(url,isFallback)=>new Promise((resolve)=>{
+  // Candidate images: hero first, then gallery, unique, capped at 5 total
+  const imgs=[];
+  const push=(u)=>{if(u&&typeof u==='string'&&imgs.indexOf(u)===-1)imgs.push(u);};
+  push(stop.heroImageUrl);
+  (Array.isArray(stop.galleryUrls)?stop.galleryUrls:[]).forEach(push);
+  const list=imgs.slice(0,5);
+  // Probe a URL to confirm it actually loads (rejects 1x1 error pixels)
+  const probe=(url)=>new Promise((resolve)=>{
     if(!url){resolve(false);return;}
-    const test=new Image();
-    let settled=false;
+    const test=new Image();let settled=false;
     const finish=(ok)=>{if(settled)return;settled=true;resolve(ok);};
-    test.onload=()=>{
-      // Reject pixel-thin error responses (some hosts return 1x1 instead of 404)
-      if(test.naturalWidth<40||test.naturalHeight<40){finish(false);return;}
-      imgEl.src=url;
-      imgWrap.classList.add('loaded');
-      if(isFallback)imgWrap.classList.add('is-fallback');
-      finish(true);
-    };
+    test.onload=()=>{if(test.naturalWidth<40||test.naturalHeight<40){finish(false);return;}finish(true);};
     test.onerror=()=>finish(false);
-    // Timeout if the image hangs
     setTimeout(()=>finish(false),8000);
     test.src=url;
   });
   (async()=>{
-    if(stop.heroImageUrl&&await probe(stop.heroImageUrl,false))return;
-    if(await probe(fallbackUrl,true))return;
-    // Both failed — hide the wrap entirely
-    imgWrap.style.display='none';
+    const good=[];
+    for(const u of list){if(await probe(u))good.push(u);}
+    let usedFallback=false;
+    if(good.length===0){if(await probe(fallbackUrl)){good.push(fallbackUrl);usedFallback=true;}}
+    // Image slides
+    good.forEach((u)=>{
+      const slide=document.createElement('div');slide.className='detail-media-slide';
+      const im=document.createElement('img');im.src=u;im.alt=stop.name||'';
+      slide.appendChild(im);track.appendChild(slide);
+    });
+    // Video slide (always muted + looping = silent by design)
+    if(stop.videoUrl&&typeof stop.videoUrl==='string'){
+      const slide=document.createElement('div');slide.className='detail-media-slide';
+      const v=document.createElement('video');
+      v.src=stop.videoUrl;v.muted=true;v.loop=true;v.playsInline=true;v.preload='metadata';
+      v.setAttribute('muted','');v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');
+      const badge=document.createElement('div');badge.className='detail-media-badge';badge.textContent='Video';
+      slide.appendChild(v);slide.appendChild(badge);track.appendChild(slide);
+    }
+    const slides=track.children.length;
+    if(slides===0){wrap.style.display='none';return;}
+    if(usedFallback)wrap.classList.add('is-fallback');
+    wrap.classList.add('loaded');
+    // Play the first slide's video (if the first slide is one)
+    const firstVid=track.children[0].querySelector('video');
+    if(firstVid){try{firstVid.play&&firstVid.play().catch(()=>{});}catch(e){}}
+    // Dots + active-slide tracking (also plays the visible video, pauses others)
+    if(slides>1){
+      for(let i=0;i<slides;i++){const d=document.createElement('span');if(i===0)d.className='active';dots.appendChild(d);}
+      let raf=null;
+      track.onscroll=()=>{
+        if(raf)return;
+        raf=requestAnimationFrame(()=>{
+          raf=null;
+          const i=Math.round(track.scrollLeft/Math.max(1,track.clientWidth));
+          const kids=track.children;
+          for(let j=0;j<dots.children.length;j++)dots.children[j].classList.toggle('active',j===i);
+          for(let j=0;j<kids.length;j++){const vid=kids[j].querySelector('video');if(vid){if(j===i){try{vid.play&&vid.play().catch(()=>{});}catch(e){}}else{try{vid.pause&&vid.pause();}catch(e){}}}}
+        });
+      };
+    }
+    track.scrollLeft=0;
   })();
 }
-function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopImage(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';showScreen('detail');}
+function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';showScreen('detail');}
 function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
 function initNavScreen(toIdx){

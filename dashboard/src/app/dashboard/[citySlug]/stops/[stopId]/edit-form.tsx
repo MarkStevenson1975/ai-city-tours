@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateStop, createStop, deleteStop, uploadStopImage, type StopInput } from './actions';
 import { ImageUpload } from './image-upload';
+import { GalleryVideoManager } from './gallery-video';
 
 interface Stop {
   id: string;
@@ -17,6 +18,8 @@ interface Stop {
   hero_image_url: string | null;
   hero_image_override_url: string | null;
   google_business_url: string | null;
+  gallery_urls: string[] | null;
+  video_url: string | null;
 }
 
 interface Props {
@@ -458,6 +461,21 @@ export function StopEditForm({
           )}
         </Field>
       </Section>
+
+      {/* Gallery + video (edit mode only — needs a saved stop to attach to) */}
+      {!isNew && stop && (
+        <Section
+          title="Gallery & video"
+          subtitle="Add up to four more images and one short silent video. These show as a swipeable gallery on the stop, after the main image. Saved instantly — Publish to push live."
+        >
+          <GalleryVideoManager
+            stopId={stop.id}
+            citySlug={citySlug}
+            initialGallery={stop.gallery_urls ?? []}
+            initialVideo={stop.video_url ?? null}
+          />
+        </Section>
+      )}
 
       {/* Narration */}
       <Section

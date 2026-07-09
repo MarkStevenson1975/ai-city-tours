@@ -400,8 +400,262 @@ export async function removeStopImageOverride(stopId: string, citySlug: string) 
  * Returns the <path> portion, or null if it doesn't look right.
  */
 function extractStopImagePath(publicUrl: string): string | null {
-  const marker = '/storage/v1/object/public/stop-images/';
+  return extractStoragePath(publicUrl, 'stop-images');
+}
+
+function extractStoragePath(publicUrl: string, bucket: string): string | null {
+  const marker = `/storage/v1/object/public/${bucket}/`;
   const idx = publicUrl.indexOf(marker);
   if (idx < 0) return null;
   return publicUrl.substring(idx + marker.length).split('?')[0];
+}
+
+// ── GALLERY IMAGES (up to 4 extra, so 5 total with the hero) ──────────────
+const MAX_GALLERY_IMAGES = 4;
+
+/**
+ * Upload one additional gallery image for a stop. Appends to gallery_urls
+ * (up to MAX_GALLERY_IMAGES). Stored in the stop-images bucket.
+ */
+export async function uploadStopGalleryImage(formData: FormData) {
+  const file = formData.get('file') as File | null;
+  const stopId = String(formData.get('stopId') ?? '');
+  const citySlug = String(formData.get('citySlug') ?? '');
+
+  if (!file || file.size === 0) {
+    return { ok: false as const, error: 'No file selected.' };
+  }
+  if (!stopId || !citySlug) {
+    return { ok: false as const, error: 'Missing stop or city identifier.' };
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return {
+      ok: false as const,
+      error: `File is too large. Max 5 MB (yours is ${(file.size / 1024 / 1024).toFixed(1)} MB).`,
+    };
+  }
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { ok: false as const, error: 'Use JPEG, PNG, or WebP.' };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
+
+  const admin = createAdminClient();
+
+  const { data: existingStop } = await admin
+    .from('stops')
+    .select('gallery_urls, city_id')
+    .eq('id', stopId)
+    .single();
+
+  const current: string[] = Array.isArray(existingStop?.gallery_urls)
+    ? (existingStop!.gallery_urls as string[])
+    : [];
+  if (current.length >= MAX_GALLERY_IMAGES) {
+    return {
+      ok: false as const,
+      error: `You can add up to ${MAX_GALLERY_IMAGES} extra images (plus the main image).`,
+    };
+  }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : 'jpg';
+  const path = `${citySlug}/${stopId}-gal-${Date.now()}.${safeExt}`;
+
+  const { error: uploadErr } = await admin.storage
+    .from('stop-images')
+    .upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' });
+  if (uploadErr) {
+    return { ok: false as const, error: `Upload failed: ${uploadErr.message}` };
+  }
+
+  const { data: pub } = admin.storage.from('stop-images').getPublicUrl(path);
+  const next = [...current, pub.publicUrl];
+
+  const { error: updateErr } = await admin
+    .from('stops')
+    .update({ gallery_urls: next })
+    .eq('id', stopId);
+  if (updateErr) {
+    await admin.storage.from('stop-images').remove([path]);
+    return { ok: false as const, error: `DB write failed: ${updateErr.message}` };
+  }
+
+  if (existingStop?.city_id) {
+    await admin
+      .from('cities')
+      .update({ draft_updated_at: new Date().toISOString() })
+      .eq('id', existingStop.city_id);
+  }
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/stops/${stopId}`);
+  return { ok: true as const, urls: next };
+}
+
+/** Remove one gallery image (by URL) from a stop and delete the file. */
+export async function removeStopGalleryImage(
+  stopId: string,
+  citySlug: string,
+  url: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
+
+  const admin = createAdminClient();
+
+  const { data: stop } = await admin
+    .from('stops')
+    .select('gallery_urls, city_id')
+    .eq('id', stopId)
+    .single();
+
+  const current: string[] = Array.isArray(stop?.gallery_urls)
+    ? (stop!.gallery_urls as string[])
+    : [];
+  const next = current.filter((u) => u !== url);
+
+  const { error } = await admin
+    .from('stops')
+    .update({ gallery_urls: next })
+    .eq('id', stopId);
+  if (error) return { ok: false as const, error: error.message };
+
+  const path = extractStoragePath(url, 'stop-images');
+  if (path) await admin.storage.from('stop-images').remove([path]);
+
+  if (stop?.city_id) {
+    await admin
+      .from('cities')
+      .update({ draft_updated_at: new Date().toISOString() })
+      .eq('id', stop.city_id);
+  }
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/stops/${stopId}`);
+  return { ok: true as const, urls: next };
+}
+
+// ── STOP VIDEO (short, silent, plays muted on loop in the tour) ───────────
+const MAX_VIDEO_BYTES = 15 * 1024 * 1024; // 15 MB
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+
+/**
+ * Upload a short video for a stop (replaces any existing one). Duration is
+ * validated in the browser before this runs; we re-check size and type here.
+ * The tour always plays it muted and looping, so it is silent by design.
+ */
+export async function uploadStopVideo(formData: FormData) {
+  const file = formData.get('file') as File | null;
+  const stopId = String(formData.get('stopId') ?? '');
+  const citySlug = String(formData.get('citySlug') ?? '');
+
+  if (!file || file.size === 0) {
+    return { ok: false as const, error: 'No file selected.' };
+  }
+  if (!stopId || !citySlug) {
+    return { ok: false as const, error: 'Missing stop or city identifier.' };
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    return {
+      ok: false as const,
+      error: `Video is too large. Max 15 MB (yours is ${(file.size / 1024 / 1024).toFixed(1)} MB). Try a shorter or more compressed clip.`,
+    };
+  }
+  if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+    return { ok: false as const, error: 'Use MP4, WebM, or MOV.' };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
+
+  const admin = createAdminClient();
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : 'mp4';
+  const path = `${citySlug}/${stopId}-${Date.now()}.${safeExt}`;
+
+  const { data: existingStop } = await admin
+    .from('stops')
+    .select('video_url, city_id')
+    .eq('id', stopId)
+    .single();
+
+  const { error: uploadErr } = await admin.storage
+    .from('stop-videos')
+    .upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' });
+  if (uploadErr) {
+    return { ok: false as const, error: `Upload failed: ${uploadErr.message}` };
+  }
+
+  const { data: pub } = admin.storage.from('stop-videos').getPublicUrl(path);
+  const publicUrl = pub.publicUrl;
+
+  const { error: updateErr } = await admin
+    .from('stops')
+    .update({ video_url: publicUrl })
+    .eq('id', stopId);
+  if (updateErr) {
+    await admin.storage.from('stop-videos').remove([path]);
+    return { ok: false as const, error: `DB write failed: ${updateErr.message}` };
+  }
+
+  if (existingStop?.video_url) {
+    const oldPath = extractStoragePath(existingStop.video_url, 'stop-videos');
+    if (oldPath && oldPath !== path) {
+      await admin.storage.from('stop-videos').remove([oldPath]);
+    }
+  }
+
+  if (existingStop?.city_id) {
+    await admin
+      .from('cities')
+      .update({ draft_updated_at: new Date().toISOString() })
+      .eq('id', existingStop.city_id);
+  }
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/stops/${stopId}`);
+  return { ok: true as const, url: publicUrl };
+}
+
+/** Remove a stop's video and delete the file. */
+export async function removeStopVideo(stopId: string, citySlug: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: 'Not authenticated.' };
+
+  const admin = createAdminClient();
+
+  const { data: stop } = await admin
+    .from('stops')
+    .select('video_url, city_id')
+    .eq('id', stopId)
+    .single();
+
+  if (stop?.video_url) {
+    const path = extractStoragePath(stop.video_url, 'stop-videos');
+    if (path) await admin.storage.from('stop-videos').remove([path]);
+  }
+
+  const { error } = await admin
+    .from('stops')
+    .update({ video_url: null })
+    .eq('id', stopId);
+  if (error) return { ok: false as const, error: error.message };
+
+  if (stop?.city_id) {
+    await admin
+      .from('cities')
+      .update({ draft_updated_at: new Date().toISOString() })
+      .eq('id', stop.city_id);
+  }
+
+  revalidatePath(`/dashboard/${citySlug}`);
+  revalidatePath(`/dashboard/${citySlug}/stops/${stopId}`);
+  return { ok: true as const };
 }
