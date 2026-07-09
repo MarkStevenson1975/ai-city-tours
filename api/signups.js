@@ -201,6 +201,29 @@ function summarise(cities, profiles, guest, userTours) {
     .filter((x) => x.total7 > 0)
     .sort((a, b) => b.total7 - a.total7);
 
+  // Same per-tour breakdown for the last 24 hours (guests from guest_stats
+  // by_area unique_devices_24h; signed-in from user_tours first_visited_at).
+  const acct24BySlug = {};
+  uts.filter((u) => ms(u.first_visited_at) >= t24).forEach((u) => {
+    (acct24BySlug[u.city_slug] = acct24BySlug[u.city_slug] || new Set()).add(u.user_id);
+  });
+  const slugs24 = new Set([...byArea.map((a) => a.city), ...Object.keys(acct24BySlug)]);
+  const accessed24 = [...slugs24]
+    .map((slug) => {
+      const area = byArea.find((a) => a.city === slug) || {};
+      const guest24 = area.unique_devices_24h || 0;
+      const acct24 = acct24BySlug[slug] ? acct24BySlug[slug].size : 0;
+      return {
+        slug,
+        name: nameBySlug[slug] || slug,
+        guest24,
+        acct24,
+        total24: guest24 + acct24,
+      };
+    })
+    .filter((x) => x.total24 > 0)
+    .sort((a, b) => b.total24 - a.total24);
+
   return {
     generated_at: new Date().toISOString(),
     last_24h: { new_operators: newOperators24, new_tours: newTours24 },
@@ -219,6 +242,7 @@ function summarise(cities, profiles, guest, userTours) {
       guest: guestUsage,
       account: accountUsage,
       accessed,
+      accessed24,
     },
   };
 }
@@ -328,6 +352,20 @@ function toEmailHtml(stats) {
     accessedRows = `<tr><td ${td} colspan="4" style="padding:16px;color:#777;font-size:14px;">No tours accessed by visitors in the last 7 days.</td></tr>`;
   }
 
+  let accessed24Rows = (u.accessed24 || [])
+    .map(
+      (a) => `<tr>
+        <td ${td}>${esc(a.name)}<br><span style="color:#999;font-size:12px;">/${esc(a.slug)}</span></td>
+        <td ${td}>${esc(a.guest24)}</td>
+        <td ${td}>${esc(a.acct24)}</td>
+        <td ${td}><strong>${esc(a.total24)}</strong></td>
+      </tr>`
+    )
+    .join('');
+  if (!accessed24Rows) {
+    accessed24Rows = `<tr><td ${td} colspan="4" style="padding:16px;color:#777;font-size:14px;">No tours accessed by visitors in the last 24 hours.</td></tr>`;
+  }
+
   return `<!doctype html><html><body style="margin:0;padding:0;background:#F5F0E8;">
   <div style="max-width:660px;margin:0 auto;padding:24px;font-family:Arial,Helvetica,sans-serif;">
     <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
@@ -380,6 +418,17 @@ function toEmailHtml(stats) {
           ${tile(gu.all || 0, 'guest visitors')}
           ${tile(au.all || 0, 'signed-in visitors')}
         </div>
+
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Tours accessed by visitors (last 24 hours)</div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;margin-bottom:22px;">
+          <thead><tr>
+            <th ${th}>Tour</th>
+            <th ${th}>Guests</th>
+            <th ${th}>Signed in</th>
+            <th ${th}>Total</th>
+          </tr></thead>
+          <tbody>${accessed24Rows}</tbody>
+        </table>
 
         <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Tours accessed by visitors (last 7 days)</div>
         <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;margin-bottom:22px;">
