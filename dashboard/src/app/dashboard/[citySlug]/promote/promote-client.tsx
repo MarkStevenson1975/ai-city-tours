@@ -180,6 +180,84 @@ ${attrBlock}
 </svg>`;
 }
 
+// A4 poster (420x594 viewBox = A4 ratio) led by a full-bleed hero photo, with a
+// bold green banner across the bottom. Big impact from a distance. Falls back to
+// a solid green background if no hero image is set.
+function buildLandmarkPosterSvg(p: Props): string {
+  const cream = p.colorBackground;
+  const forest = p.colorPrimary;
+  const accent = p.colorAccent;
+  const head1 = `${p.cityName} has`;
+  const head2 = 'a story.';
+  const maxLen = Math.max(head1.length, head2.length);
+  const headSize = Math.max(20, Math.min(34, Math.floor(250 / (maxLen * 0.55))));
+  const bandTop = 410;
+  const hasPhoto = Boolean(p.stopImageDataUrl);
+  const bg = hasPhoto
+    ? `<image href="${p.stopImageDataUrl}" x="0" y="0" width="420" height="594" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect x="0" y="0" width="420" height="594" fill="${forest}"/>`;
+  const attr = (p.attribution || '').trim();
+  const attrShown = attr.length > 46 ? attr.slice(0, 44) + '…' : attr;
+  const attrLine = attr
+    ? `<text x="28" y="562" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="${cream}" opacity="0.8">${escapeXml(attrShown)}</text>`
+    : '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 420 594" role="img" aria-label="Landmark poster for the ${escapeXml(p.cityName)} tour">
+${bg}
+<rect x="0" y="0" width="420" height="72" fill="${forest}" opacity="0.35"/>
+<text x="210" y="42" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" letter-spacing="3" fill="${cream}">STORIED &#183; ${escapeXml(p.cityName.toUpperCase())}</text>
+<rect x="0" y="${bandTop}" width="420" height="${594 - bandTop}" fill="${forest}"/>
+<text x="28" y="${bandTop + 46}" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">${escapeXml(head1)}</text>
+<text x="28" y="${bandTop + 46 + headSize + 6}" font-family="Georgia, serif" font-size="${headSize}" fill="${cream}">${escapeXml(head2)}</text>
+<text x="28" y="${bandTop + 46 + headSize + 6 + 30}" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="bold" fill="${accent}">Scan to walk it. It's free.</text>
+${attrLine}
+<rect x="286" y="${bandTop + 20}" width="112" height="112" rx="6" fill="#ffffff"/>
+<image href="${p.qrDataUrl}" x="296" y="${bandTop + 30}" width="92" height="92"/>
+</svg>`;
+}
+
+// A4 poster (420x594) with a curiosity hook headline, big QR, and a hand-drawn
+// walking route with stop pins on the right. Cream background, high contrast.
+function buildCuriosityPosterSvg(p: Props): string {
+  const cream = p.colorBackground;
+  const forest = p.colorPrimary;
+  const accent = p.colorAccent;
+  const line1 = p.cityName;
+  const line2 = 'is hiding';
+  const line3 = 'something.';
+  const maxLen = Math.max(line1.length, line2.length, line3.length);
+  const headSize = Math.max(28, Math.min(44, Math.floor(320 / (maxLen * 0.56))));
+  const lh = headSize + 6;
+  const h1y = 176;
+  const h2y = h1y + lh;
+  const h3y = h1y + lh * 2;
+  const drop = 'M0 0 C -4.3 -6.6 -4.3 -10.5 0 -10.5 C 4.3 -10.5 4.3 -6.6 0 0 Z';
+  const pin = (x: number, y: number, s: number, fill: string) =>
+    `<g transform="translate(${x} ${y}) scale(${s})"><path d="${drop}" fill="${fill}"/><circle cx="0" cy="-6.6" r="1.4" fill="${cream}"/></g>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 420 594" role="img" aria-label="Curiosity poster for the ${escapeXml(p.cityName)} tour">
+<rect x="0" y="0" width="420" height="594" fill="${cream}"/>
+<rect x="14" y="14" width="392" height="566" fill="none" stroke="${forest}" stroke-width="1" opacity="0.3"/>
+<text x="40" y="72" font-family="Helvetica, Arial, sans-serif" font-size="13" letter-spacing="3" font-weight="bold" fill="${accent}">STORIED &#183; ${escapeXml(p.cityName.toUpperCase())}</text>
+<text x="40" y="${h1y}" font-family="Georgia, serif" font-size="${headSize}" fill="${forest}">${escapeXml(line1)}</text>
+<text x="40" y="${h2y}" font-family="Georgia, serif" font-size="${headSize}" fill="${forest}">${escapeXml(line2)}</text>
+<text x="40" y="${h3y}" font-family="Georgia, serif" font-size="${headSize}" fill="${accent}">${escapeXml(line3)}</text>
+<text x="40" y="${h3y + 44}" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="${forest}">Discover it on a free</text>
+<text x="40" y="${h3y + 68}" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="${forest}">guided walking tour.</text>
+<rect x="40" y="436" width="130" height="130" rx="8" fill="${forest}"/>
+<image href="${p.qrDataUrl}" x="52" y="448" width="106" height="106"/>
+<text x="188" y="496" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="bold" fill="${forest}">&#8592; Scan to</text>
+<text x="188" y="520" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="bold" fill="${forest}">begin</text>
+<path d="M348 560 C 300 520 306 464 348 442 C 392 420 392 362 348 336 C 306 312 306 260 348 236 C 392 212 388 172 352 142" fill="none" stroke="${accent}" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="8 8" opacity="0.8"/>
+<circle cx="348" cy="560" r="6" fill="none" stroke="${accent}" stroke-width="3"/>
+<circle cx="348" cy="560" r="2" fill="${accent}"/>
+${pin(348, 442, 2.1, accent)}
+${pin(348, 336, 2.1, accent)}
+${pin(348, 236, 2.1, accent)}
+${pin(352, 142, 3, forest)}
+</svg>`;
+}
+
 function renderCanvas(svg: string, width: number, height: number): Promise<HTMLCanvasElement> {
   return new Promise((resolve, reject) => {
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
@@ -216,8 +294,24 @@ function triggerDownload(href: string, filename: string) {
   a.remove();
 }
 
+type PosterStyle = 'classic' | 'landmark' | 'curiosity';
+const POSTER_STYLES: { key: PosterStyle; label: string; hint: string }[] = [
+  { key: 'classic', label: 'Classic', hint: 'Info-led, QR front and centre. Best for windows and notices.' },
+  { key: 'landmark', label: 'Landmark', hint: 'Big photo, bold banner. Best for A-boards, hotels, cafes.' },
+  { key: 'curiosity', label: 'Curiosity', hint: 'A hook that makes people stop and scan. Best for info centres.' },
+];
+
 export function PromoteClient(props: Props) {
-  const posterSvg = useMemo(() => buildPosterSvg(props), [props]);
+  const posterSvgs = useMemo(
+    () => ({
+      classic: buildPosterSvg(props),
+      landmark: buildLandmarkPosterSvg(props),
+      curiosity: buildCuriosityPosterSvg(props),
+    }),
+    [props]
+  );
+  const [posterStyle, setPosterStyle] = useState<PosterStyle>('classic');
+  const posterSvg = posterSvgs[posterStyle];
   const socialSvgs = useMemo(() => {
     const m: Record<string, string> = {};
     for (const f of SOCIAL_FORMATS) m[f.key] = buildSocialSvg(props, f.w, f.h);
@@ -265,7 +359,7 @@ export function PromoteClient(props: Props) {
       const { jsPDF } = await import('jspdf');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
-      pdf.save(`${props.citySlug}-storied-poster.pdf`);
+      pdf.save(`${props.citySlug}-storied-poster-${posterStyle}.pdf`);
     } catch (e) {
       setPosterError(e instanceof Error ? e.message : 'Could not build the PDF.');
     } finally {
@@ -284,7 +378,7 @@ export function PromoteClient(props: Props) {
           return;
         }
         const url = URL.createObjectURL(blob);
-        triggerDownload(url, `${props.citySlug}-storied-poster.png`);
+        triggerDownload(url, `${props.citySlug}-storied-poster-${posterStyle}.png`);
         setTimeout(() => URL.revokeObjectURL(url), 4000);
       }, 'image/png');
     } catch (e) {
@@ -359,6 +453,25 @@ export function PromoteClient(props: Props) {
             A4, print-ready. The PDF is best for printing and windows. The PNG is
             a high-resolution image, handy if a sign-maker is putting it onto
             metal lamppost plates.
+          </p>
+          <div className="flex gap-2 mb-2">
+            {POSTER_STYLES.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setPosterStyle(s.key)}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${
+                  posterStyle === s.key
+                    ? 'bg-primary text-cream'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mb-4">
+            {POSTER_STYLES.find((s) => s.key === posterStyle)?.hint}
           </p>
           <div
             className="rounded-lg overflow-hidden border border-gray-200 mx-auto mb-5"
