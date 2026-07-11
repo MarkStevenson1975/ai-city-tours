@@ -69,6 +69,12 @@ export default async function DashboardLayout({
                 Operators
               </Link>
               <Link
+                href="/dashboard/admin/kanban"
+                className="block px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                Kanban
+              </Link>
+              <Link
                 href="/dashboard/admin/ai-usage"
                 className="block px-3 py-2 rounded hover:bg-white/10 transition"
               >
