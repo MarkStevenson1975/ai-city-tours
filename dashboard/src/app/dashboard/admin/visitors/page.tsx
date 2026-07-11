@@ -78,12 +78,18 @@ export default async function AdminVisitorsPage() {
     userId: null,
   }));
 
-  // Most recently active first, across both kinds
-  const rows = [...registeredRows, ...guestRows].sort((a, b) => {
-    const aT = new Date(a.lastActive ?? a.firstSeen).getTime();
-    const bT = new Date(b.lastActive ?? b.firstSeen).getTime();
-    return bT - aT;
-  });
+  // Only visitors seen in the last 14 days, most recently active first
+  const WINDOW_DAYS = 14;
+  const cutoff = Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  const rows = [...registeredRows, ...guestRows]
+    .filter(
+      (r) => new Date(r.lastActive ?? r.firstSeen).getTime() >= cutoff
+    )
+    .sort((a, b) => {
+      const aT = new Date(a.lastActive ?? a.firstSeen).getTime();
+      const bT = new Date(b.lastActive ?? b.firstSeen).getTime();
+      return bT - aT;
+    });
 
   const allCities = new Set(rows.flatMap((r) => r.cities));
 
@@ -93,9 +99,12 @@ export default async function AdminVisitorsPage() {
         Admin
       </p>
       <h1 className="text-4xl font-semibold mb-2">Visitors</h1>
-      <p className="text-sm text-gray-500 mb-8">
+      <p className="text-sm text-gray-500 mb-2">
         Every tourist across all areas — registered accounts and anonymous
         guests. Not shared with operators — they receive anonymised KPIs only.
+      </p>
+      <p className="text-sm font-bold text-primary mb-8">
+        Showing the last {WINDOW_DAYS} days of activity only.
       </p>
 
       {error && (
@@ -110,8 +119,14 @@ export default async function AdminVisitorsPage() {
       )}
 
       <div className="grid grid-cols-4 gap-4 mb-10">
-        <KpiCard label="Registered visitors" value={registeredRows.length} />
-        <KpiCard label="Guest visitors" value={guestRows.length} />
+        <KpiCard
+          label="Registered visitors"
+          value={rows.filter((r) => r.kind === 'registered').length}
+        />
+        <KpiCard
+          label="Guest visitors"
+          value={rows.filter((r) => r.kind === 'guest').length}
+        />
         <KpiCard
           label="Multi-city visitors"
           value={rows.filter((r) => r.cities.length > 1).length}
@@ -138,7 +153,7 @@ export default async function AdminVisitorsPage() {
                   colSpan={6}
                   className="px-6 py-10 text-center text-gray-400 italic"
                 >
-                  No visitors yet.
+                  No visitor activity in the last {WINDOW_DAYS} days.
                 </td>
               </tr>
             ) : (
@@ -234,9 +249,10 @@ export default async function AdminVisitorsPage() {
       </div>
 
       <p className="text-xs text-gray-400 mt-4">
-        Data is live from Supabase. Refresh the page to update. Guests are
-        anonymous devices using a tour without an account; our own test devices
-        are excluded.
+        Data is live from Supabase, limited to visitors active in the last{' '}
+        {WINDOW_DAYS} days. Refresh the page to update. Guests are anonymous
+        devices using a tour without an account; our own test devices are
+        excluded.
       </p>
     </div>
   );
