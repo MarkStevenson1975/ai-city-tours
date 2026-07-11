@@ -70,12 +70,17 @@ function Tile({ card, onClick }: { card: OperatorCard; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left bg-cream/60 hover:bg-cream rounded-lg p-3 text-xs space-y-1 transition cursor-pointer"
+      className="w-full text-left bg-primary hover:bg-primary/90 rounded-lg p-3 text-xs space-y-1 transition cursor-pointer shadow-sm"
     >
-      <p className="font-mono text-gray-700 truncate" title={card.email}>
+      <p className="font-mono text-cream truncate" title={card.email}>
         {card.email}
       </p>
-      {card.displayName && <p className="text-gray-600">{card.displayName}</p>}
+      {card.displayName && <p className="text-cream/90">{card.displayName}</p>}
+      {card.organisation && (
+        <p className="text-accent font-bold uppercase tracking-wide text-[10px]">
+          {card.organisation}
+        </p>
+      )}
       <div className="flex flex-wrap gap-1">
         {card.badge && (
           <span className="inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
@@ -85,15 +90,18 @@ function Tile({ card, onClick }: { card: OperatorCard; onClick: () => void }) {
         {card.areaNames.map((a) => (
           <span
             key={a}
-            className="inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/10 text-primary"
+            className="inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-cream/15 text-cream"
           >
             {a}
           </span>
         ))}
       </div>
-      {card.note && <p className="text-gray-400">{card.note}</p>}
+      {card.note && <p className="text-cream/70">{card.note}</p>}
+      {card.stageSince && (
+        <p className="text-[10px] text-cream/60">Entered {card.stageSince}</p>
+      )}
       {card.notes.length > 0 && (
-        <p className="text-[10px] text-gray-400">
+        <p className="text-[10px] text-cream/60">
           {card.notes.length} note{card.notes.length === 1 ? '' : 's'} · last{' '}
           {new Date(card.notes[0].createdAt).toLocaleDateString('en-GB', {
             day: 'numeric',
@@ -166,6 +174,11 @@ function OperatorModal({
               {card.displayName && (
                 <p className="text-sm text-gray-600 mt-0.5">{card.displayName}</p>
               )}
+              {card.organisation && (
+                <p className="text-xs text-primary font-bold uppercase tracking-wide mt-0.5">
+                  {card.organisation}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -196,6 +209,7 @@ function OperatorModal({
           </div>
           <p className="text-xs text-gray-400 mt-2">
             {card.signedUpAt ? `Signed up ${card.signedUpAt}` : ''}
+            {card.stageSince ? ` · In this stage since ${card.stageSince}` : ''}
             {card.note ? ` · ${card.note}` : ''}
           </p>
         </div>

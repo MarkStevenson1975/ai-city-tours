@@ -20,6 +20,17 @@ function fmtDate(iso: string | null | undefined): string | null {
   });
 }
 
+function fmtDateTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default async function AdminKanbanPage({
   searchParams,
 }: {
@@ -48,7 +59,7 @@ export default async function AdminKanbanPage({
   const { data: profiles } = await admin
     .from('user_profiles')
     .select(
-      'id, role, display_name, subscription_status, plan_tier, pause_resume_at, subscription_current_period_end, checkout_started_at, kanban_hidden_at'
+      'id, role, display_name, subscription_status, plan_tier, pause_resume_at, subscription_current_period_end, checkout_started_at, kanban_hidden_at, kanban_stage, kanban_stage_since'
     )
     .eq('role', 'operator');
 
@@ -65,7 +76,7 @@ export default async function AdminKanbanPage({
   // still count as "created a tour".
   const { data: ownedCities } = await admin
     .from('cities')
-    .select('created_by, name')
+    .select('created_by, name, created_at')
     .in('created_by', operatorIds.length ? operatorIds : ['00000000-0000-0000-0000-000000000000']);
 
   const { data: assignments } = await admin
@@ -74,10 +85,15 @@ export default async function AdminKanbanPage({
     .in('user_id', operatorIds.length ? operatorIds : ['00000000-0000-0000-0000-000000000000']);
 
   const areasByUser = new Map<string, Set<string>>();
+  const firstTourAt = new Map<string, string>(); // earliest tour creation per user
   (ownedCities ?? []).forEach((c) => {
     if (!c.created_by) return;
     if (!areasByUser.has(c.created_by)) areasByUser.set(c.created_by, new Set());
     areasByUser.get(c.created_by)!.add(c.name);
+    const prev = firstTourAt.get(c.created_by);
+    if (c.created_at && (!prev || c.created_at < prev)) {
+      firstTourAt.set(c.created_by, c.created_at);
+    }
   });
   (assignments ?? []).forEach((a) => {
     const raw = a.cities;
@@ -106,7 +122,8 @@ export default async function AdminKanbanPage({
   });
 
   // Classify each operator into exactly one column — furthest stage wins.
-  const cards: OperatorCard[] = (profiles ?? []).map((p) => {
+  const cards: OperatorCard[] = [];
+  for (const p of profiles ?? []) {
     const auth = authMap.get(p.id);
     const areas = Array.from(areasByUser.get(p.id) ?? []);
     const hasTour = areas.length > 0;
@@ -146,11 +163,46 @@ export default async function AdminKanbanPage({
       column = 'registered';
     }
 
-    return {
+    // Stage-entry tracking. If the stored stage differs from the live one,
+    // record the change. On first sight of an operator we backfill a
+    // best-effort entry date from what we already know about that stage.
+    let stageSince: string | null = p.kanban_stage_since ?? null;
+    if (p.kanban_stage !== column) {
+      let entered: string | null = null;
+      if (!p.kanban_stage) {
+        // First classification — derive where possible.
+        if (column === 'registered') entered = auth?.created_at ?? null;
+        else if (column === 'no_tour') entered = auth?.email_confirmed_at ?? null;
+        else if (column === 'tour_created') entered = firstTourAt.get(p.id) ?? null;
+        else if (column === 'stripe_abandoned') entered = p.checkout_started_at ?? null;
+        else if (column === 'in_trial' && p.subscription_current_period_end) {
+          // 7-day trial: entry is roughly period end minus 7 days.
+          entered = new Date(
+            new Date(p.subscription_current_period_end).getTime() - 7 * 24 * 60 * 60 * 1000
+          ).toISOString();
+        }
+      }
+      entered = entered ?? new Date().toISOString();
+      await admin
+        .from('user_profiles')
+        .update({ kanban_stage: column, kanban_stage_since: entered })
+        .eq('id', p.id);
+      stageSince = entered;
+    }
+
+    const organisation =
+      typeof auth?.user_metadata?.organisation === 'string' &&
+      auth.user_metadata.organisation.trim()
+        ? auth.user_metadata.organisation.trim()
+        : null;
+
+    cards.push({
       id: p.id,
       email: auth?.email ?? 'unknown',
       displayName: p.display_name,
+      organisation,
       signedUpAt: auth?.created_at ? fmtDate(auth.created_at) : null,
+      stageSince: fmtDateTime(stageSince),
       areaNames: areas,
       note,
       badge,
@@ -158,8 +210,8 @@ export default async function AdminKanbanPage({
       columnTitle: COLUMN_TITLES[column],
       hidden: Boolean(p.kanban_hidden_at),
       notes: notesByUser.get(p.id) ?? [],
-    };
-  });
+    });
+  }
 
   const visible = cards.filter((c) => !c.hidden);
   const hidden = cards.filter((c) => c.hidden);

@@ -23,7 +23,9 @@ export type OperatorCard = {
   id: string; // auth user id
   email: string;
   displayName: string | null;
-  signedUpAt: string | null; // ISO date
+  organisation: string | null; // captured at signup, e.g. Tourist Information
+  signedUpAt: string | null; // formatted date
+  stageSince: string | null; // formatted date + time they entered this column
   areaNames: string[]; // tour areas, if any
   note: string | null; // stage-specific detail, e.g. trial end date
   badge: string | null; // short status badge, e.g. Paused
