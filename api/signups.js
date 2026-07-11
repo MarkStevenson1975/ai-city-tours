@@ -105,19 +105,11 @@ async function fetchGuestStats(url, headers) {
 function summarise(cities, profiles, guest, userTours) {
   const now = Date.now();
   const t24 = now - 24 * 60 * 60 * 1000;
-  const t7 = now - 7 * 24 * 60 * 60 * 1000;
-  const t14 = now - 14 * 24 * 60 * 60 * 1000;
   const ms = (d) => (d ? new Date(d).getTime() : 0);
-
-  const profileById = {};
-  (profiles || []).forEach((p) => {
-    profileById[p.id] = p;
-  });
 
   // Operators = self-serve accounts (exclude admin).
   const operators = (profiles || []).filter((p) => p.role !== 'admin');
   const newOperators24 = operators.filter((p) => ms(p.created_at) >= t24).length;
-  const newOperators7 = operators.filter((p) => ms(p.created_at) >= t7).length;
   const onTrial = operators.filter((p) => p.subscription_status === 'trialing').length;
   const paying = operators.filter((p) => p.subscription_status === 'active').length;
 
@@ -130,27 +122,11 @@ function summarise(cities, profiles, guest, userTours) {
   };
   const active = (cities || []).filter((c) => !c.deleted_at);
   const newTours24 = active.filter((c) => ms(c.created_at) >= t24).length;
-  const newTours7 = active.filter((c) => ms(c.created_at) >= t7).length;
   const liveTours = active.filter((c) => liveStatus(c) === 'Live').length;
   const draftTours = active.filter((c) => liveStatus(c) === 'Draft').length;
 
-  const recentTours = (cities || [])
-    .filter((c) => ms(c.created_at) >= t14)
-    .map((c) => {
-      const op = c.created_by ? profileById[c.created_by] : null;
-      return {
-        name: c.name,
-        slug: c.slug,
-        operator: c.operator_name || (op && op.display_name) || '—',
-        created_at: c.created_at,
-        status: liveStatus(c),
-        plan: c.plan_tier || (op && op.plan_tier) || '—',
-        subscription: (op && op.subscription_status) || c.subscription_status || 'none',
-      };
-    });
-
   const recentOperators = operators
-    .filter((p) => ms(p.created_at) >= t14)
+    .filter((p) => ms(p.created_at) >= t24)
     .map((p) => ({
       name: p.display_name || 'Operator',
       created_at: p.created_at,
@@ -163,7 +139,6 @@ function summarise(cities, profiles, guest, userTours) {
   const gTot = g.totals || {};
   const guestUsage = {
     t24: (g.last_24h && g.last_24h.unique_devices) || 0,
-    t7: g.unique_devices_7d || 0,
     all: gTot.unique_devices || 0,
   };
 
@@ -171,38 +146,14 @@ function summarise(cities, profiles, guest, userTours) {
   const distinct = (rows) => new Set(rows.map((u) => u.user_id)).size;
   const accountUsage = {
     t24: distinct(uts.filter((u) => ms(u.first_visited_at) >= t24)),
-    t7: distinct(uts.filter((u) => ms(u.first_visited_at) >= t7)),
     all: distinct(uts),
   };
 
-  // Per-tour visitors in the last 7 days: guests (from guest_stats by_area)
-  // plus signed-in accounts (from user_tours first_visited_at).
+  // Per-tour visitors in the last 24 hours (guests from guest_stats
+  // by_area unique_devices_24h; signed-in from user_tours first_visited_at).
   const nameBySlug = {};
   (cities || []).forEach((c) => { nameBySlug[c.slug] = c.name; });
   const byArea = Array.isArray(g.by_area) ? g.by_area : [];
-  const acct7BySlug = {};
-  uts.filter((u) => ms(u.first_visited_at) >= t7).forEach((u) => {
-    (acct7BySlug[u.city_slug] = acct7BySlug[u.city_slug] || new Set()).add(u.user_id);
-  });
-  const slugs = new Set([...byArea.map((a) => a.city), ...Object.keys(acct7BySlug)]);
-  const accessed = [...slugs]
-    .map((slug) => {
-      const area = byArea.find((a) => a.city === slug) || {};
-      const guest7 = area.unique_devices_7d || 0;
-      const acct7 = acct7BySlug[slug] ? acct7BySlug[slug].size : 0;
-      return {
-        slug,
-        name: nameBySlug[slug] || slug,
-        guest7,
-        acct7,
-        total7: guest7 + acct7,
-      };
-    })
-    .filter((x) => x.total7 > 0)
-    .sort((a, b) => b.total7 - a.total7);
-
-  // Same per-tour breakdown for the last 24 hours (guests from guest_stats
-  // by_area unique_devices_24h; signed-in from user_tours first_visited_at).
   const acct24BySlug = {};
   uts.filter((u) => ms(u.first_visited_at) >= t24).forEach((u) => {
     (acct24BySlug[u.city_slug] = acct24BySlug[u.city_slug] || new Set()).add(u.user_id);
@@ -227,7 +178,6 @@ function summarise(cities, profiles, guest, userTours) {
   return {
     generated_at: new Date().toISOString(),
     last_24h: { new_operators: newOperators24, new_tours: newTours24 },
-    last_7d: { new_operators: newOperators7, new_tours: newTours7 },
     totals: {
       operators: operators.length,
       on_trial: onTrial,
@@ -236,12 +186,10 @@ function summarise(cities, profiles, guest, userTours) {
       live_tours: liveTours,
       draft_tours: draftTours,
     },
-    recent_tours: recentTours,
     recent_operators: recentOperators,
     usage: {
       guest: guestUsage,
       account: accountUsage,
-      accessed,
       accessed24,
     },
   };
@@ -259,17 +207,6 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'short', timeZone: 'Europe/London',
   });
-}
-
-function statusPill(status) {
-  const map = {
-    Live: ['#1B4332', '#E3EFE7'],
-    Offline: ['#8a6d00', '#FBF3D6'],
-    Draft: ['#555', '#ECECEC'],
-    Archived: ['#8a2b2b', '#F6E2E2'],
-  };
-  const [fg, bg] = map[status] || ['#555', '#ECECEC'];
-  return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;color:${fg};background:${bg};">${esc(status)}</span>`;
 }
 
 function subPill(sub) {
@@ -303,22 +240,6 @@ function toEmailHtml(stats) {
       <span style="color:#555;font-size:12px;">${esc(label)}</span>
     </span>`;
 
-  let tourRows = (stats.recent_tours || [])
-    .map(
-      (r) => `<tr>
-        <td ${td}>${esc(r.name)}<br><span style="color:#999;font-size:12px;">/${esc(r.slug)}</span></td>
-        <td ${td}>${esc(r.operator)}</td>
-        <td ${td} style="padding:8px 10px;border-bottom:1px solid ${border};font-size:13px;color:#555;">${esc(fmtDate(r.created_at))}</td>
-        <td ${td}>${statusPill(r.status)}</td>
-        <td ${td}>${esc(r.plan === '—' ? '—' : r.plan.charAt(0).toUpperCase() + r.plan.slice(1))}</td>
-        <td ${td}>${subPill(r.subscription)}</td>
-      </tr>`
-    )
-    .join('');
-  if (!tourRows) {
-    tourRows = `<tr><td ${td} colspan="6" style="padding:16px;color:#777;font-size:14px;">No new tours created in the last 14 days.</td></tr>`;
-  }
-
   let opRows = (stats.recent_operators || [])
     .map(
       (o) => `<tr>
@@ -330,27 +251,14 @@ function toEmailHtml(stats) {
     )
     .join('');
   if (!opRows) {
-    opRows = `<tr><td ${td} colspan="4" style="padding:16px;color:#777;font-size:14px;">No new operator accounts in the last 14 days.</td></tr>`;
+    opRows = `<tr><td ${td} colspan="4" style="padding:16px;color:#777;font-size:14px;">No new operator accounts in the last 24 hours.</td></tr>`;
   }
 
   const tot = stats.totals || {};
 
   const u = stats.usage || {};
-  const gu = u.guest || { t24: 0, t7: 0, all: 0 };
-  const au = u.account || { t24: 0, t7: 0, all: 0 };
-  let accessedRows = (u.accessed || [])
-    .map(
-      (a) => `<tr>
-        <td ${td}>${esc(a.name)}<br><span style="color:#999;font-size:12px;">/${esc(a.slug)}</span></td>
-        <td ${td}>${esc(a.guest7)}</td>
-        <td ${td}>${esc(a.acct7)}</td>
-        <td ${td}><strong>${esc(a.total7)}</strong></td>
-      </tr>`
-    )
-    .join('');
-  if (!accessedRows) {
-    accessedRows = `<tr><td ${td} colspan="4" style="padding:16px;color:#777;font-size:14px;">No tours accessed by visitors in the last 7 days.</td></tr>`;
-  }
+  const gu = u.guest || { t24: 0, all: 0 };
+  const au = u.account || { t24: 0, all: 0 };
 
   let accessed24Rows = (u.accessed24 || [])
     .map(
@@ -383,12 +291,6 @@ function toEmailHtml(stats) {
           ${tile(stats.last_24h.new_tours || 0, 'new tours')}
         </div>
 
-        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Last 7 days</div>
-        <div style="margin-bottom:14px;">
-          ${tile(stats.last_7d.new_operators || 0, 'new operators')}
-          ${tile(stats.last_7d.new_tours || 0, 'new tours')}
-        </div>
-
         <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">All time</div>
         <div style="margin-bottom:22px;">
           ${tile(tot.operators || 0, 'operators')}
@@ -408,11 +310,6 @@ function toEmailHtml(stats) {
           ${tile(gu.t24 || 0, 'guest visitors')}
           ${tile(au.t24 || 0, 'signed-in visitors')}
         </div>
-        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Last 7 days</div>
-        <div style="margin-bottom:14px;">
-          ${tile(gu.t7 || 0, 'guest visitors')}
-          ${tile(au.t7 || 0, 'signed-in visitors')}
-        </div>
         <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">All time</div>
         <div style="margin-bottom:18px;">
           ${tile(gu.all || 0, 'guest visitors')}
@@ -430,32 +327,8 @@ function toEmailHtml(stats) {
           <tbody>${accessed24Rows}</tbody>
         </table>
 
-        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Tours accessed by visitors (last 7 days)</div>
-        <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;margin-bottom:22px;">
-          <thead><tr>
-            <th ${th}>Tour</th>
-            <th ${th}>Guests</th>
-            <th ${th}>Signed in</th>
-            <th ${th}>Total</th>
-          </tr></thead>
-          <tbody>${accessedRows}</tbody>
-        </table>
-
         <div style="height:1px;background:${border};margin:0 0 20px;"></div>
-        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">New tours (last 14 days)</div>
-        <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;margin-bottom:22px;">
-          <thead><tr>
-            <th ${th}>Tour</th>
-            <th ${th}>Operator</th>
-            <th ${th}>Created</th>
-            <th ${th}>Status</th>
-            <th ${th}>Plan</th>
-            <th ${th}>Subscription</th>
-          </tr></thead>
-          <tbody>${tourRows}</tbody>
-        </table>
-
-        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">New operator accounts (last 14 days)</div>
+        <div style="font-size:13px;font-weight:bold;color:${green};text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">New operator accounts (last 24 hours)</div>
         <table style="width:100%;border-collapse:collapse;border:1px solid ${border};border-radius:8px;overflow:hidden;">
           <thead><tr>
             <th ${th}>Operator</th>
@@ -467,7 +340,7 @@ function toEmailHtml(stats) {
         </table>
 
         <p style="margin:16px 0 0;font-size:12px;color:#888;">
-          Operators are self-serve accounts (admins excluded). "Live" means the tour is published and public; "Offline" was published then unpublished; "Draft" has never been published; "Archived" was deleted.
+          Operators are self-serve accounts (admins excluded).
         </p>
       </div>
     </div>
