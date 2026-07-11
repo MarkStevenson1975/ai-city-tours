@@ -103,10 +103,28 @@
   // If this browser is one of ours, record nothing at all.
   var SUPPRESS = isInternal();
 
+  // Mirror every journey event into Google Analytics 4 so GA shows the same
+  // funnel as our own guest_events table. gtag is loaded by analytics.js on
+  // every tour page; if it is missing or blocked this quietly does nothing.
+  function sendGA(event, opts) {
+    try {
+      if (typeof window.gtag !== 'function') return;
+      opts = opts || {};
+      var params = { city: SLUG };
+      if (opts.stopId != null) params.stop_id = String(opts.stopId);
+      if (opts.meta && opts.meta.name) {
+        if (event.indexOf('sponsor') === 0) params.sponsor_name = String(opts.meta.name).slice(0, 100);
+        else params.stop_name = String(opts.meta.name).slice(0, 100);
+      }
+      window.gtag('event', event, params);
+    } catch (e) {}
+  }
+
   function send(event, opts) {
     if (SUPPRESS) return;
     try {
       opts = opts || {};
+      sendGA(event, opts);
       var payload = { deviceId: DID, event: event };
       if (opts.stopId != null) payload.stopId = opts.stopId;
       if (opts.meta != null) payload.meta = opts.meta;
@@ -179,6 +197,33 @@
       if (!firedComplete) {
         firedComplete = true;
         send('tour_complete');
+      }
+    });
+
+    // Opened a stop's detail screen (viewed it, whether or not they ever
+    // press Log visit). Fires on every open so revisits are visible too.
+    wrap('openStopDetail', function (idx) {
+      try {
+        var s = (typeof CONFIG !== 'undefined' && CONFIG.stops) ? CONFIG.stops[idx] : null;
+        if (s) send('stop_viewed', { stopId: s.uid || s.id, meta: { name: s.name } });
+        else send('stop_viewed');
+      } catch (e) {
+        send('stop_viewed');
+      }
+    });
+
+    // Started playing a stop's narration audio (the core product moment).
+    wrap('playNarrationTrack', function (text, label) {
+      try {
+        var opts = null;
+        if (typeof state !== 'undefined' && typeof CONFIG !== 'undefined' && CONFIG.stops) {
+          var s = CONFIG.stops[state.currentStopIndex];
+          if (s) opts = { stopId: s.uid || s.id, meta: { name: s.name } };
+        }
+        if (!opts && label) opts = { meta: { name: String(label).slice(0, 120) } };
+        send('narration_played', opts || {});
+      } catch (e) {
+        send('narration_played');
       }
     });
 

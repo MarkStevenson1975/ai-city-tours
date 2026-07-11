@@ -89,8 +89,13 @@ export default async function PromotePage({
         .find(Boolean) ?? null;
   }
 
+  // The QR code carries campaign tags so Google Analytics can separate
+  // poster scans from social clicks and typed-in visits. The tour page
+  // itself ignores these parameters, so the visitor experience is unchanged.
+  const qrUrl = `${liveUrl}?utm_source=qr&utm_medium=poster&utm_campaign=${city.slug}`;
+
   const [qrDataUrl, logoDataUrl, stopImageDataUrl] = await Promise.all([
-    QRCode.toDataURL(liveUrl, { margin: 1, width: 800 }).catch(() => ''),
+    QRCode.toDataURL(qrUrl, { margin: 1, width: 800 }).catch(() => ''),
     toDataUri(city.operator_logo_url),
     toDataUri(socialImageUrl),
   ]);

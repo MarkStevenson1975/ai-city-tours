@@ -90,7 +90,9 @@ export async function POST(req: NextRequest) {
     .order('position')
     .limit(4);
 
-  const liveUrl = `${TOUR_BASE}/${city.slug}`;
+  // Campaign-tagged link so Google Analytics attributes visits from these
+  // posts to social rather than lumping them in with direct traffic.
+  const liveUrl = `${TOUR_BASE}/${city.slug}?utm_source=social&utm_medium=organic_social&utm_campaign=${city.slug}`;
   const attribution = city.operator_attribution_text || city.operator_name || '';
 
   try {

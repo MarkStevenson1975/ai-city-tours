@@ -11,7 +11,9 @@
 const ALLOWED_EVENTS = new Set([
   'tour_open',
   'walk_started',
+  'stop_viewed',
   'stop_logged',
+  'narration_played',
   'fact_played',
   'find_nearby',
   'sponsor_shown',
