@@ -66,12 +66,18 @@ export default async function AdminAiUsagePage() {
         <table className="w-full text-sm">
           <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
             <tr>
-              <th className="px-6 py-3">Operator</th>
-              <th className="px-6 py-3">Last minute</th>
-              <th className="px-6 py-3">Today</th>
-              <th className="px-6 py-3">Last 7 days</th>
-              <th className="px-6 py-3">All time</th>
-              <th className="px-6 py-3">Last used</th>
+              <Th title="Operator" desc="The account using AI features" />
+              <Th
+                title="Last minute"
+                desc={`AI actions in the last 60 seconds, against the ${PER_MINUTE}-per-minute limit`}
+              />
+              <Th
+                title="Today"
+                desc={`AI actions in the last 24 hours, against the ${PER_DAY}-per-day limit`}
+              />
+              <Th title="Last 7 days" desc="Total AI actions over the past week" />
+              <Th title="All time" desc="Every AI action since tracking began" />
+              <Th title="Last used" desc="When they last used any AI feature" />
             </tr>
           </thead>
           <tbody className="divide-y divide-cream">
@@ -140,6 +146,17 @@ export default async function AdminAiUsagePage() {
         24 hours, last 7 days.
       </p>
     </div>
+  );
+}
+
+function Th({ title, desc }: { title: string; desc: string }) {
+  return (
+    <th className="px-6 py-3 align-top">
+      {title}
+      <span className="block normal-case tracking-normal font-normal text-[10px] text-gray-400 mt-0.5 leading-snug max-w-[160px]">
+        {desc}
+      </span>
+    </th>
   );
 }
 
