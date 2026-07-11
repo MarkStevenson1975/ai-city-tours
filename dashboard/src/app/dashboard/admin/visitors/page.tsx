@@ -12,6 +12,27 @@ type VisitorRow = {
   stops_by_city: Record<string, string[]>;
 };
 
+type GuestRow = {
+  device_id: string;
+  first_seen: string;
+  last_active: string;
+  cities_visited: string[];
+  stops_logged: number;
+};
+
+// One shape for the merged table
+type TableRow = {
+  key: string;
+  kind: 'registered' | 'guest';
+  label: string; // email, or short device reference for guests
+  firstSeen: string;
+  lastActive: string | null;
+  cities: string[];
+  stopsByCity: Record<string, string[]> | null; // registered only
+  stopsCount: number;
+  userId: string | null; // registered only, for delete
+};
+
 export default async function AdminVisitorsPage() {
   const supabase = await createClient();
 
@@ -29,16 +50,52 @@ export default async function AdminVisitorsPage() {
   if (profile?.role !== 'admin') redirect('/dashboard');
 
   const { data: visitors, error } = await supabase.rpc('admin_visitor_list');
+  const { data: guests, error: guestError } = await supabase.rpc(
+    'admin_guest_visitor_list'
+  );
+
+  const registeredRows: TableRow[] = (visitors ?? []).map((v: VisitorRow) => ({
+    key: `u-${v.user_id}`,
+    kind: 'registered' as const,
+    label: v.email,
+    firstSeen: v.signed_up_at,
+    lastActive: v.last_active_at,
+    cities: v.cities_visited,
+    stopsByCity: v.stops_by_city,
+    stopsCount: v.total_stops,
+    userId: v.user_id,
+  }));
+
+  const guestRows: TableRow[] = (guests ?? []).map((g: GuestRow) => ({
+    key: `g-${g.device_id}`,
+    kind: 'guest' as const,
+    label: g.device_id.slice(0, 8),
+    firstSeen: g.first_seen,
+    lastActive: g.last_active,
+    cities: g.cities_visited,
+    stopsByCity: null,
+    stopsCount: g.stops_logged,
+    userId: null,
+  }));
+
+  // Most recently active first, across both kinds
+  const rows = [...registeredRows, ...guestRows].sort((a, b) => {
+    const aT = new Date(a.lastActive ?? a.firstSeen).getTime();
+    const bT = new Date(b.lastActive ?? b.firstSeen).getTime();
+    return bT - aT;
+  });
+
+  const allCities = new Set(rows.flatMap((r) => r.cities));
 
   return (
     <div className="max-w-6xl">
       <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
         Admin
       </p>
-      <h1 className="text-4xl font-semibold mb-2">Registered Visitors</h1>
+      <h1 className="text-4xl font-semibold mb-2">Visitors</h1>
       <p className="text-sm text-gray-500 mb-8">
-        Every tourist account across all areas. Not shared with operators — they
-        receive anonymised KPIs only.
+        Every tourist across all areas — registered accounts and anonymous
+        guests. Not shared with operators — they receive anonymised KPIs only.
       </p>
 
       {error && (
@@ -46,29 +103,28 @@ export default async function AdminVisitorsPage() {
           Could not load visitor data: {error.message}
         </div>
       )}
+      {guestError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded p-4 text-sm mb-6">
+          Could not load guest data: {guestError.message}
+        </div>
+      )}
 
-      <div className="grid grid-cols-3 gap-4 mb-10">
-        <KpiCard label="Total registered visitors" value={visitors?.length ?? 0} />
+      <div className="grid grid-cols-4 gap-4 mb-10">
+        <KpiCard label="Registered visitors" value={registeredRows.length} />
+        <KpiCard label="Guest visitors" value={guestRows.length} />
         <KpiCard
           label="Multi-city visitors"
-          value={
-            visitors?.filter((v: VisitorRow) => v.cities_visited.length > 1).length ?? 0
-          }
+          value={rows.filter((r) => r.cities.length > 1).length}
         />
-        <KpiCard
-          label="Areas with activity"
-          value={
-            new Set(visitors?.flatMap((v: VisitorRow) => v.cities_visited) ?? []).size
-          }
-        />
+        <KpiCard label="Areas with activity" value={allCities.size} />
       </div>
 
       <div className="bg-white rounded-xl overflow-hidden shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
             <tr>
-              <th className="px-6 py-3">Email</th>
-              <th className="px-6 py-3">Signed up</th>
+              <th className="px-6 py-3">Visitor</th>
+              <th className="px-6 py-3">First seen</th>
               <th className="px-6 py-3">Last active</th>
               <th className="px-6 py-3">Areas visited</th>
               <th className="px-6 py-3">Stops visited</th>
@@ -76,33 +132,49 @@ export default async function AdminVisitorsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-cream">
-            {!visitors || visitors.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
                   className="px-6 py-10 text-center text-gray-400 italic"
                 >
-                  No visitor sign-ups yet.
+                  No visitors yet.
                 </td>
               </tr>
             ) : (
-              visitors.map((v: VisitorRow) => (
-                <tr key={v.user_id} className="hover:bg-cream/40 transition">
-                  <td className="px-6 py-4 font-mono text-xs text-gray-700">
-                    {v.email}
+              rows.map((r) => (
+                <tr key={r.key} className="hover:bg-cream/40 transition">
+                  <td className="px-6 py-4">
+                    {r.kind === 'guest' ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-block bg-gray-200 text-gray-600 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">
+                          Guest
+                        </span>
+                        <span
+                          className="font-mono text-[10px] text-gray-400"
+                          title="Anonymous device reference"
+                        >
+                          {r.label}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="font-mono text-xs text-gray-700">
+                        {r.label}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {formatDate(v.signed_up_at)}
+                    {formatDate(r.firstSeen)}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {v.last_active_at ? formatDate(v.last_active_at) : 'Never'}
+                    {r.lastActive ? formatDate(r.lastActive) : 'Never'}
                   </td>
                   <td className="px-6 py-4">
-                    {v.cities_visited.length === 0 ? (
+                    {r.cities.length === 0 ? (
                       <span className="text-gray-400 italic">None</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
-                        {v.cities_visited.map((slug) => (
+                        {r.cities.map((slug) => (
                           <span
                             key={slug}
                             className="inline-block bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
@@ -114,32 +186,45 @@ export default async function AdminVisitorsPage() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {!v.stops_by_city || Object.keys(v.stops_by_city).length === 0 ? (
+                    {r.kind === 'guest' ? (
+                      r.stopsCount === 0 ? (
+                        <span className="text-gray-400 italic">None yet</span>
+                      ) : (
+                        <span className="text-gray-700">
+                          {r.stopsCount} stop{r.stopsCount === 1 ? '' : 's'} logged
+                        </span>
+                      )
+                    ) : !r.stopsByCity ||
+                      Object.keys(r.stopsByCity).length === 0 ? (
                       <span className="text-gray-400 italic">None yet</span>
                     ) : (
                       <div className="space-y-2">
-                        {Object.entries(v.stops_by_city).map(([citySlug, stops]) => (
-                          <div key={citySlug}>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1 capitalize">
-                              {citySlug}
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                              {stops.map((name) => (
-                                <span
-                                  key={name}
-                                  className="inline-block bg-accent/15 text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                                >
-                                  {name}
-                                </span>
-                              ))}
+                        {Object.entries(r.stopsByCity).map(
+                          ([citySlug, stops]) => (
+                            <div key={citySlug}>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1 capitalize">
+                                {citySlug}
+                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {stops.map((name) => (
+                                  <span
+                                    key={name}
+                                    className="inline-block bg-accent/15 text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                  >
+                                    {name}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        )}
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <DeleteVisitorButton userId={v.user_id} email={v.email} />
+                    {r.kind === 'registered' && r.userId && (
+                      <DeleteVisitorButton userId={r.userId} email={r.label} />
+                    )}
                   </td>
                 </tr>
               ))
@@ -149,7 +234,9 @@ export default async function AdminVisitorsPage() {
       </div>
 
       <p className="text-xs text-gray-400 mt-4">
-        Data is live from Supabase Auth. Refresh the page to update.
+        Data is live from Supabase. Refresh the page to update. Guests are
+        anonymous devices using a tour without an account; our own test devices
+        are excluded.
       </p>
     </div>
   );
