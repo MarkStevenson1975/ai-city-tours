@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
           .from('user_profiles')
           .update({
             subscription_status: 'trialing',
+            checkout_started_at: null, // checkout completed — no longer abandoned
             plan_tier: tier ?? undefined,
             stripe_customer_id: (session.customer as string) ?? undefined,
             stripe_subscription_id: (session.subscription as string) ?? undefined,

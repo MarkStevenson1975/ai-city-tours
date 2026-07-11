@@ -83,5 +83,13 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Stamp when the operator headed to checkout. If no subscription follows,
+  // the admin Kanban board shows them under Stripe Abandoned. Cleared by the
+  // webhook when checkout completes.
+  await admin
+    .from('user_profiles')
+    .update({ checkout_started_at: new Date().toISOString() })
+    .eq('id', user.id);
+
   return NextResponse.json({ url: session.url });
 }
