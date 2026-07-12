@@ -203,6 +203,7 @@ export default async function AdminKanbanPage({
       organisation,
       signedUpAt: auth?.created_at ? fmtDate(auth.created_at) : null,
       stageSince: fmtDateTime(stageSince),
+      stageSinceRaw: stageSince ?? auth?.created_at ?? null,
       areaNames: areas,
       note,
       badge,
@@ -213,8 +214,15 @@ export default async function AdminKanbanPage({
     });
   }
 
-  const visible = cards.filter((c) => !c.hidden);
-  const hidden = cards.filter((c) => c.hidden);
+  // Newest first: most recently entered the stage at the top, oldest at the bottom.
+  const byNewestFirst = (a: OperatorCard, b: OperatorCard) => {
+    const at = a.stageSinceRaw ? new Date(a.stageSinceRaw).getTime() : 0;
+    const bt = b.stageSinceRaw ? new Date(b.stageSinceRaw).getTime() : 0;
+    return bt - at;
+  };
+
+  const visible = cards.filter((c) => !c.hidden).sort(byNewestFirst);
+  const hidden = cards.filter((c) => c.hidden).sort(byNewestFirst);
 
   const board: Record<ColumnKey, OperatorCard[]> = {
     registered: [],

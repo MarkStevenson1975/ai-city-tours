@@ -26,6 +26,7 @@ export type OperatorCard = {
   organisation: string | null; // captured at signup, e.g. Tourist Information
   signedUpAt: string | null; // formatted date
   stageSince: string | null; // formatted date + time they entered this column
+  stageSinceRaw: string | null; // ISO, used to sort tiles newest-first
   areaNames: string[]; // tour areas, if any
   note: string | null; // stage-specific detail, e.g. trial end date
   badge: string | null; // short status badge, e.g. Paused
