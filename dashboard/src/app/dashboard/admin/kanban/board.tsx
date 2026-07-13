@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { ColumnKey, OperatorCard } from './columns';
+import type { ColumnKey, OperatorCard, JourneyStep } from './columns';
 import { addKanbanNote, hideOperator, restoreOperator } from './actions';
 
 // ---------------------------------------------------------------- Board
@@ -215,6 +215,11 @@ function OperatorModal({
         </div>
 
         <div className="px-6 py-4 overflow-y-auto flex-1 space-y-3">
+          <JourneyTrail journey={card.journey} />
+
+          <p className="text-[11px] uppercase tracking-widest text-gray-400 font-bold pt-2">
+            Notes
+          </p>
           {card.notes.length === 0 ? (
             <p className="text-sm text-gray-400 italic">No notes yet.</p>
           ) : (
@@ -295,6 +300,89 @@ function OperatorModal({
 }
 
 // ---------------------------------------------------------------- Hidden
+
+// ---------------------------------------------------------- Journey trail
+// Exactly how far this operator got when building, and where they stopped.
+// The first step they never reached is the one worth ringing them about.
+function JourneyTrail({ journey }: { journey: JourneyStep[] }) {
+  if (!journey?.length) return null;
+
+  const reachedCount = journey.filter((s) => s.at).length;
+  const stalledAt = journey.find((s) => !s.at);
+  const lastReached = [...journey].reverse().find((s) => s.at);
+
+  return (
+    <div className="bg-cream/60 rounded-lg p-3">
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <p className="text-[11px] uppercase tracking-widest text-gray-500 font-bold">
+          Build journey
+        </p>
+        <p className="text-[11px] font-bold text-primary">
+          {reachedCount} of {journey.length}
+        </p>
+      </div>
+
+      {reachedCount === 0 ? (
+        <p className="text-xs text-gray-500 italic">
+          Never started building. Nothing recorded yet.
+        </p>
+      ) : (
+        <ol className="space-y-1.5">
+          {journey.map((s) => {
+            const done = Boolean(s.at);
+            const isStall = !done && s.event === stalledAt?.event;
+            return (
+              <li key={s.event} className="flex items-start gap-2">
+                <span
+                  className={`mt-0.5 w-3.5 h-3.5 rounded-full flex-shrink-0 flex items-center justify-center text-[8px] font-bold ${
+                    done
+                      ? 'bg-primary text-cream'
+                      : isStall
+                        ? 'bg-red-100 text-red-700 border border-red-300'
+                        : 'border border-gray-300 text-transparent'
+                  }`}
+                >
+                  {done ? '✓' : isStall ? '!' : '·'}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`text-xs ${
+                      done
+                        ? 'text-gray-800 font-medium'
+                        : isStall
+                          ? 'text-red-700 font-bold'
+                          : 'text-gray-400'
+                    }`}
+                  >
+                    {s.label}
+                    {isStall && ' — stopped here'}
+                  </p>
+                  {s.at && (
+                    <p className="text-[10px] text-gray-400">
+                      {new Date(s.at).toLocaleString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {lastReached && stalledAt && (
+        <p className="text-[11px] text-gray-500 mt-2 pt-2 border-t border-cream">
+          Got as far as <strong>{lastReached.label.toLowerCase()}</strong>, then
+          stopped.
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function HiddenList({ cards }: { cards: OperatorCard[] }) {
   const router = useRouter();

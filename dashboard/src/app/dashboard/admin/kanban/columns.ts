@@ -19,6 +19,14 @@ export type KanbanNote = {
   createdAt: string; // ISO
 };
 
+/** One step of the build journey for this operator: reached it, or didn't. */
+export type JourneyStep = {
+  event: string;
+  label: string;
+  /** ISO timestamp of the first time they reached it, or null if they never did. */
+  at: string | null;
+};
+
 export type OperatorCard = {
   id: string; // auth user id
   email: string;
@@ -34,6 +42,8 @@ export type OperatorCard = {
   columnTitle: string;
   hidden: boolean;
   notes: KanbanNote[]; // engagement log, newest first
+  /** Exactly how far they got when building, step by step. */
+  journey: JourneyStep[];
 };
 
 export const COLUMNS: { key: ColumnKey; title: string; hint: string }[] = [

@@ -8,8 +8,10 @@ import {
   type ColumnKey,
   type KanbanNote,
   type OperatorCard,
+  type JourneyStep,
 } from './columns';
 import { KanbanBoard, HiddenList } from './board';
+import { OPERATOR_FUNNEL } from '@/lib/track-operator';
 
 function fmtDate(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -121,6 +123,28 @@ export default async function AdminKanbanPage({
     });
   });
 
+  // Build-journey events: exactly how far each operator got, and when.
+  const { data: eventRows } = await admin
+    .from('operator_events')
+    .select('user_id, event, created_at')
+    .in('user_id', operatorIds.length ? operatorIds : ['00000000-0000-0000-0000-000000000000'])
+    .order('created_at', { ascending: true });
+
+  // First time each operator reached each step (earliest wins).
+  const firstEventAt = new Map<string, Map<string, string>>();
+  (eventRows ?? []).forEach((e) => {
+    if (!firstEventAt.has(e.user_id)) firstEventAt.set(e.user_id, new Map());
+    const forUser = firstEventAt.get(e.user_id)!;
+    if (!forUser.has(e.event)) forUser.set(e.event, e.created_at);
+  });
+
+  const journeyFor = (userId: string): JourneyStep[] =>
+    OPERATOR_FUNNEL.map((s) => ({
+      event: s.event,
+      label: s.label,
+      at: firstEventAt.get(userId)?.get(s.event) ?? null,
+    }));
+
   // Classify each operator into exactly one column — furthest stage wins.
   const cards: OperatorCard[] = [];
   for (const p of profiles ?? []) {
@@ -211,6 +235,7 @@ export default async function AdminKanbanPage({
       columnTitle: COLUMN_TITLES[column],
       hidden: Boolean(p.kanban_hidden_at),
       notes: notesByUser.get(p.id) ?? [],
+      journey: journeyFor(p.id),
     });
   }
 
