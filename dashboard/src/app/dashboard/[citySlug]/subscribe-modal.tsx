@@ -24,7 +24,7 @@ export function SubscribeModal({
   open,
   onClose,
   title = 'See your tour go live',
-  intro = 'Choose a plan and billing period, then continue to start your 7-day free trial. Cancel any time in the first week at no charge.',
+  intro = 'Choose a plan and billing period, then continue. Your first month is free, and you can cancel any time before it ends at no charge.',
   ctaLabel,
 }: {
   citySlug: string;
@@ -142,7 +142,7 @@ export function SubscribeModal({
         >
           {loading
             ? 'Taking you to checkout…'
-            : (ctaLabel ?? `Start 7-day free trial on ${selectedPlan.name}`)}
+            : (ctaLabel ?? `Start your free month on ${selectedPlan.name}`)}
         </button>
 
         <button
@@ -174,7 +174,7 @@ export function SeeItLiveButton({
           <p className="font-semibold text-lg">Your tour is ready to go live</p>
           <p className="text-sm text-gray-600">
             {totalStops} stop{totalStops === 1 ? '' : 's'} built. Publish it to see it
-            for real on your phone. Free for 7 days.
+            for real on your phone. Your first month is free.
           </p>
         </div>
         <button

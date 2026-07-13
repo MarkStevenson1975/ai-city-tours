@@ -111,7 +111,7 @@ export function PublishButton({
         open={subscribeOpen}
         onClose={() => setSubscribeOpen(false)}
         title="Review your tour live"
-        intro="To publish and walk your tour for real, start your 7-day free trial. Pick a plan, then continue. Cancel any time in the first week at no charge."
+        intro="To publish and walk your tour for real, start with your free first month. Pick a plan, then continue. Cancel any time before it ends at no charge."
         ctaLabel="Review my tour →"
       />
     </>

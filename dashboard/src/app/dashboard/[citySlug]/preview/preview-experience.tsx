@@ -166,7 +166,7 @@ export function PreviewExperience({
       </div>
 
       <p className="text-center text-xs text-gray-500 mt-4">
-        This is your draft, shown the way visitors walk it. Start your free trial
+        This is your draft, shown the way visitors walk it. Start your free month
         to publish it and play the narration aloud.
       </p>
     </div>

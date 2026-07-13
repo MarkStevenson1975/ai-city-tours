@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     cancel_url: `${baseUrl}/dashboard/${city.slug}?checkout=cancelled`,
     metadata: { user_id: user.id, tier, city_id: city.id },
     subscription_data: {
-      trial_period_days: 7,
+      trial_period_days: 30, // first month free
       metadata: { user_id: user.id, tier, city_id: city.id },
     },
   });

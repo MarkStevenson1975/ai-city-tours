@@ -176,9 +176,9 @@ export default async function AdminKanbanPage({
         else if (column === 'tour_created') entered = firstTourAt.get(p.id) ?? null;
         else if (column === 'stripe_abandoned') entered = p.checkout_started_at ?? null;
         else if (column === 'in_trial' && p.subscription_current_period_end) {
-          // 7-day trial: entry is roughly period end minus 7 days.
+          // Free first month: entry is roughly period end minus 30 days.
           entered = new Date(
-            new Date(p.subscription_current_period_end).getTime() - 7 * 24 * 60 * 60 * 1000
+            new Date(p.subscription_current_period_end).getTime() - 30 * 24 * 60 * 60 * 1000
           ).toISOString();
         }
       }

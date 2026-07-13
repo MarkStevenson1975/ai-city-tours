@@ -60,7 +60,7 @@ export const COLUMNS: { key: ColumnKey; title: string; hint: string }[] = [
   {
     key: 'in_trial',
     title: 'In Trial',
-    hint: 'Active 7-day free trial',
+    hint: 'Active free first month',
   },
   {
     key: 'cancelled_trial',
