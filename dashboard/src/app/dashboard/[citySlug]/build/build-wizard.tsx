@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveDraftStops, type DraftStop } from './actions';
 import { MapPicker, type MapPick } from './map-picker';
@@ -18,20 +18,27 @@ type Suggestion = {
 
 type Drafted = DraftStop & { place_id: string };
 
-const RADIUS_OPTIONS = [1, 3, 5, 10, 15];
+const RADIUS_OPTIONS = [0.25, 0.5, 1, 3, 5, 10, 15];
 
 export function BuildWizard({
   citySlug,
   defaultArea,
   guideName,
+  autoSearch = false,
+  venueMode = false,
 }: {
   citySlug: string;
   defaultArea: string;
   guideName: string;
+  /** Run the landmark search on arrival (first-run journey from /dashboard/new). */
+  autoSearch?: boolean;
+  /** Single venue (stately home, hotel). Their stops are inside their own site,
+   *  so Google cannot suggest them: lead with the map picker and a tight radius. */
+  venueMode?: boolean;
 }) {
   const router = useRouter();
   const [postcode, setPostcode] = useState('');
-  const [radiusMiles, setRadiusMiles] = useState(3);
+  const [radiusMiles, setRadiusMiles] = useState(venueMode ? 0.5 : 3);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selected, setSelected] = useState<Record<string, Suggestion>>({});
   const [loading, setLoading] = useState(false);
@@ -45,7 +52,7 @@ export function BuildWizard({
   const hasMap = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
   const [showPostcode, setShowPostcode] = useState(!hasMap);
 
-  async function findSites() {
+  async function findSites(areaOverride?: string) {
     setLoading(true);
     setError(null);
     setSuggestions([]);
@@ -53,7 +60,11 @@ export function BuildWizard({
       const res = await fetch('/api/places/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postcode, radiusMiles }),
+        body: JSON.stringify(
+          areaOverride
+            ? { area: areaOverride, radiusMiles }
+            : { postcode, radiusMiles }
+        ),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not find sites');
@@ -65,6 +76,16 @@ export function BuildWizard({
       setLoading(false);
     }
   }
+
+  // First run: the operator has just told us their town, so show them their
+  // landmarks straight away rather than making them ask a second time.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (!autoSearch || autoRan.current || !defaultArea) return;
+    autoRan.current = true;
+    findSites(defaultArea);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSearch, defaultArea]);
 
   function toggle(s: Suggestion) {
     setSelected((prev) => {
@@ -231,6 +252,20 @@ export function BuildWizard({
   // ---- Location + pick sites ----
   return (
     <div className="space-y-6">
+      {venueMode && (
+        <div className="bg-cream/70 border border-accent rounded-xl p-4">
+          <p className="text-sm font-bold text-primary mb-1">
+            Your stops are inside {defaultArea}, so you place them
+          </p>
+          <p className="text-sm text-gray-700">
+            Drop a pin on the map for each stop on your route: the walled garden,
+            the long gallery, the courtyard. We can&apos;t guess what&apos;s inside
+            your grounds, but once you&apos;ve placed them the AI writes the
+            narration for every one.
+          </p>
+        </div>
+      )}
+
       <MapPicker area={defaultArea} onConfirm={addMapPicks} disabled={drafting} />
 
       <div>
@@ -276,13 +311,13 @@ export function BuildWizard({
               >
                 {RADIUS_OPTIONS.map((m) => (
                   <option key={m} value={m}>
-                    {m} mile{m === 1 ? '' : 's'}
+                    {m < 1 ? `${m} mile (on site)` : `${m} mile${m === 1 ? '' : 's'}`}
                   </option>
                 ))}
               </select>
               <button
                 type="button"
-                onClick={findSites}
+                onClick={() => findSites()}
                 disabled={loading || !postcode.trim()}
                 className="px-5 py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
               >

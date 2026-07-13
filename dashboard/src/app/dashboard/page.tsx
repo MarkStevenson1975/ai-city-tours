@@ -36,6 +36,13 @@ export default async function DashboardHome() {
     );
   }
 
+  // First run: an operator with no tour has exactly one thing to do, so take
+  // them straight to it rather than parking them on an empty list. (Admins
+  // legitimately have no tours of their own, so they keep the Areas view.)
+  if (!isAdmin && (!cities || cities.length === 0)) {
+    redirect('/dashboard/new');
+  }
+
   return (
     <div>
       <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
@@ -54,7 +61,7 @@ export default async function DashboardHome() {
       {!cities || cities.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center">
           <p className="font-display text-xl mb-2">
-            You haven&apos;t created a tour yet.
+            Let&apos;s build your first tour.
           </p>
           <p className="text-sm text-gray-600 mb-5">
             Start your first tour. We&apos;ll find your local landmarks and the

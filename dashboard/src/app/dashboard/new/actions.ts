@@ -9,6 +9,24 @@ import { createAdminClient } from '@/lib/supabase/admin';
  * Calls the create_my_city Postgres function (SECURITY DEFINER) which inserts
  * the city, links the caller as its operator, and writes an audit row.
  */
+/** Looks like a bare UK postcode (e.g. "HR1 2NG", "hr12ng"). */
+function isBarePostcode(v: string): boolean {
+  return /^[a-z]{1,2}\d[a-z\d]?\s*\d[a-z]{2}$/i.test(v.trim());
+}
+
+/**
+ * Title-case a place so "hereford" and "HEREFORD" both become "Hereford".
+ * Only capitalises after a start, space or hyphen, so "bishop's castle"
+ * becomes "Bishop's Castle" rather than "Bishop'S Castle".
+ */
+function tidyPlace(v: string): string {
+  return v
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .replace(/(^|[\s-])([a-z])/g, (_m, pre: string, ch: string) => pre + ch.toUpperCase());
+}
+
 export async function createMyTour(formData: FormData) {
   const supabase = await createClient();
 
@@ -17,12 +35,22 @@ export async function createMyTour(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const name = String(formData.get('name') ?? '').trim();
-  const guideName = String(formData.get('guide_name') ?? 'Harriet').trim() || 'Harriet';
+  // Step 1 now asks only where the tour is. The tour name is derived from it,
+  // so operators are never asked to invent anything before they see value.
+  const place = String(formData.get('place') ?? '').trim();
+  const kind = String(formData.get('kind') ?? 'town') === 'venue' ? 'venue' : 'town';
+  const guideName = 'Harriet';
 
-  if (!name) {
+  if (!place) {
     redirect('/dashboard/new?error=name');
   }
+  if (isBarePostcode(place)) {
+    // A postcode makes a poor tour name; ask for the town, they can refine the
+    // exact area with a postcode in the build step.
+    redirect('/dashboard/new?error=postcode');
+  }
+
+  const name = tidyPlace(place);
 
   // Derive a slug from the tour name; the DB function normalises it too.
   const slug = name
@@ -62,5 +90,12 @@ export async function createMyTour(formData: FormData) {
     redirect(`/dashboard/new?error=${encodeURIComponent(friendly)}`);
   }
 
-  redirect(`/dashboard/${createdSlug}/build`);
+  // A town gets its landmarks swept automatically (auto=1). A venue does not:
+  // Google has no record of their walled garden, so we send them to the map
+  // picker to drop their own pins, with a tight radius.
+  redirect(
+    kind === 'venue'
+      ? `/dashboard/${createdSlug}/build?venue=1`
+      : `/dashboard/${createdSlug}/build?auto=1`
+  );
 }

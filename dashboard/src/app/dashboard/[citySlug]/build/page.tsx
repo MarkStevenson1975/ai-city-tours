@@ -6,10 +6,13 @@ import { BuildWizard } from './build-wizard';
 // AI-drafted stops. New operators land here straight after creating a tour.
 export default async function BuildPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ citySlug: string }>;
+  searchParams: Promise<{ auto?: string; venue?: string }>;
 }) {
   const { citySlug } = await params;
+  const { auto, venue } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -32,14 +35,17 @@ export default async function BuildPage({
       </p>
       <h1 className="text-4xl font-semibold mb-2">Let&apos;s build your tour</h1>
       <p className="text-sm text-gray-600 mb-8">
-        Tell us where you are and we will find your local landmarks. The AI
-        drafts each stop for you. You can edit everything afterwards.
+        {venue === '1'
+          ? 'Place each stop on the map and the AI will draft the narration for every one. You can edit everything afterwards.'
+          : 'Tell us where you are and we will find your local landmarks. The AI drafts each stop for you. You can edit everything afterwards.'}
       </p>
 
       <BuildWizard
         citySlug={city.slug}
         defaultArea={city.name}
         guideName={city.guide_name ?? 'Harriet'}
+        autoSearch={auto === '1'}
+        venueMode={venue === '1'}
       />
     </div>
   );
