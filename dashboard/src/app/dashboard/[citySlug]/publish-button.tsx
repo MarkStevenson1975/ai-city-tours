@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { publishCity } from './actions';
 import { SubscribeModal } from './subscribe-modal';
+import { Confetti } from '../confetti';
 
 export function PublishButton({
   cityId,
@@ -24,6 +25,8 @@ export function PublishButton({
   const [result, setResult] = useState<
     { ok: true; version: number } | { ok: false; error: string } | null
   >(null);
+  // Every publish is worth a moment, not just the first.
+  const [celebrate, setCelebrate] = useState(false);
 
   function startPublish() {
     // No active or trial subscription: send them to start one before publishing.
@@ -42,6 +45,7 @@ export function PublishButton({
       if (r.ok) {
         setConfirming(false);
         setNotes('');
+        setCelebrate(true);
         router.refresh();
       }
     });
@@ -89,6 +93,7 @@ export function PublishButton({
 
   return (
     <>
+      {celebrate && <Confetti />}
       <button
         type="button"
         onClick={startPublish}
