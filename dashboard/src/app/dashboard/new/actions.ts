@@ -52,28 +52,29 @@ export async function createMyTour(formData: FormData) {
 
   const name = tidyPlace(place);
 
-  // Derive a slug from the tour name; the DB function normalises it too.
-  const slug = name
+  const baseSlug = name
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-  // Check the name (slug) is not already taken by ANY operator. The admin
-  // client bypasses RLS so the uniqueness check sees all tours, not just the
+  // Two operators may well both run a tour of Hereford, or of the same stately
+  // home. That is not an error and we must never block them on it. The tour
+  // NAME can repeat; only the public URL has to be unique, so we quietly find
+  // the next free slug (hereford, hereford-2, hereford-3 …).
+  //
+  // The admin client bypasses RLS so this sees every tour, not just the
   // caller's.
   const admin = createAdminClient();
-  const { data: clash } = await admin
+  const { data: taken } = await admin
     .from('cities')
-    .select('id')
-    .eq('slug', slug)
-    .maybeSingle();
-  if (clash) {
-    redirect(
-      `/dashboard/new?error=${encodeURIComponent(
-        'That tour name is already taken. Please choose a different name.'
-      )}`
-    );
+    .select('slug')
+    .like('slug', `${baseSlug}%`);
+
+  const used = new Set((taken ?? []).map((c) => c.slug));
+  let slug = baseSlug;
+  for (let i = 2; used.has(slug) && i < 200; i++) {
+    slug = `${baseSlug}-${i}`;
   }
 
   const { data: createdSlug, error } = await supabase.rpc('create_my_city', {
@@ -85,7 +86,7 @@ export async function createMyTour(formData: FormData) {
   if (error) {
     // Belt and braces: a race could still hit the unique constraint.
     const friendly = /duplicate|unique|already exists/i.test(error.message)
-      ? 'That tour name is already taken. Please choose a different name.'
+      ? 'Someone just took that address. Please press the button again.'
       : error.message;
     redirect(`/dashboard/new?error=${encodeURIComponent(friendly)}`);
   }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveDraftStops, type DraftStop } from './actions';
 import { MapPicker, type MapPick } from './map-picker';
+import { BuildingAnimation } from './building-animation';
 
 type Suggestion = {
   place_id: string;
@@ -176,75 +177,61 @@ export function BuildWizard({
       }
     }
     setDrafts(out);
+    // Straight through. There is no "read what Harriet wrote" step: every word
+    // is editable on the stop screens afterwards, and making people approve
+    // prose they have not asked for is just another wall between them and
+    // their finished tour.
+    setProgress('Saving your tour…');
+    await save(out);
     setProgress('');
     setDrafting(false);
   }
 
-  async function save() {
+  async function save(list: Drafted[]) {
+    if (!list.length) return;
     setSaving(true);
     setError(null);
-    const r = await saveDraftStops(citySlug, drafts);
+    const r = await saveDraftStops(citySlug, list);
     if (r.ok) {
       router.push(`/dashboard/${citySlug}/finish`);
       router.refresh();
     } else {
       setError(r.error);
       setSaving(false);
+      setDrafting(false);
     }
   }
 
   const selectedCount = Object.keys(selected).length;
 
-  // ---- Drafts review ----
-  if (drafts.length) {
+  // ---- Save failed: keep their drafts and let them retry ----
+  // (There is no review step. Drafting flows straight into saving, and the
+  // operator lands on their finished tour. This only appears if the save fails,
+  // so their work is never lost.)
+  if (drafts.length && !drafting && !saving && error) {
     return (
       <div className="space-y-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
-            Here&apos;s your tour
+            Nearly there
           </p>
-          <h1 className="text-3xl font-semibold">{drafts.length} stops created for you</h1>
+          <h1 className="text-3xl font-semibold">
+            {drafts.length} stops written, but we couldn&apos;t save them
+          </h1>
           <p className="text-sm text-gray-600 mt-1">
-            These are just some stops to get you started, each narrated in {guideName}&apos;s
-            voice with its photo and Google listing. You can edit, reorder, remove or
-            add more stops at any time in the next stage.
+            Nothing is lost. Press the button and we&apos;ll try again.
           </p>
         </div>
-        {drafts.map((d) => (
-          <div key={d.place_id} className="bg-white rounded-xl p-5 shadow-sm">
-            <p className="font-semibold text-lg">{d.name}</p>
-            {d.shortDescription && (
-              <p className="text-sm text-gray-600 mt-1">{d.shortDescription}</p>
-            )}
-            <p className="text-sm text-gray-800 mt-3 whitespace-pre-line">{d.narration}</p>
-            {d.facts && d.facts.length > 0 && (
-              <ul className="text-sm text-gray-600 mt-3 list-disc pl-5 space-y-1">
-                {d.facts.map((f, i) => (
-                  <li key={i}>{f}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
-        {error && <p className="text-red-700 text-sm">{error}</p>}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={save}
-            disabled={saving}
-            className="px-6 py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : `Save ${drafts.length} stops and continue`}
-          </button>
-          <button
-            type="button"
-            onClick={() => setDrafts([])}
-            disabled={saving}
-            className="px-5 py-3 rounded-full text-sm font-bold text-gray-600 hover:text-gray-900"
-          >
-            Back
-          </button>
-        </div>
+        <p className="text-red-700 text-sm bg-red-50 border border-red-200 rounded p-3">
+          {error}
+        </p>
+        <button
+          type="button"
+          onClick={() => save(drafts)}
+          className="px-6 py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition"
+        >
+          Save my {drafts.length} stops
+        </button>
       </div>
     );
   }
@@ -252,6 +239,18 @@ export function BuildWizard({
   // ---- Location + pick sites ----
   return (
     <div className="space-y-6">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
+          Your first tour · Step 2
+        </p>
+        <h1 className="text-4xl font-semibold mb-2">Choose your stops</h1>
+        <p className="text-sm text-gray-600">
+          {venueMode
+            ? `Drop a pin for each place on your route around ${defaultArea}. ${guideName} writes the narration for every one, and you can edit all of it afterwards.`
+            : `Pick the places you want on your walk. ${guideName} writes the narration for every one, and you can edit all of it afterwards.`}
+        </p>
+      </div>
+
       {venueMode && (
         <div className="bg-cream/70 border border-accent rounded-xl p-4">
           <p className="text-sm font-bold text-primary mb-1">
@@ -396,6 +395,16 @@ export function BuildWizard({
         </div>
       )}
 
+      {drafting && <BuildingAnimation label={progress || 'Drafting your stops…'} />}
+
+      {(suggestions.length > 0 || selectedCount > 0) && !drafting && (
+        <p className="text-xs text-gray-500 bg-cream/60 border border-gray-200 rounded-lg p-3">
+          Nothing here is final. Every stop we write can be edited, reordered or
+          removed later, and you can add your own at any time. This is just to
+          get you off a blank page.
+        </p>
+      )}
+
       {(suggestions.length > 0 || selectedCount > 0) && (
         <div className="flex items-center gap-4">
           <button
@@ -406,7 +415,6 @@ export function BuildWizard({
           >
             {drafting ? 'Drafting…' : `Draft my ${selectedCount || ''} stop${selectedCount === 1 ? '' : 's'}`}
           </button>
-          {drafting && <span className="text-sm text-gray-600">{progress}</span>}
           {!drafting && (
             <button
               type="button"
