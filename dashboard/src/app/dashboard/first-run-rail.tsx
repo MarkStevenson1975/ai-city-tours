@@ -36,18 +36,20 @@ export function FirstRunRail({ state }: { state: RailState }) {
   const steps = ONBOARDING_STEPS.map((s) => ({ ...s, done: doneFor(s.n) }));
   const currentIndex = steps.findIndex((s) => !s.done);
   const doneCount = steps.filter((s) => s.done).length;
+  // The step they are actually on — Harriet speaks about this one.
+  const currentStep = currentIndex === -1 ? steps.length : steps[currentIndex].n;
 
   return (
     <aside className="w-full lg:w-64 lg:flex-shrink-0">
       <div className="lg:sticky lg:top-6 bg-white rounded-xl p-5 shadow-sm">
-        <HarrietGuide />
+        <HarrietGuide step={currentStep} />
 
         <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">
           Your tour, in {steps.length} steps
         </p>
         <p className="text-sm font-bold text-primary mb-4">
           {doneCount === 0
-            ? 'About 15 minutes'
+            ? `Step 1 of ${steps.length}`
             : `${doneCount} of ${steps.length} done`}
         </p>
 

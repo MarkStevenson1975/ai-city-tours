@@ -3,9 +3,12 @@
 // The checklist rail RENDERS from this file, and Harriet READS from this file.
 // They cannot drift apart, because there is only one copy of the words.
 //
-// The audio is cached against a hash of `spokenScript()`. Change any wording
-// below and the hash changes, so Harriet re-records herself the next time
-// somebody presses play. Nobody has to remember to regenerate anything.
+// Harriet speaks ONE STEP AT A TIME, about the screen the operator is actually
+// looking at — not a monologue from top to bottom.
+//
+// The audio for each step is cached against a hash of that step's text. Change
+// any wording below and the hash changes, so Harriet re-records that step the
+// next time somebody presses play. Nobody has to remember to regenerate it.
 
 export const HARRIET_VOICE_ID = 'NTqGiNK8P02i66yY2GOH';
 
@@ -15,7 +18,7 @@ export type OnboardingStep = {
   title: string;
   /** Shown under the title on the rail. */
   hint: string;
-  /** What Harriet says about this step. */
+  /** What Harriet says when the operator is ON this step. */
   spoken: string;
 };
 
@@ -25,42 +28,53 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     title: 'Tell us where',
     hint: 'A town, or your venue',
     spoken:
-      'First, tell me where your tour is. A town or city if you are covering a high street or a trail, or the name of your venue if it is a single place like a hotel or a stately home. That is all I need to get started.',
+      'Right then. Tell me where your tour is. A town or a city if you are covering a high street or a trail, or the name of your venue if it is a single place, like a hotel or a stately home. Type it into the box, and I will take it from there.',
   },
   {
     n: 2,
     title: 'Choose your stops',
     hint: 'We write them for you',
     spoken:
-      'Next, choose your stops. If it is a town, I will go and find the local landmarks for you. If it is your own venue, drop a pin on the map for each place on your route. Either way, I write the narration for every stop, so you are never staring at a blank page.',
+      'Now choose your stops. If you gave me a town, I have already gone and found the local landmarks, so simply pick the ones you want. If it is your own venue, drop a pin on the map for each place on your route, because only you know what is worth stopping for. Either way, I write the narration for every stop you choose, so you are never left staring at a blank page.',
   },
   {
     n: 3,
     title: 'Walk it yourself',
     hint: 'Free preview on your phone',
     spoken:
-      'Then walk it yourself. Open the preview on your phone and take the route, just as a visitor would. It costs nothing, and it is the quickest way to spot anything you want to change.',
+      'Your tour is built, so now go and walk it. Open the preview on your phone and take the route exactly as a visitor would. It costs you nothing, and it is far and away the quickest way to spot anything you would like to change.',
   },
   {
     n: 4,
     title: 'Publish',
     hint: 'Your first month is free',
     spoken:
-      'Finally, publish it. Your first month is free, and you can cancel any time before it ends. Once you are live, the Promote tab hands you a printable poster with your own QR code, ready for the wall.',
+      'You are ready to publish. Your first month is free, and you can cancel any time before it ends. Once you are live, the Promote tab will hand you a printable poster with your own QR code on it, ready for the wall. And if you get stuck at any point, email us and a real person will reply.',
   },
 ];
 
 export const HELP_EMAIL = 'team@thesetupcrew.co.uk';
 
-/**
- * The full spoken walkthrough. This exact string is hashed to key the cached
- * audio file, so any edit here (or to any `spoken` line above) automatically
- * produces a new recording.
- */
-export function spokenScript(): string {
-  const intro =
-    'Hello, I am Harriet, and I will be the voice of your tour. Building it takes about fifteen minutes, and there are only four steps. Let me walk you through them.';
-  const outro = `And that is genuinely it. If you get stuck at any point, email us at ${HELP_EMAIL} and a real person will reply. Right then. Let us build your tour.`;
+/** Valid step numbers, for validating the audio request. */
+export function isStepNumber(n: number): boolean {
+  return ONBOARDING_STEPS.some((s) => s.n === n);
+}
 
-  return [intro, ...ONBOARDING_STEPS.map((s) => s.spoken), outro].join(' ');
+/**
+ * What Harriet says on a given step. She introduces herself on step one only.
+ * This exact string is hashed to key the cached audio, so any edit above
+ * automatically produces a fresh recording for that step.
+ */
+export function spokenForStep(n: number): string {
+  const step = ONBOARDING_STEPS.find((s) => s.n === n);
+  if (!step) return '';
+
+  const parts: string[] = [];
+  if (n === 1) {
+    parts.push(
+      'Hello, I am Harriet, and I will be the voice of your tour. There are only four steps to this, and I will talk you through each one as you come to it.'
+    );
+  }
+  parts.push(step.spoken);
+  return parts.join(' ');
 }

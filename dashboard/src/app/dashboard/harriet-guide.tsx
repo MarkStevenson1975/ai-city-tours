@@ -2,13 +2,14 @@
 
 import { useRef, useState } from 'react';
 
-// "Speakers on?" prompt plus Harriet's spoken walkthrough. The audio is fetched
-// from /api/onboarding-audio, which keys it off a hash of the script, so it is
-// always in step with what the screen actually says.
+// "Speakers on?" prompt plus Harriet explaining THE STEP THEY ARE ON — not the
+// whole journey in one go. The audio is fetched from /api/onboarding-audio,
+// which keys it off a hash of that step's script, so it is always in step with
+// what the screen actually says.
 //
 // If no ElevenLabs key is configured the endpoint returns 503 and we hide the
 // player entirely, rather than leaving a button that does nothing.
-export function HarrietGuide() {
+export function HarrietGuide({ step }: { step: number }) {
   const [state, setState] = useState<'idle' | 'loading' | 'playing' | 'hidden'>(
     'idle'
   );
@@ -25,7 +26,7 @@ export function HarrietGuide() {
 
     setState('loading');
     try {
-      const res = await fetch('/api/onboarding-audio');
+      const res = await fetch(`/api/onboarding-audio?step=${step}`);
       if (res.status === 503) {
         setState('hidden'); // not configured — say nothing
         return;
@@ -58,7 +59,7 @@ export function HarrietGuide() {
         <span className="text-cream text-[11px] font-bold">Speakers on?</span>
       </div>
       <p className="text-cream/70 text-[10.5px] leading-snug mb-2.5">
-        Harriet can talk you through each step.
+        Harriet will explain what to do on this screen.
       </p>
       <button
         type="button"
@@ -70,7 +71,7 @@ export function HarrietGuide() {
           ? 'Just a moment…'
           : state === 'playing'
             ? '■ Stop'
-            : "▶ Play Harriet's guide"}
+            : '▶ What do I do here?'}
       </button>
     </div>
   );

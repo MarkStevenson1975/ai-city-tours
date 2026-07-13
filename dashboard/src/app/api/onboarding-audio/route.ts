@@ -1,26 +1,32 @@
-// GET /api/onboarding-audio
+// GET /api/onboarding-audio?step=1
 //
-// Returns a public URL for Harriet's spoken walkthrough of the first-run steps.
+// Returns a public URL for Harriet talking about ONE step — the screen the
+// operator is actually on. Not a monologue from top to bottom.
 //
-// The file is cached in Supabase Storage under a hash of the script text and
-// the voice id. If anybody edits the wording in src/lib/onboarding.ts, the hash
-// changes, the cache misses, and Harriet re-records herself on the next play.
-// There is no manual regeneration step to forget.
+// Each step's file is cached in Supabase Storage under a hash of that step's
+// text and the voice id. If anybody edits the wording in src/lib/onboarding.ts,
+// the hash changes, the cache misses, and Harriet re-records that step on the
+// next play. There is no manual regeneration step to forget.
 import { createHash } from 'crypto';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { HARRIET_VOICE_ID, spokenScript } from '@/lib/onboarding';
+import { HARRIET_VOICE_ID, spokenForStep, isStepNumber } from '@/lib/onboarding';
 
 const BUCKET = 'onboarding-audio';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
+  }
+
+  const step = Number(req.nextUrl.searchParams.get('step') ?? '1');
+  if (!Number.isInteger(step) || !isStepNumber(step)) {
+    return NextResponse.json({ error: 'bad_step' }, { status: 400 });
   }
 
   const apiKey =
@@ -31,12 +37,12 @@ export async function GET() {
     return NextResponse.json({ error: 'not_configured' }, { status: 503 });
   }
 
-  const script = spokenScript();
+  const script = spokenForStep(step);
   const hash = createHash('sha256')
     .update(`${HARRIET_VOICE_ID}::${script}`)
     .digest('hex')
     .slice(0, 32);
-  const path = `walkthrough-${hash}.mp3`;
+  const path = `step-${step}-${hash}.mp3`;
 
   const admin = createAdminClient();
   const publicUrl = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
