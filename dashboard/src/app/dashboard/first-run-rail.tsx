@@ -1,8 +1,13 @@
 import Link from 'next/link';
+import { ONBOARDING_STEPS, HELP_EMAIL } from '@/lib/onboarding';
+import { HarrietGuide } from './harriet-guide';
 
 // First-run guide rail. Shown to operators until their first tour is live.
 // The point is reassurance: it is only four steps, and it ticks itself off
 // from real state (stops saved, previewed, published) rather than a cookie.
+//
+// The steps themselves come from src/lib/onboarding.ts — the same file Harriet
+// reads aloud — so what is written here and what she says can never disagree.
 export type RailState = {
   /** A tour exists (they answered "where is your tour?"). */
   hasCity: boolean;
@@ -12,52 +17,38 @@ export type RailState = {
   citySlug?: string;
 };
 
-type Step = {
-  n: number;
-  title: string;
-  hint: string;
-  done: boolean;
-};
-
 export function FirstRunRail({ state }: { state: RailState }) {
-  const steps: Step[] = [
-    {
-      n: 1,
-      title: 'Tell us where',
-      hint: 'A town, or your venue',
-      done: state.hasCity,
-    },
-    {
-      n: 2,
-      title: 'Choose your stops',
-      hint: 'We write them for you',
-      done: state.stopCount > 0,
-    },
-    {
-      n: 3,
-      title: 'Walk it yourself',
-      hint: 'Free preview on your phone',
-      done: state.previewed,
-    },
-    {
-      n: 4,
-      title: 'Publish',
-      hint: 'Your first month is free',
-      done: state.published,
-    },
-  ];
+  const doneFor = (n: number): boolean => {
+    switch (n) {
+      case 1:
+        return state.hasCity;
+      case 2:
+        return state.stopCount > 0;
+      case 3:
+        return state.previewed;
+      case 4:
+        return state.published;
+      default:
+        return false;
+    }
+  };
 
+  const steps = ONBOARDING_STEPS.map((s) => ({ ...s, done: doneFor(s.n) }));
   const currentIndex = steps.findIndex((s) => !s.done);
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
     <aside className="w-full lg:w-64 lg:flex-shrink-0">
       <div className="lg:sticky lg:top-6 bg-white rounded-xl p-5 shadow-sm">
+        <HarrietGuide />
+
         <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">
-          Your tour, in 4 steps
+          Your tour, in {steps.length} steps
         </p>
         <p className="text-sm font-bold text-primary mb-4">
-          {doneCount === 0 ? 'About 15 minutes' : `${doneCount} of 4 done`}
+          {doneCount === 0
+            ? 'About 15 minutes'
+            : `${doneCount} of ${steps.length} done`}
         </p>
 
         <ol className="space-y-3 mb-4">
@@ -109,10 +100,10 @@ export function FirstRunRail({ state }: { state: RailState }) {
           <p className="text-[10.5px] text-gray-500 leading-relaxed">
             Stuck? Email{' '}
             <a
-              href="mailto:team@thesetupcrew.co.uk"
+              href={`mailto:${HELP_EMAIL}`}
               className="font-bold text-primary hover:underline"
             >
-              team@thesetupcrew.co.uk
+              {HELP_EMAIL}
             </a>{' '}
             and a human replies.
           </p>
