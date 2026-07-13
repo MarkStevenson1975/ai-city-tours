@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PreviewExperience, type PreviewStop } from './preview-experience';
+import { FirstRunRail } from '../../first-run-rail';
 
 // Full draft preview, stepped through one stop at a time like the real
 // mobile tour. Reads the draft tables directly.
@@ -20,7 +21,7 @@ export default async function PreviewPage({
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, name, slug, guide_name, color_primary, previewed_at')
+    .select('id, name, slug, guide_name, color_primary, previewed_at, published_at')
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
@@ -56,20 +57,40 @@ export default async function PreviewPage({
   }));
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <Link href={`/dashboard/${citySlug}`} className="text-sm text-gray-500 hover:text-primary">
-          ← Back to dashboard
-        </Link>
-        <span className="text-xs text-gray-500">Draft preview · not published</span>
+    <div className="flex flex-col lg:flex-row gap-8 max-w-4xl">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href={`/dashboard/${citySlug}`}
+            className="text-sm text-gray-500 hover:text-primary"
+          >
+            ← Back to dashboard
+          </Link>
+          <span className="text-xs text-gray-500">
+            Draft preview · not published
+          </span>
+        </div>
+
+        <PreviewExperience
+          cityName={city.name}
+          guideName={city.guide_name ?? 'Harriet'}
+          accent={city.color_primary || '#3B6D11'}
+          stops={previewStops}
+        />
       </div>
 
-      <PreviewExperience
-        cityName={city.name}
-        guideName={city.guide_name ?? 'Harriet'}
-        accent={city.color_primary || '#3B6D11'}
-        stops={previewStops}
-      />
+      {/* Step 3 is this page, so the rail stays with them. Hidden once live. */}
+      {!city.published_at && (
+        <FirstRunRail
+          state={{
+            hasCity: true,
+            stopCount: previewStops.length,
+            previewed: true,
+            published: Boolean(city.published_at),
+            citySlug: city.slug,
+          }}
+        />
+      )}
     </div>
   );
 }

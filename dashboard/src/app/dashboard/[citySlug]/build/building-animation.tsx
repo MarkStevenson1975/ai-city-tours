@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 
-// Drafting a stop takes a few seconds each, so this is what the operator looks
-// at while they wait. On-brand, calm, and honest: it says what is actually
-// happening rather than spinning a meaningless wheel.
+// What the operator looks at while their stops are written and saved.
+// On-brand, calm, and honest: it says what is actually happening.
 //
-// A little walker makes their way along a dashed route, and the footprints fill
-// in behind. It loops until the work is done.
+// Footprints walk their way across a dashed route, one after another, then the
+// trail resets and they set off again. Deliberately small and quiet — it is a
+// waiting state, not a fairground.
 const REASSURANCE = [
   'Reading up on each stop…',
   'Finding the stories worth telling…',
@@ -16,13 +16,16 @@ const REASSURANCE = [
   'Almost there. Good things, and all that…',
 ];
 
+// x positions along the route, with the feet alternating either side of it.
+const STEPS = [14, 42, 70, 98, 126, 154, 182, 210, 238, 264];
+
 export function BuildingAnimation({
   label,
   subtle = false,
 }: {
   /** What is actually happening, e.g. "Drafting 2 of 6: Hereford Cathedral". */
   label?: string;
-  /** Smaller version used while saving. */
+  /** Smaller still, used while saving. */
   subtle?: boolean;
 }) {
   const [line, setLine] = useState(0);
@@ -35,86 +38,72 @@ export function BuildingAnimation({
     return () => clearInterval(id);
   }, []);
 
+  const cycle = 3.4; // seconds for a full walk across
+
   return (
-    <div className="bg-primary rounded-xl p-5 text-cream overflow-hidden">
+    <div className="bg-primary rounded-xl p-4 text-cream overflow-hidden">
       <style>{`
-        @keyframes storiedWalk {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(240px); }
+        @keyframes storiedFootstep {
+          0%   { opacity: 0; }
+          8%   { opacity: 1; }
+          68%  { opacity: 1; }
+          88%  { opacity: 0; }
+          100% { opacity: 0; }
         }
-        @keyframes storiedBob {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-3px); }
-        }
-        @keyframes storiedTrail {
-          0%   { stroke-dashoffset: 260; }
-          100% { stroke-dashoffset: 0; }
-        }
-        @keyframes storiedPulse {
-          0%, 100% { opacity: .35; }
+        @keyframes storiedFade {
+          0%, 100% { opacity: .45; }
           50%      { opacity: 1; }
         }
       `}</style>
 
-      <div className="relative" style={{ height: subtle ? 40 : 56 }}>
+      <svg
+        viewBox="0 0 280 20"
+        className="w-full"
+        style={{ height: subtle ? 14 : 20 }}
+        aria-hidden
+      >
         {/* the route */}
-        <svg
-          viewBox="0 0 280 24"
-          className="absolute inset-x-0 bottom-0 w-full"
-          style={{ height: 24 }}
-          aria-hidden
-        >
-          <path
-            d="M4 18 C 60 6, 100 26, 150 14 S 240 8, 276 16"
-            fill="none"
-            stroke="#C9A84C"
-            strokeOpacity="0.35"
-            strokeWidth="2"
-            strokeDasharray="5 6"
-            strokeLinecap="round"
-          />
-          <path
-            d="M4 18 C 60 6, 100 26, 150 14 S 240 8, 276 16"
-            fill="none"
-            stroke="#C9A84C"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeDasharray="260"
-            style={{
-              animation: 'storiedTrail 3.6s ease-in-out infinite',
-            }}
-          />
-        </svg>
+        <path
+          d="M6 13 C 60 5, 100 17, 150 10 S 240 6, 274 12"
+          fill="none"
+          stroke="#C9A84C"
+          strokeOpacity="0.25"
+          strokeWidth="1.2"
+          strokeDasharray="4 5"
+          strokeLinecap="round"
+        />
 
-        {/* the walker */}
-        <div
-          className="absolute"
-          style={{
-            bottom: 12,
-            left: 8,
-            animation: 'storiedWalk 3.6s ease-in-out infinite',
-          }}
-          aria-hidden
-        >
-          <span
-            style={{
-              display: 'inline-block',
-              fontSize: subtle ? 16 : 20,
-              animation: 'storiedBob .5s ease-in-out infinite',
-            }}
-          >
-            🚶
-          </span>
-        </div>
-      </div>
+        {/* the footprints */}
+        {STEPS.map((x, i) => {
+          // follow the curve roughly, and alternate left/right of the line
+          const base = 13 - Math.sin((x / 280) * Math.PI * 1.6) * 4;
+          const y = base + (i % 2 === 0 ? -2.4 : 2.4);
+          return (
+            <ellipse
+              key={x}
+              cx={x}
+              cy={y}
+              rx="1.9"
+              ry="3"
+              fill="#C9A84C"
+              transform={`rotate(${i % 2 === 0 ? -18 : -8} ${x} ${y})`}
+              style={{
+                opacity: 0,
+                animation: `storiedFootstep ${cycle}s linear infinite`,
+                animationDelay: `${(i * cycle) / STEPS.length}s`,
+              }}
+            />
+          );
+        })}
+      </svg>
 
-      <div className="mt-3">
+      <div className="mt-2.5">
         <p className="text-sm font-bold text-cream">
           {label ?? 'Building your tour…'}
         </p>
         <p
           className="text-xs text-cream/70 mt-0.5"
-          style={{ animation: 'storiedPulse 3.2s ease-in-out infinite' }}
+          style={{ animation: 'storiedFade 3.2s ease-in-out infinite' }}
         >
           {REASSURANCE[line]}
         </p>

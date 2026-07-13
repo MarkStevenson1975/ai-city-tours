@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PreviewExperience, type PreviewStop } from '../preview/preview-experience';
 import { Confetti } from '../../confetti';
+import { FirstRunRail } from '../../first-run-rail';
 
 // The moment their stops save. This used to ask for a hero image and an
 // operator logo, which sent people hunting for files at the exact moment they
@@ -25,7 +26,9 @@ export default async function FinishPage({
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, slug, name, guide_name, color_primary, splash_image_url')
+    .select(
+      'id, slug, name, guide_name, color_primary, splash_image_url, previewed_at, published_at'
+    )
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
@@ -103,6 +106,19 @@ export default async function FinishPage({
               Not published yet, so only you can see this. When you&apos;re
               happy, publish it: your first month is free.
             </p>
+
+            {/* The progress rail follows them all the way to publish. */}
+            <div className="mt-8">
+              <FirstRunRail
+                state={{
+                  hasCity: true,
+                  stopCount,
+                  previewed: Boolean(city.previewed_at),
+                  published: Boolean(city.published_at),
+                  citySlug: city.slug,
+                }}
+              />
+            </div>
           </div>
 
           {/* The tour, on a phone, immediately */}
