@@ -66,8 +66,8 @@ export default async function FinishPage({
             <h1 className="font-display text-5xl mb-3">Your tour exists.</h1>
             <p className="text-base text-gray-600 mb-6">
               {stopCount} stop{stopCount === 1 ? '' : 's'}, written and ready.
-              That was the hard part. Here it is, exactly as a visitor will see
-              it on their phone.
+              That was the hard part. Have a look at it below, exactly as a
+              visitor will see it.
             </p>
 
             <div className="bg-white rounded-xl p-5 shadow-sm mb-6">
@@ -107,32 +107,30 @@ export default async function FinishPage({
               happy, publish it: your first month is free.
             </p>
 
-            {/* The progress rail follows them all the way to publish. */}
+            {/* The tour itself, straight under the button that offers it. */}
             <div className="mt-8">
-              <FirstRunRail
-                state={{
-                  hasCity: true,
-                  stopCount,
-                  previewed: Boolean(city.previewed_at),
-                  published: Boolean(city.published_at),
-                  citySlug: city.slug,
-                }}
+              <p className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-3">
+                Draft preview
+              </p>
+              <PreviewExperience
+                cityName={city.name}
+                guideName={city.guide_name ?? 'Harriet'}
+                accent={city.color_primary || '#1B4332'}
+                stops={previewStops}
               />
             </div>
           </div>
 
-          {/* The tour, on a phone, immediately */}
-          <div className="w-full lg:w-auto lg:flex-shrink-0">
-            <p className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-3 text-center">
-              Draft preview
-            </p>
-            <PreviewExperience
-              cityName={city.name}
-              guideName={city.guide_name ?? 'Harriet'}
-              accent={city.color_primary || '#1B4332'}
-              stops={previewStops}
-            />
-          </div>
+          {/* Progress rail stays exactly where it is on every other screen. */}
+          <FirstRunRail
+            state={{
+              hasCity: true,
+              stopCount,
+              previewed: Boolean(city.previewed_at),
+              published: Boolean(city.published_at),
+              citySlug: city.slug,
+            }}
+          />
         </div>
       </div>
     </>

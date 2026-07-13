@@ -35,21 +35,21 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     title: 'Choose your stops',
     hint: 'We write them for you',
     spoken:
-      'Now choose your stops. If you gave me a town, I have already gone and found the local landmarks, so simply pick the ones you want. If it is your own venue, drop a pin on the map for each place on your route, because only you know what is worth stopping for. Either way, I write the narration for every stop you choose, so you are never left staring at a blank page.',
+      'Now choose your stops. If you gave me a town, I have already gone and found the local landmarks, so simply tick the ones you want. And if somewhere you love is not on the list, do not worry: type its name or its postcode into the search box and add it yourself. If it is your own venue, drop a pin on the map for each place on your route, because only you know what is worth stopping for. When you are happy with your choices, press Draft my stops at the bottom of the page, and I will write every one of them for you.',
   },
   {
     n: 3,
     title: 'Walk it yourself',
-    hint: 'Free preview on your phone',
+    hint: 'Free preview on screen',
     spoken:
-      'Your tour is built, so now go and walk it. Open the preview on your phone and take the route exactly as a visitor would. It costs you nothing, and it is far and away the quickest way to spot anything you would like to change.',
+      'Your tour is built, so now walk it through. Open the preview here on the screen and step through the route exactly as a visitor would. It costs you nothing, and it is far and away the quickest way to spot anything you would like to change.',
   },
   {
     n: 4,
     title: 'Publish',
     hint: 'Your first month is free',
     spoken:
-      'You are ready to publish. Your first month is free, and you can cancel any time before it ends. Once you are live, the Promote tab will hand you a printable poster with your own QR code on it, ready for the wall. And if you get stuck at any point, email us and a real person will reply.',
+      'You are ready to publish. Before you do, cast an eye down your list of stops. To change any one of them, press Edit alongside that stop and you can rewrite the words, swap the photo, or move it in the running order. Nothing is set in stone. And if you would like to add your own logo, your colours, or a sponsor, choose Settings at the top of the screen. When it all looks right, publish it. Your first month is free, and you can cancel any time before it ends. Once you are live, the Promote tab will hand you a printable poster with your own QR code on it, ready for the wall. And if you get stuck at any point, email us and a real person will reply.',
   },
 ];
 
