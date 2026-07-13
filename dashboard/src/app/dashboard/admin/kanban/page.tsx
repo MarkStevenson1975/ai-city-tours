@@ -126,16 +126,21 @@ export default async function AdminKanbanPage({
   // Build-journey events: exactly how far each operator got, and when.
   const { data: eventRows } = await admin
     .from('operator_events')
-    .select('user_id, event, created_at')
+    .select('user_id, event, created_at, meta')
     .in('user_id', operatorIds.length ? operatorIds : ['00000000-0000-0000-0000-000000000000'])
     .order('created_at', { ascending: true });
 
-  // First time each operator reached each step (earliest wins).
+  // First time each operator reached each step (earliest wins), plus where they
+  // came from if they arrived on a tagged outreach link.
   const firstEventAt = new Map<string, Map<string, string>>();
+  const sourceByUser = new Map<string, string>();
   (eventRows ?? []).forEach((e) => {
     if (!firstEventAt.has(e.user_id)) firstEventAt.set(e.user_id, new Map());
     const forUser = firstEventAt.get(e.user_id)!;
     if (!forUser.has(e.event)) forUser.set(e.event, e.created_at);
+
+    const src = (e.meta as { src?: string } | null)?.src;
+    if (src && !sourceByUser.has(e.user_id)) sourceByUser.set(e.user_id, src);
   });
 
   const journeyFor = (userId: string): JourneyStep[] =>
@@ -236,6 +241,7 @@ export default async function AdminKanbanPage({
       hidden: Boolean(p.kanban_hidden_at),
       notes: notesByUser.get(p.id) ?? [],
       journey: journeyFor(p.id),
+      source: sourceByUser.get(p.id) ?? null,
     });
   }
 

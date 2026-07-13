@@ -206,6 +206,14 @@ function OperatorModal({
                 {a}
               </span>
             ))}
+            {card.source && (
+              <span
+                className="inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-blue-100 text-blue-800"
+                title="Arrived on a tagged link"
+              >
+                ↩ {card.source}
+              </span>
+            )}
           </div>
           <p className="text-xs text-gray-400 mt-2">
             {card.signedUpAt ? `Signed up ${card.signedUpAt}` : ''}

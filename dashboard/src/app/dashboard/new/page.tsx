@@ -11,7 +11,7 @@ import { trackOperator } from '@/lib/track-operator';
 export default async function NewTourPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; src?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -19,9 +19,12 @@ export default async function NewTourPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { error } = await searchParams;
+  const { error, src } = await searchParams;
 
-  await trackOperator(user.id, 'first_run_viewed');
+  // Record where they came from (an outreach email, a QR, or nothing at all).
+  await trackOperator(user.id, 'first_run_viewed', {
+    meta: src ? { src: src.slice(0, 60) } : undefined,
+  });
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 max-w-4xl">

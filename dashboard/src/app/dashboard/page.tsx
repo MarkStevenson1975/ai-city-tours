@@ -2,8 +2,15 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
-export default async function DashboardHome() {
+export default async function DashboardHome({
+  searchParams,
+}: {
+  // ?src=louise-outreach — carried through from an outreach link so we can see
+  // who came back because somebody emailed them.
+  searchParams: Promise<{ src?: string }>;
+}) {
   const supabase = await createClient();
+  const { src } = await searchParams;
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -40,7 +47,9 @@ export default async function DashboardHome() {
   // them straight to it rather than parking them on an empty list. (Admins
   // legitimately have no tours of their own, so they keep the Areas view.)
   if (!isAdmin && (!cities || cities.length === 0)) {
-    redirect('/dashboard/new');
+    // Carry the source through, so a click from Louise's email is still
+    // attributable once they land on the build question.
+    redirect(src ? `/dashboard/new?src=${encodeURIComponent(src)}` : '/dashboard/new');
   }
 
   return (

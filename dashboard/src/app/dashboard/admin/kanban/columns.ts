@@ -44,6 +44,8 @@ export type OperatorCard = {
   notes: KanbanNote[]; // engagement log, newest first
   /** Exactly how far they got when building, step by step. */
   journey: JourneyStep[];
+  /** Where they came from, if they arrived on a tagged link (e.g. outreach). */
+  source: string | null;
 };
 
 export const COLUMNS: { key: ColumnKey; title: string; hint: string }[] = [
