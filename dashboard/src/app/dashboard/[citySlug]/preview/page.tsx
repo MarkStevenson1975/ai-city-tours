@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { PreviewExperience, type PreviewStop } from './preview-experience';
 
 // Full draft preview, stepped through one stop at a time like the real
@@ -19,10 +20,25 @@ export default async function PreviewPage({
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, name, slug, guide_name, color_primary')
+    .select('id, name, slug, guide_name, color_primary, previewed_at')
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
+
+  // Stamp the first time they walk their own tour. Drives the "Walk it
+  // yourself" tick on the first-run checklist. Best effort: never block the
+  // page if it fails.
+  if (!city.previewed_at) {
+    try {
+      await createAdminClient()
+        .from('cities')
+        .update({ previewed_at: new Date().toISOString() })
+        .eq('id', city.id)
+        .is('previewed_at', null);
+    } catch {
+      // ignore — previewing must never fail because of a stat
+    }
+  }
 
   const { data: stops } = await supabase
     .from('stops')

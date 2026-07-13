@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PublishButton } from './publish-button';
 import { InviteOperatorForm } from './invite-operator-form';
 import { StopsReorder } from './stops-reorder';
+import { FirstRunRail } from '../first-run-rail';
 import { ManageBillingButton, UpgradeButton } from './go-live-panel';
 import { SeeItLiveButton } from './subscribe-modal';
 import { PLAN_STOP_LIMIT, PLAN_TOUR_LIMIT, PLAN_LABEL, nextTier, type Tier } from '@/lib/plans';
@@ -98,7 +99,8 @@ export default async function CityOverview({
   const isLive = (city.published_version ?? 0) > 0 && city.published_config != null;
 
   return (
-    <div className="max-w-5xl">
+    <div className="flex flex-col lg:flex-row gap-8 max-w-6xl">
+      <div className="flex-1 min-w-0">
       <Link
         href="/dashboard"
         className="text-sm text-gray-500 hover:text-primary transition"
@@ -264,6 +266,20 @@ export default async function CityOverview({
           isLive={isLive}
         />
       </section>
+      </div>
+
+      {/* First-run guidance: stays with the operator until their tour is live. */}
+      {!isAdmin && !publishedAt && (
+        <FirstRunRail
+          state={{
+            hasCity: true,
+            stopCount,
+            previewed: Boolean(city.previewed_at),
+            published: Boolean(city.published_at),
+            citySlug: city.slug,
+          }}
+        />
+      )}
     </div>
   );
 }
