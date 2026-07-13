@@ -103,35 +103,38 @@ export default async function FinishPage({
               </p>
             </div>
 
-            {/* The tour itself — playable, right here. This is the reward. */}
-            <div>
-              <p className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-3">
-                Draft preview
-              </p>
-              <PreviewExperience
-                cityName={city.name}
-                guideName={city.guide_name ?? 'Harriet'}
-                accent={city.color_primary || '#1B4332'}
-                stops={previewStops}
-                align="left"
-              />
-              <p className="text-xs text-gray-500 mt-3" style={{ maxWidth: 360 }}>
-                Tap through it. This is the real thing.
-              </p>
-            </div>
+            {/* The tour itself, with the one call to action stood alongside it,
+                level with the top of the phone. */}
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-3">
+                  Draft preview
+                </p>
+                <PreviewExperience
+                  cityName={city.name}
+                  guideName={city.guide_name ?? 'Harriet'}
+                  accent={city.color_primary || '#1B4332'}
+                  stops={previewStops}
+                  align="left"
+                />
+                <p className="text-xs text-gray-500 mt-3" style={{ maxWidth: 360 }}>
+                  Tap through it. This is the real thing.
+                </p>
+              </div>
 
-            {/* ONE thing to do: they have seen it, so move them on to going live. */}
-            <div className="mt-8" style={{ maxWidth: 360 }}>
-              <Link
-                href={`/dashboard/${city.slug}`}
-                className="block text-center px-6 py-3.5 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition"
-              >
-                Take it live →
-              </Link>
-              <p className="text-xs text-gray-500 mt-3">
-                Not published yet, so only you can see it. Edit anything you
-                like, then publish: your first month is free.
-              </p>
+              {/* ONE thing to do. sm:pt-7 lines it up with the top of the handset. */}
+              <div className="w-full sm:w-60 sm:pt-7">
+                <Link
+                  href={`/dashboard/${city.slug}`}
+                  className="block text-center px-6 py-3.5 rounded-full bg-accent text-primary font-bold hover:bg-accent-light transition shadow-md"
+                >
+                  Take it live →
+                </Link>
+                <p className="text-xs text-gray-500 mt-3">
+                  Not published yet, so only you can see it. Edit anything you
+                  like, then publish: your first month is free.
+                </p>
+              </div>
             </div>
           </div>
 
