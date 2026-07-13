@@ -22,6 +22,9 @@ const ALLOWED_EVENTS = new Set([
   'tour_feedback',
   'tour_feedback_comment',
   'create_own_click',
+  // save-progress prompt (shown after the first stop, dismissible)
+  'save_prompt_shown',
+  'save_prompt_dismissed',
 ]);
 
 export default async function handler(req, res) {
