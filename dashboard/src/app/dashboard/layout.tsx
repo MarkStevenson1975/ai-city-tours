@@ -75,6 +75,12 @@ export default async function DashboardLayout({
                 Kanban
               </Link>
               <Link
+                href="/dashboard/admin/funnel"
+                className="block px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                Operator funnel
+              </Link>
+              <Link
                 href="/dashboard/admin/ai-usage"
                 className="block px-3 py-2 rounded hover:bg-white/10 transition"
               >

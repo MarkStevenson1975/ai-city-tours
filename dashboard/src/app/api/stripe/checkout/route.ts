@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { trackOperator } from '@/lib/track-operator';
 import { stripe } from '@/lib/stripe';
 import { priceIdFor, isTier, type Interval } from '@/lib/plans';
 
@@ -90,6 +91,11 @@ export async function POST(req: NextRequest) {
     .from('user_profiles')
     .update({ checkout_started_at: new Date().toISOString() })
     .eq('id', user.id);
+
+  await trackOperator(user.id, 'publish_started', {
+    cityId: city.id,
+    meta: { tier },
+  });
 
   return NextResponse.json({ url: session.url });
 }

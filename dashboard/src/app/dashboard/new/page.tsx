@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { NewTourForm } from './new-tour-form';
 import { FirstRunRail } from '../first-run-rail';
+import { trackOperator } from '@/lib/track-operator';
 
 // First-run screen. We ask the one thing every operator already knows: where
 // their tour is. The tour is named from that automatically (editable later in
@@ -19,6 +20,8 @@ export default async function NewTourPage({
   if (!user) redirect('/login');
 
   const { error } = await searchParams;
+
+  await trackOperator(user.id, 'first_run_viewed');
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 max-w-4xl">

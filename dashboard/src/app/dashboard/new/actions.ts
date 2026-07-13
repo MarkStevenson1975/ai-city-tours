@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { trackOperator } from '@/lib/track-operator';
 
 /**
  * Self-serve tour creation. Any signed-in operator can create and own a city.
@@ -82,6 +83,12 @@ export async function createMyTour(formData: FormData) {
     p_slug: slug,
     p_guide_name: guideName,
   });
+
+  if (!error) {
+    await trackOperator(user.id, 'place_submitted', {
+      meta: { kind, place: name, slug },
+    });
+  }
 
   if (error) {
     // Belt and braces: a race could still hit the unique constraint.

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { trackOperator } from '@/lib/track-operator';
 
 /**
  * Take a published tour offline. Keeps the tour and its draft; the public page
@@ -128,6 +129,11 @@ export async function publishCity(cityId: string, citySlug: string, notes?: stri
   if (error) {
     return { ok: false as const, error: error.message };
   }
+
+  await trackOperator(user.id, 'published', {
+    cityId,
+    meta: { version: data as number },
+  });
 
   // Invalidate cached pages so the dashboard reflects the new state immediately
   revalidatePath(`/dashboard/${citySlug}`);

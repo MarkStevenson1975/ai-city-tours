@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { enforceAiLimit } from '@/lib/ai-rate-limit';
+import { trackOperator } from '@/lib/track-operator';
 
 export type DraftStop = {
   name: string;
@@ -209,6 +210,11 @@ export async function saveDraftStops(citySlug: string, stops: DraftStop[]) {
   }
 
   await admin.from('cities').update(cityUpdate).eq('id', city.id);
+
+  await trackOperator(user.id, 'stops_saved', {
+    cityId: city.id,
+    meta: { stops: saved },
+  });
 
   revalidatePath(`/dashboard/${citySlug}`);
   return { ok: true as const, count: saved };

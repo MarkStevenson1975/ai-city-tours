@@ -5,6 +5,7 @@
 // reference so the save step can pull an image. Uses GOOGLE_MAPS_API_KEY.
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { trackOperator } from '@/lib/track-operator';
 
 type Suggestion = {
   place_id: string;
@@ -147,6 +148,12 @@ export async function POST(req: NextRequest) {
     const results = Array.from(seen.values())
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
       .slice(0, 10);
+
+    if (results.length) {
+      await trackOperator(user.id, 'landmarks_shown', {
+        meta: { where, radiusMiles, found: results.length },
+      });
+    }
 
     return NextResponse.json({ results, center });
   } catch (e) {

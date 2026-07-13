@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { trackOperator } from '@/lib/track-operator';
 import { PreviewExperience, type PreviewStop } from './preview-experience';
 import { FirstRunRail } from '../../first-run-rail';
 
@@ -36,6 +37,10 @@ export default async function PreviewPage({
         .update({ previewed_at: new Date().toISOString() })
         .eq('id', city.id)
         .is('previewed_at', null);
+      await trackOperator(user.id, 'previewed', {
+        cityId: city.id,
+        meta: { where: 'preview_page' },
+      });
     } catch {
       // ignore — previewing must never fail because of a stat
     }
