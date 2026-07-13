@@ -15,6 +15,11 @@ export type RailState = {
   previewed: boolean;
   published: boolean;
   citySlug?: string;
+  /**
+   * Hide the "Walk your tour" shortcut. Set on pages that already offer the
+   * tour themselves, so we never put two buttons for the same job on one screen.
+   */
+  hideWalkShortcut?: boolean;
 };
 
 export function FirstRunRail({ state }: { state: RailState }) {
@@ -89,14 +94,17 @@ export function FirstRunRail({ state }: { state: RailState }) {
           })}
         </ol>
 
-        {state.citySlug && state.stopCount > 0 && !state.previewed && (
-          <Link
-            href={`/dashboard/${state.citySlug}/preview`}
-            className="block text-center text-xs font-bold rounded-full border border-primary text-primary py-2 mb-4 hover:bg-cream transition"
-          >
-            Walk your tour →
-          </Link>
-        )}
+        {state.citySlug &&
+          state.stopCount > 0 &&
+          !state.previewed &&
+          !state.hideWalkShortcut && (
+            <Link
+              href={`/dashboard/${state.citySlug}/preview`}
+              className="block text-center text-xs font-bold rounded-full border border-primary text-primary py-2 mb-4 hover:bg-cream transition"
+            >
+              Walk your tour →
+            </Link>
+          )}
 
         <div className="border-t border-cream pt-3">
           <p className="text-[10.5px] text-gray-500 leading-relaxed">

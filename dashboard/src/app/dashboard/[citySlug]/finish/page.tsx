@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { PreviewExperience, type PreviewStop } from '../preview/preview-experience';
 import { Confetti } from '../../confetti';
 import { FirstRunRail } from '../../first-run-rail';
@@ -32,6 +33,21 @@ export default async function FinishPage({
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
+
+  // The tour is playable right here, so landing on this page IS walking it.
+  // Stamp it so step 3 ticks honestly, rather than asking them to go and look
+  // at the same thing on another page.
+  if (!city.previewed_at) {
+    try {
+      await createAdminClient()
+        .from('cities')
+        .update({ previewed_at: new Date().toISOString() })
+        .eq('id', city.id)
+        .is('previewed_at', null);
+    } catch {
+      // never block the reward screen for a stat
+    }
+  }
 
   const { data: stops } = await supabase
     .from('stops')
@@ -87,28 +103,8 @@ export default async function FinishPage({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href={`/dashboard/${city.slug}/preview`}
-                className="px-6 py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition"
-              >
-                Walk it on your phone →
-              </Link>
-              <Link
-                href={`/dashboard/${city.slug}`}
-                className="px-6 py-3 rounded-full border border-primary text-primary font-bold hover:bg-cream transition"
-              >
-                Go to my tour
-              </Link>
-            </div>
-
-            <p className="text-xs text-gray-500 mt-5">
-              Not published yet, so only you can see this. When you&apos;re
-              happy, publish it: your first month is free.
-            </p>
-
-            {/* The tour itself, straight under the button that offers it. */}
-            <div className="mt-8">
+            {/* The tour itself — playable, right here. This is the reward. */}
+            <div>
               <p className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-3">
                 Draft preview
               </p>
@@ -118,17 +114,36 @@ export default async function FinishPage({
                 accent={city.color_primary || '#1B4332'}
                 stops={previewStops}
               />
+              <p className="text-xs text-gray-500 mt-3 text-center">
+                Tap through it. This is the real thing.
+              </p>
+            </div>
+
+            {/* ONE thing to do: they have seen it, so move them on to publish. */}
+            <div className="mt-8 max-w-sm">
+              <Link
+                href={`/dashboard/${city.slug}`}
+                className="block text-center px-6 py-3.5 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition"
+              >
+                Take me to my tour →
+              </Link>
+              <p className="text-xs text-gray-500 mt-3 text-center">
+                Not published yet, so only you can see it. Edit anything you
+                like, then publish: your first month is free.
+              </p>
             </div>
           </div>
 
-          {/* Progress rail stays exactly where it is on every other screen. */}
+          {/* Progress rail stays exactly where it is on every other screen.
+              Its "Walk your tour" shortcut is hidden: the tour is on this page. */}
           <FirstRunRail
             state={{
               hasCity: true,
               stopCount,
-              previewed: Boolean(city.previewed_at),
+              previewed: true,
               published: Boolean(city.published_at),
               citySlug: city.slug,
+              hideWalkShortcut: true,
             }}
           />
         </div>

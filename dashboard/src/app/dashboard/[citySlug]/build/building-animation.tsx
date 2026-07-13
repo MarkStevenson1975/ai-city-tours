@@ -15,10 +15,11 @@ const REASSURANCE = [
   'Almost there. Good things, and all that…',
 ];
 
-// Eight prints marching across. Left foot sits a little above the line of
-// travel, right foot a little below, as a real pair of feet would.
-const PRINTS = Array.from({ length: 8 }, (_, i) => ({
-  x: 12 + i * 20,
+// Prints marching across, each one facing the way it is walking: broad tread in
+// front, smaller heel behind. Left foot sits a little above the line of travel,
+// right foot a little below, as a real pair of feet would.
+const PRINTS = Array.from({ length: 7 }, (_, i) => ({
+  x: 14 + i * 22,
   left: i % 2 === 0,
 }));
 
@@ -60,17 +61,23 @@ export function BuildingAnimation({
         {PRINTS.map((p, i) => (
           <g
             key={p.x}
-            transform={`translate(${p.x} ${p.left ? 9 : 17}) rotate(${p.left ? -8 : 8})`}
+            transform={`translate(${p.x} ${p.left ? 9 : 18}) rotate(${p.left ? -6 : 6})`}
             style={{
               opacity: 0,
               animation: `storiedFootstep ${CYCLE}s linear infinite`,
               animationDelay: `${(i * CYCLE) / PRINTS.length}s`,
             }}
           >
-            {/* tread (ball of the foot) */}
-            <ellipse cx="0" cy="-2.6" rx="2.5" ry="3.1" fill="#C9A84C" />
-            {/* heel */}
-            <ellipse cx="0" cy="3.1" rx="1.7" ry="2.1" fill="#C9A84C" />
+            {/* tread (ball of the foot) — leading, towards the right */}
+            <ellipse cx="2.8" cy="0" rx="3.2" ry="2.4" fill="#C9A84C" />
+            {/* heel — trailing, behind and slightly inboard */}
+            <ellipse
+              cx="-3.2"
+              cy={p.left ? 0.6 : -0.6}
+              rx="2.1"
+              ry="1.6"
+              fill="#C9A84C"
+            />
           </g>
         ))}
       </svg>
