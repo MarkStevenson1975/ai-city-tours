@@ -20,11 +20,14 @@ export function PreviewExperience({
   guideName,
   accent,
   stops,
+  align = 'center',
 }: {
   cityName: string;
   guideName: string;
   accent: string;
   stops: PreviewStop[];
+  /** 'left' on the reward screen, where it sits beside left-aligned copy. */
+  align?: 'left' | 'center';
 }) {
   // 'walk' = the Your Walk stop list; a number = that stop's detail screen.
   const [view, setView] = useState<'walk' | number>('walk');
@@ -32,7 +35,10 @@ export function PreviewExperience({
   const stop = typeof view === 'number' ? stops[view] : null;
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 360 }}>
+    <div
+      className={align === 'left' ? '' : 'mx-auto'}
+      style={{ maxWidth: 360 }}
+    >
       <div className="rounded-[36px] border-[10px] border-gray-900 bg-white overflow-hidden shadow-2xl">
         <div style={{ height: 620, display: 'flex', flexDirection: 'column' }}>
 

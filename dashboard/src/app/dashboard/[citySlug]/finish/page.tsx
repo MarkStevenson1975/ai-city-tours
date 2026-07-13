@@ -113,21 +113,22 @@ export default async function FinishPage({
                 guideName={city.guide_name ?? 'Harriet'}
                 accent={city.color_primary || '#1B4332'}
                 stops={previewStops}
+                align="left"
               />
-              <p className="text-xs text-gray-500 mt-3 text-center">
+              <p className="text-xs text-gray-500 mt-3" style={{ maxWidth: 360 }}>
                 Tap through it. This is the real thing.
               </p>
             </div>
 
-            {/* ONE thing to do: they have seen it, so move them on to publish. */}
-            <div className="mt-8 max-w-sm">
+            {/* ONE thing to do: they have seen it, so move them on to going live. */}
+            <div className="mt-8" style={{ maxWidth: 360 }}>
               <Link
                 href={`/dashboard/${city.slug}`}
                 className="block text-center px-6 py-3.5 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition"
               >
-                Take me to my tour →
+                Take it live →
               </Link>
-              <p className="text-xs text-gray-500 mt-3 text-center">
+              <p className="text-xs text-gray-500 mt-3">
                 Not published yet, so only you can see it. Edit anything you
                 like, then publish: your first month is free.
               </p>
