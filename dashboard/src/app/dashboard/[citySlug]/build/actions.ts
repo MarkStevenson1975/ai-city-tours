@@ -125,7 +125,7 @@ export async function saveDraftStops(citySlug: string, stops: DraftStop[]) {
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, name')
+    .select('id, name, splash_image_url')
     .eq('slug', citySlug)
     .single();
   if (!city) return { ok: false as const, error: 'Tour not found' };
@@ -186,10 +186,29 @@ export async function saveDraftStops(citySlug: string, stops: DraftStop[]) {
     }
   } catch { /* non-blocking */ }
 
-  await admin
-    .from('cities')
-    .update({ draft_updated_at: new Date().toISOString() })
-    .eq('id', city.id);
+  // Give the tour a welcome image for free: take the first stop's photo rather
+  // than asking the operator to go and find one. They can swap it in Settings.
+  // (The public tour and the poster already fall back to stop 1 anyway, so this
+  // just makes the choice explicit and editable.)
+  const cityUpdate: Record<string, string> = {
+    draft_updated_at: new Date().toISOString(),
+  };
+  if (!city.splash_image_url) {
+    const { data: firstStop } = await admin
+      .from('stops')
+      .select('hero_image_url, hero_image_override_url')
+      .eq('city_id', city.id)
+      .not('hero_image_url', 'is', null)
+      .order('position')
+      .limit(1)
+      .maybeSingle();
+
+    const inherited =
+      firstStop?.hero_image_override_url || firstStop?.hero_image_url || null;
+    if (inherited) cityUpdate.splash_image_url = inherited;
+  }
+
+  await admin.from('cities').update(cityUpdate).eq('id', city.id);
 
   revalidatePath(`/dashboard/${citySlug}`);
   return { ok: true as const, count: saved };
