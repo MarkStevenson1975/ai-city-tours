@@ -277,6 +277,7 @@ export default async function CityOverview({
             previewed: Boolean(city.previewed_at),
             published: Boolean(city.published_at),
             citySlug: city.slug,
+            currentStep: 4, // this page IS where they edit and publish
           }}
         />
       )}

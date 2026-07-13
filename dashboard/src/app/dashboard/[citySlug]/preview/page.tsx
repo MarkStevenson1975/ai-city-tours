@@ -88,6 +88,8 @@ export default async function PreviewPage({
             previewed: true,
             published: Boolean(city.published_at),
             citySlug: city.slug,
+            hideWalkShortcut: true, // they are already walking it
+            currentStep: 3, // this page IS "walk it yourself"
           }}
         />
       )}

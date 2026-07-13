@@ -20,6 +20,13 @@ export type RailState = {
    * tour themselves, so we never put two buttons for the same job on one screen.
    */
   hideWalkShortcut?: boolean;
+  /**
+   * Which step THIS PAGE is. The ticks come from the data, but "you are here"
+   * must come from the page, or the rail ends up pointing at Publish while the
+   * operator is stood on the preview screen — and Harriet explains the wrong
+   * thing. Falls back to the first unfinished step.
+   */
+  currentStep?: number;
 };
 
 export function FirstRunRail({ state }: { state: RailState }) {
@@ -39,10 +46,11 @@ export function FirstRunRail({ state }: { state: RailState }) {
   };
 
   const steps = ONBOARDING_STEPS.map((s) => ({ ...s, done: doneFor(s.n) }));
-  const currentIndex = steps.findIndex((s) => !s.done);
   const doneCount = steps.filter((s) => s.done).length;
-  // The step they are actually on — Harriet speaks about this one.
-  const currentStep = currentIndex === -1 ? steps.length : steps[currentIndex].n;
+
+  // Where they actually are. The page knows best; only guess if it hasn't said.
+  const firstUnfinished = steps.find((s) => !s.done)?.n ?? steps.length;
+  const currentStep = state.currentStep ?? firstUnfinished;
 
   return (
     <aside className="w-full lg:w-64 lg:flex-shrink-0">
@@ -59,8 +67,9 @@ export function FirstRunRail({ state }: { state: RailState }) {
         </p>
 
         <ol className="space-y-3 mb-4">
-          {steps.map((s, i) => {
-            const isCurrent = i === currentIndex;
+          {steps.map((s) => {
+            // "Here" is the page they are on, not simply the next unfinished box.
+            const isCurrent = s.n === currentStep;
             return (
               <li
                 key={s.n}
@@ -86,7 +95,7 @@ export function FirstRunRail({ state }: { state: RailState }) {
                     {s.title}
                   </p>
                   <p className="text-[10.5px] text-gray-500 leading-snug">
-                    {isCurrent && !s.done ? "You're here now" : s.hint}
+                    {isCurrent ? "You're here now" : s.hint}
                   </p>
                 </div>
               </li>

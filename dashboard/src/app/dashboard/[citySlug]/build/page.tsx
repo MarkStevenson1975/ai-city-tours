@@ -56,6 +56,7 @@ export default async function BuildPage({
           previewed: Boolean(city.previewed_at),
           published: Boolean(city.published_at),
           citySlug: city.slug,
+          currentStep: 2, // this page IS "choose your stops"
         }}
       />
     </div>

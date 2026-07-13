@@ -36,7 +36,13 @@ export default async function NewTourPage({
       </div>
 
       <FirstRunRail
-        state={{ hasCity: false, stopCount: 0, previewed: false, published: false }}
+        state={{
+          hasCity: false,
+          stopCount: 0,
+          previewed: false,
+          published: false,
+          currentStep: 1, // this page IS "tell us where"
+        }}
       />
     </div>
   );

@@ -144,6 +144,7 @@ export default async function FinishPage({
               published: Boolean(city.published_at),
               citySlug: city.slug,
               hideWalkShortcut: true,
+              currentStep: 3, // the tour is on this page: this IS "walk it yourself"
             }}
           />
         </div>
