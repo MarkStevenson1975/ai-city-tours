@@ -9,6 +9,9 @@
       ]
     }
   ],
+  "redirects": [
+    { "source": "/", "destination": "https://storiedtours.co.uk", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/:slug", "destination": "/tour" }
   ]
