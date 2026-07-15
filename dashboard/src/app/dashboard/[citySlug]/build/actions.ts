@@ -27,7 +27,11 @@ async function fetchAndStorePhoto(
   apiKey: string
 ): Promise<string | null> {
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=${encodeURIComponent(photoRef)}&key=${apiKey}`;
+    // Two formats: Places API (New) gives a resource name "places/<id>/photos/<res>";
+    // the legacy API gives an opaque photo_reference. Support both.
+    const url = photoRef.startsWith('places/')
+      ? `https://places.googleapis.com/v1/${photoRef}/media?maxWidthPx=1200&key=${apiKey}`
+      : `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=${encodeURIComponent(photoRef)}&key=${apiKey}`;
     const resp = await fetch(url);
     if (!resp.ok) return null;
     const contentType = resp.headers.get('content-type') || 'image/jpeg';
