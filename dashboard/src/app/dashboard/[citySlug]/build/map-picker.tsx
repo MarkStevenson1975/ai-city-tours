@@ -122,24 +122,22 @@ export function MapPicker({
           );
         });
 
-        // Search box (Places Autocomplete) to jump to and add a place.
+        // Search box: a NAVIGATION aid only. Restricted to geocode results
+        // (towns, areas, postcodes) so it can never surface or add a business —
+        // the operator adds stops by tapping the real places on the map. This
+        // matches the instructions and keeps the whole screen free of the
+        // "random business" problem.
         if (inputRef.current) {
           const ac = new g.maps.places.Autocomplete(inputRef.current, {
-            fields: ['place_id', 'name', 'geometry'],
+            fields: ['geometry'],
+            types: ['geocode'],
             componentRestrictions: { country: 'gb' },
           });
           ac.addListener('place_changed', () => {
             const p = ac.getPlace();
-            if (p?.place_id && p?.geometry?.location) {
+            if (p?.geometry?.location) {
               map.setCenter(p.geometry.location);
-              map.setZoom(16);
-              addPick({
-                place_id: p.place_id,
-                name: p.name,
-                lat: p.geometry.location.lat(),
-                lng: p.geometry.location.lng(),
-              });
-              if (inputRef.current) inputRef.current.value = '';
+              map.setZoom(15);
             }
           });
         }
@@ -162,8 +160,8 @@ export function MapPicker({
         Option 1 · Pick on the map
       </p>
       <p className="text-sm text-gray-600 mb-3">
-        Search for your town, then tap up to {MAX} places on the map to add them as
-        stops. You can add more later.
+        Search a town or postcode to jump there, then tap up to {MAX} places on the
+        map to add them as stops. You can add more later.
       </p>
 
       {failed ? (
@@ -175,7 +173,7 @@ export function MapPicker({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search for a place to add"
+            placeholder="Search a town or postcode"
             className="w-full px-4 py-3 mb-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <div
