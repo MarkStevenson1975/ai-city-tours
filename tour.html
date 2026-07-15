@@ -1192,8 +1192,9 @@ function initNavScreen(toIdx){
   const stop=CONFIG.stops[toIdx];
   document.getElementById('nav-destination-label').textContent=stop.name;
   document.getElementById('nav-turn-main').textContent='Getting your location…';
-  // Reset map — directions will load on first GPS fix
+  // Reset map + spoken route — both load on first GPS fix
   state.mapLoaded=false;
+  state.navSteps=[];state.navTargetIdx=0;state.navRouteReady=false;state.navRouteLoading=false;
   const iframe=document.getElementById('nav-map-iframe');
   if(iframe)iframe.src='about:blank';
   const loadingDiv=document.getElementById('nav-map-loading');
@@ -1256,15 +1257,18 @@ function onGPSUpdate(lat,lng,toIdx){
   const dest=CONFIG.stops[toIdx].coordinates;
   const distToDest=haversine(lat,lng,dest.lat,dest.lng);
   updateNavStats(distToDest);
-  // Load directions map on first GPS fix (mode matches the tour: bike or foot)
+  // On first GPS fix: show the map, and fetch the spoken turn-by-turn route.
   if(!state.mapLoaded){
     state.mapLoaded=true;
-    document.getElementById('nav-turn-main').textContent='Follow Google Maps to destination';
+    document.getElementById('nav-turn-main').textContent='Getting your route…';
     const iframe=document.getElementById('nav-map-iframe');
     if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}&mode=${googleTravelMode()}`;}
     const loadingDiv=document.getElementById('nav-map-loading');
     if(loadingDiv)loadingDiv.classList.add('hidden');
   }
+  // Fetch the route once, then let Harriet speak each turn as the visitor moves.
+  if(!state.navRouteReady&&!state.navRouteLoading){state.navRouteLoading=true;loadNavRoute(lat,lng,dest.lat,dest.lng);}
+  updateSpokenNav(lat,lng);
   // Approach: fire sponsor once when entering the wider radius around the
   // destination stop, before arrival itself. Catches users walking into a
   // large area (Castle Green, parks, squares) before reaching the named pin.
@@ -1288,7 +1292,7 @@ function maybeFireSponsorForStop(toIdx,source){
   showNotification('sponsor',sponsor.name,callout,12000,'',sponsor.ctaLabel||'Take me there',`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`,(sponsor.ctaUrl||sponsor.googleBusinessUrl||''));
   return sponsor;
 }
-function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}showScreen('stoplist');}
+function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}state.navSteps=[];state.navRouteReady=false;state.navRouteLoading=false;showScreen('stoplist');}
 function openInGoogleMaps(){const stop=CONFIG.stops[state.currentStopIndex];if(!stop)return;const{lat,lng}=stop.coordinates;window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${googleTravelMode()}`,'_blank');}
 function isAudioPlaying(){return state.currentAudio&&!state.currentAudio.ended&&!state.currentAudio.paused;}
 function tryPlayFact(fact){if(isAudioPlaying()){state.pendingFact=fact;return false;}showNotification('fact',null,fact.text,10000);playHarriet(fact.text,'Local Fact');return true;}
@@ -1569,6 +1573,64 @@ function haversine(lat1,lng1,lat2,lng2){const R=6371000,toRad=d=>d*Math.PI/180;c
 function formatDist(m){return m<1000?`${Math.round(m)}m`:`${(m/1000).toFixed(1)}km`;}
 function maneuverIcon(type,modifier){if(type==='arrive')return'🏁';if(type==='depart')return'▶️';if(modifier==='left')return'←';if(modifier==='right')return'→';if(modifier==='slight left')return'↖';if(modifier==='slight right')return'↗';if(modifier==='sharp left')return'↩';if(modifier==='sharp right')return'↪';return'↑';}
 function maneuverText(type,modifier){if(type==='arrive')return'You have arrived';if(type==='depart')return'Head';if(modifier==='left')return'Turn left';if(modifier==='right')return'Turn right';if(modifier==='slight left')return'Bear left';if(modifier==='slight right')return'Bear right';if(modifier==='sharp left')return'Turn sharply left';if(modifier==='sharp right')return'Turn sharply right';return'Continue straight';}
+
+// ── Spoken turn-by-turn ──────────────────────────────────────────────────────
+// The embedded map is the picture; this is the voice. We fetch the route once
+// (on the tour's travel profile), then as GPS updates Harriet announces each
+// turn a short distance ahead. It degrades gracefully to "follow the map" if
+// routing is unavailable, and never announces the final "you have arrived" —
+// the stop narration handles arrival, so the two never talk over each other.
+function navStepInstruction(st){return st.name?`${maneuverText(st.type,st.modifier)} onto ${st.name}`:maneuverText(st.type,st.modifier);}
+function navPreannounceM(){const m=tourTravelMode();return m==='driving'?120:(m==='cycling'?50:30);}
+function navReachedM(){return tourTravelMode()==='driving'?30:12;}
+async function loadNavRoute(fromLat,fromLng,toLat,toLng){
+  try{
+    const coords=`${fromLng},${fromLat};${toLng},${toLat}`;
+    const profile=osrmProfile();
+    const url=`https://routing.openstreetmap.de/routed-${profile}/route/v1/${profile}/${coords}?overview=false&steps=true`;
+    const res=await fetch(url);
+    const data=await res.json();
+    if(!data.routes||!data.routes.length)throw new Error('no route');
+    const steps=((data.routes[0].legs||[])[0]||{}).steps||[];
+    state.navSteps=steps.map(s=>({lat:s.maneuver.location[1],lng:s.maneuver.location[0],type:s.maneuver.type,modifier:s.maneuver.modifier,name:s.name,announced:false}));
+    // First announce target is the first real turn after departure.
+    const i=state.navSteps.findIndex((s,idx)=>idx>0&&s.type!=='depart'&&s.type!=='arrive');
+    state.navTargetIdx=i<0?state.navSteps.length:i;
+    state.navRouteReady=true;
+    const t=state.navSteps[state.navTargetIdx];
+    const nm=(CONFIG.stops[state.currentStopIndex]||{}).name||'your next stop';
+    const el=document.getElementById('nav-turn-main');
+    if(el)el.textContent=t?navStepInstruction(t):('Head towards '+nm);
+  }catch(e){
+    console.warn('spoken route failed',e);
+    state.navRouteReady=false;
+    const el=document.getElementById('nav-turn-main');
+    if(el)el.textContent='Follow the map to your next stop';
+  }
+}
+function updateSpokenNav(lat,lng){
+  if(state.arrivalFired||!state.navRouteReady||!state.navSteps.length)return;
+  let guard=0;
+  while(state.navTargetIdx<state.navSteps.length&&guard++<8){
+    const t=state.navSteps[state.navTargetIdx];
+    if(!t||t.type==='arrive'){state.navTargetIdx++;continue;}
+    const d=haversine(lat,lng,t.lat,t.lng);
+    if(!t.announced&&d<navPreannounceM()){
+      t.announced=true;
+      const instr=navStepInstruction(t);
+      const el=document.getElementById('nav-turn-main');if(el)el.textContent=instr;
+      try{playHarriet(d>15?`In about ${Math.round(d)} metres, ${instr.toLowerCase()}.`:`${instr}.`,'Direction');}catch(e){}
+      return;
+    }
+    if(d<navReachedM()){
+      state.navTargetIdx++;
+      const nx=state.navSteps[state.navTargetIdx];
+      if(nx&&nx.type!=='arrive'){const el=document.getElementById('nav-turn-main');if(el)el.textContent=navStepInstruction(nx);}
+      continue;
+    }
+    return;
+  }
+}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 function needsKey(){return !CONFIG.elevenlabsApiKey||CONFIG.elevenlabsApiKey.startsWith('{{');}
 function saveKey(){const k=document.getElementById('key-input').value.trim();const err=document.getElementById('key-error');if(!k){err.textContent='Please paste your API key above.';return;}if(!k.startsWith('sk_')){err.textContent='That doesn\'t look right - ElevenLabs keys start with sk_';return;}CONFIG.elevenlabsApiKey=k;try{localStorage.setItem('harriet_el_key',k);}catch(e){}document.getElementById('key-setup-overlay').classList.add('hidden');}
