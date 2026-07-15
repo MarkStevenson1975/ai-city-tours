@@ -1169,6 +1169,12 @@ function loadStopMedia(stop){
 // Tap-to-advance for the stop media gallery (also works when swipe is fiddly).
 function stopMediaStep(dir){const track=document.getElementById('detail-media-track');if(!track)return;track.scrollBy({left:dir*track.clientWidth,behavior:'smooth'});}
 function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';showScreen('detail');}
+// Travel mode for this tour: 'cycling' or 'walking'. Comes from the published
+// config (CONFIG.travelMode). Falls back to reading the slug so bike tours still
+// behave correctly in preview before a fresh publish carries the flag through.
+function tourTravelMode(){const m=(typeof CONFIG!=='undefined'&&CONFIG&&CONFIG.travelMode)||'';if(m==='cycling'||m==='walking')return m;return /(beryl|bike|cycl)/i.test((typeof CONFIG!=='undefined'&&CONFIG&&CONFIG.citySlug)||'')?'cycling':'walking';}
+function isCyclingTour(){return tourTravelMode()==='cycling';}
+function googleTravelMode(){return isCyclingTour()?'bicycling':'walking';}
 function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
 function initNavScreen(toIdx){
@@ -1187,18 +1193,30 @@ function initNavScreen(toIdx){
   const loadingDiv=document.getElementById('nav-map-loading');
   if(loadingDiv)loadingDiv.classList.remove('hidden');
   startGPSTracking(toIdx);
+  speakNavCue(stop);
+}
+// A short spoken cue when a visitor sets off for the next stop. On a bike tour
+// it reminds them to put the phone away and keep an ear free, since everything
+// is designed to happen while they are stopped.
+function speakNavCue(stop){
+  if(!stop)return;
+  const line=isCyclingTour()
+    ? `Righto. Make your way to ${stop.name}. Pop your phone in your pocket, keep one ear free for the traffic, and I'll be waiting for you there.`
+    : `Off you go to ${stop.name}. Follow the map, and I'll be here when you arrive.`;
+  try{playHarriet(line,'On your way');}catch(e){}
 }
 function initMap(){if(state.map){state.map.invalidateSize();return;}state.map=L.map('map',{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(state.map);const hfd=CONFIG.stops[0].coordinates;state.map.setView([hfd.lat,hfd.lng],16);state.userMarker=L.marker([hfd.lat,hfd.lng],{icon:L.divIcon({className:'',html:'<div class="map-marker-user"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(state.map);CONFIG.sponsors.filter(s=>s.subscriptionStatus==='active').forEach(sp=>{L.marker([sp.coordinates.lat,sp.coordinates.lng],{icon:L.divIcon({className:'',html:`<div class="map-marker-sponsor">${sp.emoji}</div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(state.map).bindPopup(sp.name);});}
 function updateStopMarkers(destIdx){if(!state.map)return;state.stopMarkers.forEach(m=>state.map.removeLayer(m));state.stopMarkers=[];CONFIG.stops.forEach((stop,i)=>{let html,size;if(i===destIdx){html='<div class="map-marker-current"></div>';size=32;}else if(state.visitedStops.has(stop.id)){html='<div class="map-marker-visited">✓</div>';size=28;}else{html=`<div class="map-marker-future">${stop.id}</div>`;size=28;}const m=L.marker([stop.coordinates.lat,stop.coordinates.lng],{icon:L.divIcon({className:'',html,iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(state.map).bindPopup(`<b>${stop.name}</b><br><button onclick='initNavScreen(${i})' style='margin-top:6px;padding:6px 12px;background:#1B4332;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:.8rem'>Navigate here →</button>`);state.stopMarkers.push(m);});}
 async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
-  // ALWAYS foot routing. We use the OpenStreetMap community's foot-only
-  // OSRM instance — it actually honours the foot profile (the public
-  // Project-OSRM demo only reliably serves driving, which is why the
-  // map used to follow main roads). No via-points: sponsors are now
-  // narrated at arrival, no need to force walks through their location.
+  // Route on the profile that matches the tour. We use the OpenStreetMap
+  // community's dedicated foot and bike OSRM instances, which honour their
+  // profiles properly (the public Project-OSRM demo only reliably serves
+  // driving). Bike tours follow cycle-friendly ways; walking tours stay on
+  // foot. No via-points: sponsors are narrated at arrival.
   try{
     const coords=`${fromLng},${fromLat};${toLng},${toLat}`;
-    const url=`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}?overview=full&geometries=geojson&steps=true`;
+    const profile=isCyclingTour()?'bike':'foot';
+    const url=`https://routing.openstreetmap.de/routed-${profile}/route/v1/${profile}/${coords}?overview=full&geometries=geojson&steps=true`;
     const res=await fetch(url);
     const data=await res.json();
     if(!data.routes||!data.routes.length)throw new Error('No route');
@@ -1216,7 +1234,7 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
   }
 }
 function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
-function updateNavStats(distToDest){document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
+function updateNavStats(distToDest){document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);const mpm=isCyclingTour()?250:75;document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/mpm));}
 function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied. Please enable GPS in your browser to use the tour.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
 // Distance thresholds. Bump these here and the whole tour follows.
 const ARRIVAL_RADIUS_M=30;
@@ -1226,12 +1244,12 @@ function onGPSUpdate(lat,lng,toIdx){
   const dest=CONFIG.stops[toIdx].coordinates;
   const distToDest=haversine(lat,lng,dest.lat,dest.lng);
   updateNavStats(distToDest);
-  // Load walking directions map on first GPS fix
+  // Load directions map on first GPS fix (mode matches the tour: bike or foot)
   if(!state.mapLoaded){
     state.mapLoaded=true;
     document.getElementById('nav-turn-main').textContent='Follow Google Maps to destination';
     const iframe=document.getElementById('nav-map-iframe');
-    if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}`;}
+    if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}&mode=${googleTravelMode()}`;}
     const loadingDiv=document.getElementById('nav-map-loading');
     if(loadingDiv)loadingDiv.classList.add('hidden');
   }
@@ -1259,7 +1277,7 @@ function maybeFireSponsorForStop(toIdx,source){
   return sponsor;
 }
 function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}showScreen('stoplist');}
-function openInGoogleMaps(){const stop=CONFIG.stops[state.currentStopIndex];if(!stop)return;const{lat,lng}=stop.coordinates;window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`,'_blank');}
+function openInGoogleMaps(){const stop=CONFIG.stops[state.currentStopIndex];if(!stop)return;const{lat,lng}=stop.coordinates;window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${googleTravelMode()}`,'_blank');}
 function isAudioPlaying(){return state.currentAudio&&!state.currentAudio.ended&&!state.currentAudio.paused;}
 function tryPlayFact(fact){if(isAudioPlaying()){state.pendingFact=fact;return false;}showNotification('fact',null,fact.text,10000);playHarriet(fact.text,'Local Fact');return true;}
 function flushPendingFact(){if(!state.pendingFact)return;const f=state.pendingFact;state.pendingFact=null;setTimeout(()=>{if(!isAudioPlaying())tryPlayFact(f);else state.pendingFact=f;},800);}

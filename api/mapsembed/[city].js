@@ -20,11 +20,14 @@ export default function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { city, origin, dest } = req.query;
+  const { city, origin, dest, mode } = req.query;
 
   if (!city || !/^[a-z0-9-]{1,40}$/.test(city)) {
     return res.status(400).send('Invalid city slug');
   }
+  // Travel mode for the rendered route. Only walking and bicycling are allowed;
+  // anything else (or nothing) falls back to walking so older links still work.
+  const travelMode = mode === 'bicycling' ? 'bicycling' : 'walking';
   if (!dest || !COORD_RE.test(dest)) {
     return res.status(400).send('Invalid destination — expected lat,lng');
   }
@@ -43,13 +46,14 @@ export default function handler(req, res) {
 
   let embedUrl;
   if (origin) {
-    // Directions mode: draws a walking route from origin to destination
+    // Directions mode: draws a route from origin to destination on the tour's
+    // travel mode (walking by default, bicycling for bike tours)
     embedUrl =
       `https://www.google.com/maps/embed/v1/directions` +
       `?key=${apiKey}` +
       `&origin=${encodeURIComponent(origin)}` +
       `&destination=${encodeURIComponent(dest)}` +
-      `&mode=walking`;
+      `&mode=${travelMode}`;
   } else {
     // Fallback: place mode centred on destination
     embedUrl =
