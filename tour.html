@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" id="meta-theme-color" content="#ffffff">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Your StorieD walking tour</title>
+  <title>Your StorieD tour</title>
   <!--
   HARRIET GUIDED WALK HEREFORD - v2.0 · The SetUp Crew
   BEFORE DEPLOYING: Replace all {{PLACEHOLDER}} values in CONFIG.
@@ -427,15 +427,15 @@
         <p id="splash-intro-text"></p>
       </div>
       <div id="weather-banner" class="weather-banner hidden"><span class="weather-icon-lrg" id="weather-icon">&#127780;&#65039;</span><span class="weather-text" id="weather-text"></span><button class="weather-cta hidden" id="weather-cta" onclick="openFindSomething()">Ask Harriet</button></div><div id="event-banner" class="event-banner hidden"><div class="ev-label">&#128197; Happening in Hereford</div><div id="event-text"></div></div>
-      <p class="splash-small">No download needed · Works in your browser<br>GPS requested when your walk begins</p>
+      <p class="splash-small">No download needed · Works in your browser<br>GPS requested when your tour begins</p>
     </div>
   </div>
   <div id="screen-headphones" class="screen">
     <!-- Sign in / save progress. No longer a gate: reached from the splash
          "Sign in" link, or from the save-progress card after the first stop. -->
     <div class="auth-section" id="auth-section">
-      <button class="auth-back-top" onclick="closeSignIn()">&#8592; Back to the walk</button>
-      <h1 class="auth-welcome-title">Save your walk of<br><span id="auth-city-name">Hereford</span></h1>
+      <button class="auth-back-top" onclick="closeSignIn()">&#8592; Back to the tour</button>
+      <h1 class="auth-welcome-title">Save your tour of<br><span id="auth-city-name">Hereford</span></h1>
       <!-- Signed-in state -->
       <div id="auth-signed-in-panel" class="auth-signed-in-box hidden">
         <p class="auth-signed-in-msg">Progress saving enabled for<br><span class="auth-signed-in-email" id="auth-user-email"></span></p>
@@ -444,7 +444,7 @@
       <!-- Sign-up / sign-in form -->
       <div id="auth-form-panel">
         <div class="auth-skip-lead">
-          <button class="btn-auth-skip" onclick="skipAuth()">Not now, keep walking</button>
+          <button class="btn-auth-skip" onclick="skipAuth()">Not now, keep exploring</button>
           <p class="auth-skip-note">Without an account your progress is lost if you close this page.</p>
         </div>
         <div class="auth-skip-divider"></div>
@@ -490,7 +490,7 @@
   <div id="screen-stoplist" class="screen">
     <div class="stoplist-header">
       <div class="stoplist-header-row">
-        <h1>Your Walk</h1>
+        <h1>Your Tour</h1>
         <button class="btn-where-standing" onclick="giveMeACityFact()" id="btn-city-fact">💡 Interesting facts</button>
       </div>
       <div class="stamp-progress-bar"><div class="stamp-progress-fill" id="stamp-progress-fill" style="width:0%"></div></div>
@@ -549,7 +549,7 @@
     <div class="nav-top-bar">
       <div class="nav-guide">
         <div class="nav-guide-name">Harriet · Hereford</div>
-        <div class="nav-destination" id="nav-destination-label">Walking to…</div>
+        <div class="nav-destination" id="nav-destination-label">Heading to…</div>
       </div>
       <button class="nav-back-btn" onclick="stopNavigation()">Exit map</button>
     </div>
@@ -564,7 +564,7 @@
       </div>
       <div class="nav-stats">
         <div class="nav-stat"><div class="nav-stat-val" id="nav-dist-dest">–</div><div class="nav-stat-lbl">to destination</div></div>
-        <div class="nav-stat"><div class="nav-stat-val" id="nav-eta">–</div><div class="nav-stat-lbl">mins walk</div></div>
+        <div class="nav-stat"><div class="nav-stat-val" id="nav-eta">–</div><div class="nav-stat-lbl">mins away</div></div>
       </div>
       <button class="btn-im-here" id="btn-im-here" onclick="manualArrival()">📍 I've arrived</button>
       <button class="btn-open-gmaps" onclick="openInGoogleMaps()">Open in Google Maps →</button>
@@ -572,7 +572,7 @@
   </div>
   <div id="screen-stamps" class="screen">
     <div class="harriet-bar">
-      <div><div class="guide-name">Harriet</div><div class="city-name">Hereford Walk</div></div>
+      <div><div class="guide-name">Harriet</div><div class="city-name">Hereford Tour</div></div>
       <button class="back-btn" onclick="stopAudio();showScreen('stoplist')">← Tour</button>
     </div>
     <div class="stamps-header"><h2>Your Stamp Card</h2><p id="stamps-subtitle">Collect all stamps to complete the tour</p></div>
@@ -659,10 +659,10 @@
 <div id="tour-complete-overlay">
   <div class="tour-complete-content">
     <button class="tc-back-top" onclick="closeTourComplete()">&#8592; Back to the tour</button>
-    <h2 class="tc-title">Walk Complete!</h2>
-    <p class="tc-sub" id="tc-sub">You've completed the walk</p>
+    <h2 class="tc-title">Tour Complete!</h2>
+    <p class="tc-sub" id="tc-sub">You've completed the tour</p>
     <div class="tc-feedback" id="tc-feedback">
-      <div class="tc-fb-label" id="tc-fb-label">How was your walk?</div>
+      <div class="tc-fb-label" id="tc-fb-label">How was your tour?</div>
       <div class="tc-fb-faces">
         <button type="button" class="tc-fb-face" data-rating="sad" onclick="rateWalk('sad')" aria-label="Poor">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".9" fill="currentColor" stroke="none"/><path d="M8 16 Q12 12.5 16 16" stroke-linecap="round"/></svg>
@@ -700,7 +700,7 @@
 <div id="save-progress-card">
   <button class="spc-close" onclick="dismissSavePrompt()" aria-label="Close">&#10005;</button>
   <div class="spc-title">Keep your progress?</div>
-  <div class="spc-body">Save your walk and you can close this page, then pick up exactly where you left off.</div>
+  <div class="spc-body">Save your tour and you can close this page, then pick up exactly where you left off.</div>
   <div class="spc-actions">
     <button class="spc-save" onclick="savePromptSignIn()">Save my progress</button>
     <button class="spc-later" onclick="dismissSavePrompt()">Not now</button>
@@ -832,7 +832,7 @@ async function shareAchievement() {
   const city = (CONFIG && CONFIG.city) || 'the city';
   const guide = (CONFIG && CONFIG.guideName) || 'Harriet';
   const url = window.location.origin + window.location.pathname;
-  const shareData = { title: `I completed the ${city} walking tour!`, text: `I just completed the ${city} walking tour with ${guide}. A brilliant walk through the streets of ${city}.`, url };
+  const shareData = { title: `I completed the ${city} tour!`, text: `I just completed the ${city} tour with ${guide}. A brilliant way to explore the streets of ${city}.`, url };
   if (navigator.share) {
     try { await navigator.share(shareData); } catch(e) { /* user cancelled — do nothing */ }
   } else {
@@ -1212,12 +1212,12 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
     updateNavStats(0,route.distance);
   }catch(e){
     console.warn('Foot route failed:',e);
-    document.getElementById('nav-turn-main').textContent='Walk towards '+CONFIG.stops[state.currentStopIndex].name;
+    document.getElementById('nav-turn-main').textContent='Head towards '+CONFIG.stops[state.currentStopIndex].name;
   }
 }
 function updateTurnInstruction(idx){if(!state.osrmSteps.length)return;const step=state.osrmSteps[idx];if(!step)return;document.getElementById('nav-turn-main').textContent=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);}
 function updateNavStats(distToDest){document.getElementById('nav-dist-dest').textContent=formatDist(distToDest);document.getElementById('nav-eta').textContent=Math.max(1,Math.round(distToDest/75));}
-function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied. Please enable GPS in your browser to use the walk.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
+function startGPSTracking(toIdx){if(!navigator.geolocation){showToast('GPS not available on this device.');return;}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>onGPSUpdate(pos.coords.latitude,pos.coords.longitude,toIdx),err=>{if(err.code===1)showToast('Location denied. Please enable GPS in your browser to use the tour.');},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}
 // Distance thresholds. Bump these here and the whole tour follows.
 const ARRIVAL_RADIUS_M=30;
 const SPONSOR_APPROACH_RADIUS_M=100;
@@ -1351,7 +1351,7 @@ function speakAfterCurrent(text,label){
   setTimeout(tryAttach,100);
 }
 function closeArrivalOverlay(){document.getElementById('arrival-overlay').classList.remove('show');openStopDetail(state.currentStopIndex);}
-function renderStamps(){const grid=document.getElementById('stamps-grid');grid.innerHTML='';CONFIG.stops.forEach(stop=>{const earned=state.visitedStops.has(stop.id);const div=document.createElement('div');div.className='stamp-slot'+(earned?' earned':'');div.innerHTML=`<span class="stamp-name">${stop.name}</span>`;grid.appendChild(div);});const n=state.visitedStops.size;document.getElementById('stamps-subtitle').textContent=n===CONFIG.maxStops?'Tour complete - well done!':`${n} of ${CONFIG.maxStops} - ${CONFIG.maxStops-n} more to go`;const cc=document.getElementById('completion-card');if(n===CONFIG.maxStops){cc.classList.add('visible');playHarriet(`Congratulations! You've collected all ${CONFIG.maxStops} stamps and completed the ${CONFIG.city} walk. I hope you've fallen a little in love with this place.`,'Completion');}else{cc.classList.remove('visible');}}
+function renderStamps(){const grid=document.getElementById('stamps-grid');grid.innerHTML='';CONFIG.stops.forEach(stop=>{const earned=state.visitedStops.has(stop.id);const div=document.createElement('div');div.className='stamp-slot'+(earned?' earned':'');div.innerHTML=`<span class="stamp-name">${stop.name}</span>`;grid.appendChild(div);});const n=state.visitedStops.size;document.getElementById('stamps-subtitle').textContent=n===CONFIG.maxStops?'Tour complete - well done!':`${n} of ${CONFIG.maxStops} - ${CONFIG.maxStops-n} more to go`;const cc=document.getElementById('completion-card');if(n===CONFIG.maxStops){cc.classList.add('visible');playHarriet(`Congratulations! You've collected all ${CONFIG.maxStops} stamps and completed the ${CONFIG.city} tour. I hope you've fallen a little in love with this place.`,'Completion');}else{cc.classList.remove('visible');}}
 function shareCompletion(){if(navigator.share){navigator.share({title:`I completed the Harriet guided tour of ${CONFIG.city}!`,text:`I just explored the full ${CONFIG.city} heritage tour with Harriet as my AI guide. All ${CONFIG.maxStops} stops collected.`,url:window.location.href});}else{showToast('Copy the URL to share your achievement!');}}
 let notifTimeout=null;
 function showNotification(type,title,text,duration=10000,stars=null,ctaLabel=null,ctaUrl=null,cardUrl=null){if(notifTimeout){clearTimeout(notifTimeout);dismissNotification();}const card=document.getElementById('notification-card');document.getElementById('notif-type').textContent=type==='sponsor'?'Local recommendation':'Harriet says';document.getElementById('notif-type').style.color=type==='sponsor'?'var(--color-primary)':'var(--color-accent)';const titleEl=document.getElementById('notif-title');titleEl.textContent=title||'';titleEl.style.display=title?'':'none';document.getElementById('notif-text').textContent=text;const starsEl=document.getElementById('notif-stars');starsEl.classList.toggle('hidden',!stars);if(stars)starsEl.textContent=stars;const ctaEl=document.getElementById('notif-cta');ctaEl.classList.toggle('hidden',!ctaLabel);if(ctaLabel){ctaEl.textContent=ctaLabel;ctaEl.onclick=(e)=>{e.stopPropagation();if(ctaUrl&&ctaUrl.startsWith('nav:')){const[,lat,lng,...nameParts]=ctaUrl.split(':');navigateToSponsor(parseFloat(lat),parseFloat(lng),nameParts.join(':'));}else if(ctaUrl&&ctaUrl!=='#'){window.open(ctaUrl,'_blank','noopener');}};}if(cardUrl){card.classList.add('notif-clickable');card.onclick=()=>window.open(cardUrl,'_blank','noopener');}else{card.classList.remove('notif-clickable');card.onclick=null;}card.classList.toggle('sponsor-notif',type==='sponsor');card.classList.add('show');const prog=document.getElementById('notif-progress');prog.style.transition='none';prog.style.width='100%';setTimeout(()=>{prog.style.transition=`width ${duration}ms linear`;prog.style.width='0%';},50);notifTimeout=setTimeout(dismissNotification,duration);}
@@ -1402,14 +1402,14 @@ audio.src=url;audio.load();const playPromise=audio.play();if(playPromise!==undef
 function saveSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'hereford');try{localStorage.setItem(k,JSON.stringify([...state.skippedStops]));}catch(e){}}
 function loadSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'hereford');try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}}
 function skipStop(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id)){showScreen('stoplist');return;}state.visitedStops.add(stop.id);state.skippedStops.add(stop.id);saveProgress();saveSkippedStops();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display='none';if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,600);}showScreen('stoplist');}
-function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`Visited: ${stop.name}`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`That's ${stop.name} logged. When you're ready, make your way to the next stop. Or to see the whole walk again, tap the Tour button in the top left corner of your screen to go back to your list of stops.`,'Complete');maybeShowSavePrompt();}}
+function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`Visited: ${stop.name}`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`That's ${stop.name} logged. When you're ready, make your way to the next stop. Or to see the whole tour again, tap the Tour button in the top left corner of your screen to go back to your list of stops.`,'Complete');maybeShowSavePrompt();}}
 function playFact(text){playHarriet(text,'Interesting Fact');}
 function showAudioBar(label,demo){document.getElementById('audio-label').textContent=label;document.getElementById('audio-player-bar').classList.add('visible');}
 function hideAudioBar(){document.getElementById('audio-player-bar').classList.remove('visible');document.getElementById('audio-progress-fill').style.width='0%';}
 function toggleAudioPlayPause(){if(!state.currentAudio)return;if(state.currentAudio.paused){state.currentAudio.play();document.getElementById('audio-play-pause-btn').textContent='⏸';}else{state.currentAudio.pause();document.getElementById('audio-play-pause-btn').textContent='▶';}}
 function stopAudio(){if(state.currentAudio){try{state.currentAudio.pause();}catch(e){}state.currentAudio=null;}hideAudioBar();}
 async function streamClaude(prompt,onChunk,onDone){const guideName=CONFIG.guideName||'Harriet';try{const citySlug=CONFIG.citySlug||'hereford';const res=await fetch(`/api/chat/${citySlug}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});if(!res.ok)throw new Error('Chat proxy '+res.status);const reader=res.body.getReader();const decoder=new TextDecoder();let full='';while(true){const{value,done}=await reader.read();if(done)break;const lines=decoder.decode(value).split('\n');for(const line of lines){if(!line.startsWith('data: '))continue;try{const d=JSON.parse(line.slice(6));if(d.type==='content_block_delta'){const chunk=d.delta.text||'';full+=chunk;onChunk(chunk);}}catch{}}}onDone(full);}catch(e){console.warn('Chat proxy failed:',e);const demo=`${guideName} here. My connection has gone quiet for a moment, so I cannot bring you that just now. Do try again shortly. In the meantime, take a look around you. Some of the best stories are the ones you notice for yourself.`;let i=0;const iv=setInterval(()=>{if(i>=demo.length){clearInterval(iv);onDone(demo);return;}onChunk(demo[i]);i++;},15);}}
-function openTellMeMore(){const stop=CONFIG.stops[state.currentStopIndex];const guideName=CONFIG.guideName||'Harriet';if(state.harrietCallCount>=10){document.getElementById('tmm-modal-title').textContent=`${guideName} — session limit reached`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='none';const el=document.getElementById('tmm-response');el.classList.remove('hidden');el.innerHTML=`<p>You've had a wonderfully curious session — ${guideName} has answered ten questions for you today, which is her limit per visit. She'll be just as happy to chat on your next tour. In the meantime, keep exploring — there's always more to discover.</p>`;document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');return;}state.harrietCallCount++;state.tmmStopId=stop.id;state.tmmFullText='';document.getElementById('tmm-modal-title').textContent=`${guideName} on ${stop.name}`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');const prompt=`You are ${guideName}, a warm, knowledgeable, and quietly witty British walking guide. The visitor is currently standing at ${stop.name} in ${CONFIG.city}.\n\nTell them about this specific location, drawing only on established, reliable sources: encyclopaedic history, official heritage records, well-documented cultural and architectural accounts. Focus on:\n- Historic context: who built what, when, and why\n- Notable people connected to this place\n- Architectural details worth looking up at\n- Geographic and demographic context that helps the visitor understand the area\n- Stories or anecdotes from credible historical sources\n\nKeep the tone warm, positive, and factual. Avoid current news, contemporary politics, controversies, or anything with negative or contested framing. If you don't know something with confidence from reliable sources, say so plainly rather than speculate.\n\nWrite 3 to 4 engaging paragraphs in a conversational tone, as though speaking directly to the visitor. Include at least one genuinely surprising fact. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
+function openTellMeMore(){const stop=CONFIG.stops[state.currentStopIndex];const guideName=CONFIG.guideName||'Harriet';if(state.harrietCallCount>=10){document.getElementById('tmm-modal-title').textContent=`${guideName} — session limit reached`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='none';const el=document.getElementById('tmm-response');el.classList.remove('hidden');el.innerHTML=`<p>You've had a wonderfully curious session — ${guideName} has answered ten questions for you today, which is her limit per visit. She'll be just as happy to chat on your next tour. In the meantime, keep exploring — there's always more to discover.</p>`;document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');return;}state.harrietCallCount++;state.tmmStopId=stop.id;state.tmmFullText='';document.getElementById('tmm-modal-title').textContent=`${guideName} on ${stop.name}`;document.getElementById('tmm-location-label').textContent=`📍 ${stop.name} · ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');const prompt=`You are ${guideName}, a warm, knowledgeable, and quietly witty British tour guide. The visitor is currently standing at ${stop.name} in ${CONFIG.city}.\n\nTell them about this specific location, drawing only on established, reliable sources: encyclopaedic history, official heritage records, well-documented cultural and architectural accounts. Focus on:\n- Historic context: who built what, when, and why\n- Notable people connected to this place\n- Architectural details worth looking up at\n- Geographic and demographic context that helps the visitor understand the area\n- Stories or anecdotes from credible historical sources\n\nKeep the tone warm, positive, and factual. Avoid current news, contemporary politics, controversies, or anything with negative or contested framing. If you don't know something with confidence from reliable sources, say so plainly rather than speculate.\n\nWrite 3 to 4 engaging paragraphs in a conversational tone, as though speaking directly to the visitor. Include at least one genuinely surprising fact. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
 function hearTellMeMore(){if(state.tmmFullText){playHarriet(state.tmmFullText,'Tell Me More');closeModal('tellmore');}}
 function findSomethingCustom(){const inp=document.getElementById('fs-custom-input');const query=inp?inp.value.trim():'';if(!query)return;findSomething(query,null);}
 function openFindSomething(){document.getElementById('fs-typing').classList.add('hidden');document.getElementById('fs-response').classList.add('hidden');document.getElementById('fs-response').innerHTML='';const r=document.getElementById('fs-results');if(r){r.classList.remove('visible');r.innerHTML='';}document.getElementById('modal-findsomething').classList.add('open');}
@@ -1470,7 +1470,7 @@ function showFsMessage(text){
 }
 function renderFsResults(results){
   const r=document.getElementById('fs-results');
-  if(!results.length){r.innerHTML='<div class="fs-empty">Nothing close enough to suggest right now — try a different chip or walk a few minutes and tap again.</div><button class="btn-fs-close" onclick="closeModal(\'findsomething\')">Close</button>';r.classList.remove('hidden');r.classList.add('visible');return;}
+  if(!results.length){r.innerHTML='<div class="fs-empty">Nothing close enough to suggest right now. Try a different chip, or move on a little and tap again.</div><button class="btn-fs-close" onclick="closeModal(\'findsomething\')">Close</button>';r.classList.remove('hidden');r.classList.add('visible');return;}
   const cards=results.map(p=>{
     const dist=p.distance<1000?`${p.distance} m away`:`${(p.distance/1000).toFixed(1)} km away`;
     const rating=p.rating?`<span class="fs-card-rating">★ ${p.rating.toFixed(1)}</span>`:'';
@@ -1484,7 +1484,7 @@ function renderFsResults(results){
   r.classList.add('visible');
 }
 function navigateToPlace(lat,lng,name){closeModal('findsomething');navigateToSponsor(lat,lng,name);}
-function openCityAskHarriet(){const guideName=CONFIG.guideName||'Harriet';if(state.harrietCallCount>=10){document.getElementById('tmm-modal-title').textContent=`${guideName} — session limit reached`;document.getElementById('tmm-location-label').textContent=`📍 ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='none';const el=document.getElementById('tmm-response');el.classList.remove('hidden');el.innerHTML=`<p>You've had a wonderfully curious session — ${guideName} has answered ten questions for you today, which is her limit per visit. She'll be just as happy to chat on your next tour. In the meantime, keep exploring — there's always more to discover.</p>`;document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');return;}state.harrietCallCount++;document.getElementById('tmm-modal-title').textContent=`Ask ${guideName} about ${CONFIG.city}`;document.getElementById('tmm-location-label').textContent=`📍 ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');state.tmmFullText='';const prompt=`You are ${guideName}, a warm, knowledgeable, and quietly witty British walking guide leading a tour of ${CONFIG.city}. The visitor has asked a general question about the area.\n\nGive them a warm, engaging 3 to 4 paragraph overview of what makes ${CONFIG.city} worth knowing. Draw only on established, reliable sources: encyclopaedic history, official heritage records, well-documented cultural and demographic accounts. Cover history, character, geography, and hidden gems.\n\nKeep the tone warm, positive, and factual. Avoid current news, contemporary politics, controversies, or anything with negative or contested framing. If you don't know something with confidence from reliable sources, say so plainly rather than speculate. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
+function openCityAskHarriet(){const guideName=CONFIG.guideName||'Harriet';if(state.harrietCallCount>=10){document.getElementById('tmm-modal-title').textContent=`${guideName} — session limit reached`;document.getElementById('tmm-location-label').textContent=`📍 ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='none';const el=document.getElementById('tmm-response');el.classList.remove('hidden');el.innerHTML=`<p>You've had a wonderfully curious session — ${guideName} has answered ten questions for you today, which is her limit per visit. She'll be just as happy to chat on your next tour. In the meantime, keep exploring — there's always more to discover.</p>`;document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');return;}state.harrietCallCount++;document.getElementById('tmm-modal-title').textContent=`Ask ${guideName} about ${CONFIG.city}`;document.getElementById('tmm-location-label').textContent=`📍 ${CONFIG.city}`;document.getElementById('tmm-typing').style.display='flex';document.getElementById('tmm-response').classList.add('hidden');document.getElementById('tmm-response').innerHTML='';document.getElementById('btn-hear-response').classList.add('hidden');document.getElementById('modal-tellmore').classList.add('open');state.tmmFullText='';const prompt=`You are ${guideName}, a warm, knowledgeable, and quietly witty British tour guide leading a tour of ${CONFIG.city}. The visitor has asked a general question about the area.\n\nGive them a warm, engaging 3 to 4 paragraph overview of what makes ${CONFIG.city} worth knowing. Draw only on established, reliable sources: encyclopaedic history, official heritage records, well-documented cultural and demographic accounts. Cover history, character, geography, and hidden gems.\n\nKeep the tone warm, positive, and factual. Avoid current news, contemporary politics, controversies, or anything with negative or contested framing. If you don't know something with confidence from reliable sources, say so plainly rather than speculate. Do not use bullet points.`;streamClaude(prompt,chunk=>{state.tmmFullText+=chunk;const el=document.getElementById('tmm-response');if(el.classList.contains('hidden')){document.getElementById('tmm-typing').style.display='none';el.classList.remove('hidden');}el.innerHTML=state.tmmFullText.split('\n\n').map(p=>`<p>${p}</p>`).join('');},fullText=>{state.tmmFullText=fullText;document.getElementById('btn-hear-response').classList.remove('hidden');});}
 function closeModal(which){document.getElementById('modal-'+which).classList.remove('open');}
 // ── PLAYED-FACT TRACKING ───────────────────────────────────
 // localStorage key per city. Each fact spoken by the tour — whether
@@ -1554,7 +1554,7 @@ function applyAreaLabels(){
   const g=CONFIG.guideName||'Harriet';
   document.title='Explore '+CONFIG.city+' with '+g;
   const ng=document.querySelector('.nav-guide-name'); if(ng)ng.textContent=g+' · '+CONFIG.city;
-  document.querySelectorAll('.city-name').forEach(el=>{el.textContent=CONFIG.city+' Walk';});
+  document.querySelectorAll('.city-name').forEach(el=>{el.textContent=CONFIG.city+' Tour';});
   const ev=document.querySelector('.ev-label'); if(ev)ev.textContent='📅 Happening in '+CONFIG.city;
   const ex=document.getElementById('tc-explored-line'); if(ex)ex.textContent="You've explored the very best of "+CONFIG.city+". "+g+" hopes you've loved every step.";
 }
@@ -1566,7 +1566,7 @@ function getSplashIntroText(){
   if(operator)return operator;
   const guide=CONFIG.guideName||'Harriet';
   const city=CONFIG.city||'this area';
-  return `Hello, I'm ${guide}. I'll be your guide today as we walk through some of ${city}'s most fascinating places. Along the way I'll share stories, hidden details, and a few local secrets. Whenever you're ready, let's begin.`;
+  return `Hello, I'm ${guide}. I'll be your guide today as we explore some of ${city}'s most storied places. Along the way I'll share stories, hidden details, and a few local secrets. Whenever you're ready, let's begin.`;
 }
 function applySplashIntro(){const el=document.getElementById('splash-intro-text');if(el)el.textContent=getSplashIntroText();}
 // Seed in-session firedFacts from localStorage so previously-played
@@ -1666,7 +1666,7 @@ function sendWalkFeedback(){
   const fu=document.getElementById('tc-fb-followup');
   if(fu)fu.classList.remove('show');
   const label=document.getElementById('tc-fb-label');
-  if(label)label.textContent='How was your walk?';
+  if(label)label.textContent='How was your tour?';
   const thanks=document.getElementById('tc-fb-thanks');
   if(thanks)thanks.classList.add('show');
 }
