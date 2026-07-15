@@ -1718,10 +1718,10 @@ function buildWeatherBanner(w){
 function getWeatherIntroLine(w){
   if(!w)return'';
   const wc=WEATHER_CODES[w.code]||{desc:'variable weather'};
-  if(w.code>=51&&w.code<=82)return` The weather today is ${wc.desc} and ${w.temp}°C — you'll want a jacket, and possibly an umbrella.`;
-  if(w.temp>=24)return` It's a beautiful warm day today — ${w.temp}°C and ${wc.desc}. Perfect for a walk.`;
+  if(w.code>=51&&w.code<=82)return` The weather today is ${wc.desc} and ${w.temp}°C. You'll want a jacket, and possibly an umbrella.`;
+  if(w.temp>=24)return` It's a beautiful warm day today, ${w.temp}°C and ${wc.desc}. Perfect for a tour.`;
   if(w.temp<=3)return` It's a cold ${w.temp}°C today, so do make sure you're dressed warmly.`;
-  return` The weather today is ${wc.desc} and ${w.temp}°C — a fine day for a walk.`;
+  return` The weather today is ${wc.desc} and ${w.temp}°C. A fine day for a tour.`;
 }
 
 // ── EVENTS ────────────────────────────────────────────────
