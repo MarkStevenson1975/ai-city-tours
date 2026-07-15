@@ -25,9 +25,11 @@ export default function handler(req, res) {
   if (!city || !/^[a-z0-9-]{1,40}$/.test(city)) {
     return res.status(400).send('Invalid city slug');
   }
-  // Travel mode for the rendered route. Only walking and bicycling are allowed;
-  // anything else (or nothing) falls back to walking so older links still work.
-  const travelMode = mode === 'bicycling' ? 'bicycling' : 'walking';
+  // Travel mode for the rendered route. Only walking, bicycling and driving are
+  // allowed; anything else (or nothing) falls back to walking so older links
+  // still work.
+  const travelMode =
+    mode === 'bicycling' || mode === 'driving' ? mode : 'walking';
   if (!dest || !COORD_RE.test(dest)) {
     return res.status(400).send('Invalid destination — expected lat,lng');
   }

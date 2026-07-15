@@ -21,6 +21,8 @@ interface SaveSettingsInput {
   // Guide
   guide_name: string;
   guide_voice_id: string;
+  // Tour format (how visitors travel between stops)
+  travel_mode: string;
   // Tour completion
   tour_complete_message: string;
   tour_complete_suggestion: string;
@@ -34,6 +36,7 @@ interface SaveSettingsInput {
 }
 
 const VALID_TYPES = ['bid', 'tourist_board', 'council', 'dmo', 'other'];
+const VALID_TRAVEL_MODES = ['walking', 'cycling', 'driving'];
 
 /** Allow only #RRGGBB or empty string. Returns null if invalid. */
 function sanitizeHex(input: string, fallback: string | null = null): string | null {
@@ -49,6 +52,10 @@ export async function saveSettings(input: SaveSettingsInput) {
   const operatorType = VALID_TYPES.includes(input.operator_type)
     ? input.operator_type
     : 'other';
+
+  const travelMode = VALID_TRAVEL_MODES.includes(input.travel_mode)
+    ? input.travel_mode
+    : 'walking';
 
   // Validate hex colours — fall back silently if a value is malformed
   const colorPrimary = sanitizeHex(input.color_primary, '#1B4332');
@@ -79,6 +86,8 @@ export async function saveSettings(input: SaveSettingsInput) {
       // Guide
       guide_name: input.guide_name.trim() || 'Guide',
       guide_voice_id: input.guide_voice_id.trim() || null,
+      // Tour format
+      travel_mode: travelMode,
       // Tour completion
       tour_complete_message: input.tour_complete_message.trim() || null,
       tour_complete_suggestion: input.tour_complete_suggestion.trim() || null,

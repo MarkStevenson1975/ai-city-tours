@@ -20,6 +20,7 @@ interface City {
   color_background: string | null;
   guide_name: string | null;
   guide_voice_id: string | null;
+  travel_mode: string | null;
   tour_complete_message: string | null;
   tour_complete_suggestion: string | null;
   tc_sponsor_name: string | null;
@@ -34,6 +35,12 @@ const TYPE_OPTIONS = [
   { value: 'council', label: 'Local Council' },
   { value: 'dmo', label: 'Destination Marketing Organisation (DMO)' },
   { value: 'other', label: 'Other' },
+];
+
+const TRAVEL_MODE_OPTIONS = [
+  { value: 'walking', label: 'Walking tour' },
+  { value: 'cycling', label: 'Bike tour' },
+  { value: 'driving', label: 'Driving tour' },
 ];
 
 export function SettingsForm({ city }: { city: City }) {
@@ -70,6 +77,9 @@ export function SettingsForm({ city }: { city: City }) {
   const [guideName, setGuideName] = useState(city.guide_name ?? '');
   const [guideVoiceId, setGuideVoiceId] = useState(city.guide_voice_id ?? '');
 
+  // Tour format
+  const [travelMode, setTravelMode] = useState(city.travel_mode ?? 'walking');
+
   // Tour completion
   const [tourCompleteMessage, setTourCompleteMessage] = useState(city.tour_complete_message ?? '');
   const [tourCompleteSuggestion, setTourCompleteSuggestion] = useState(city.tour_complete_suggestion ?? '');
@@ -101,6 +111,7 @@ export function SettingsForm({ city }: { city: City }) {
         color_background: colorBackground,
         guide_name: guideName,
         guide_voice_id: guideVoiceId,
+        travel_mode: travelMode,
         tour_complete_message: tourCompleteMessage,
         tour_complete_suggestion: tourCompleteSuggestion,
         tc_sponsor_name: tcSponsorName,
@@ -249,6 +260,28 @@ export function SettingsForm({ city }: { city: City }) {
       </Section>
 
       {/* GUIDE */}
+      {/* TOUR FORMAT */}
+      <Section title="Tour format">
+        <div className="bg-white rounded-xl p-8 shadow-sm space-y-6">
+          <Field
+            label="Tour type"
+            hint="How visitors travel between stops. This sets the maps, routing and estimated times to walking, cycling or driving."
+          >
+            <select
+              value={travelMode}
+              onChange={(e) => setTravelMode(e.target.value)}
+              className={inputCls}
+            >
+              {TRAVEL_MODE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </Section>
+
       <Section title="AI guide">
         <div className="bg-white rounded-xl p-8 shadow-sm space-y-6">
           <Field
