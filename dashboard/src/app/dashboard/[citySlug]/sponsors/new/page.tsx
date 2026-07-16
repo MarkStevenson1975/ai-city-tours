@@ -38,7 +38,7 @@ export default async function NewSponsorPage({
         </p>
       </header>
 
-      <SponsorForm citySlug={citySlug} cityId={city.id} />
+      <SponsorForm citySlug={citySlug} cityId={city.id} cityName={city.name} />
     </div>
   );
 }

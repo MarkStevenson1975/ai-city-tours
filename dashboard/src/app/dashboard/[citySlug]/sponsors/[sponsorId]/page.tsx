@@ -34,7 +34,7 @@ export default async function SponsorEditPage({
         <h1 className="text-4xl font-semibold">{sponsor.name}</h1>
       </header>
 
-      <SponsorForm citySlug={citySlug} cityId={city.id} sponsor={sponsor} />
+      <SponsorForm citySlug={citySlug} cityId={city.id} cityName={city.name} sponsor={sponsor} />
     </div>
   );
 }

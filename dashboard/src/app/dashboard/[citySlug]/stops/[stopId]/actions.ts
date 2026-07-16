@@ -227,6 +227,23 @@ export async function deleteStop(stopId: string, citySlug: string) {
   }
 
   if (stop?.city_id) {
+    // Compact the remaining stops' positions to 1..N so the stored position
+    // always matches the sequential order shown on the dashboard list. Without
+    // this, deleting a stop leaves a gap (e.g. 1, 3, 4) and the edit screen's
+    // "Position in walk" field disagrees with the number shown on the main
+    // screen. Reuses the same reorder_stops RPC that "Save order" calls.
+    const { data: remaining } = await admin
+      .from('stops')
+      .select('id')
+      .eq('city_id', stop.city_id)
+      .order('position');
+    if (remaining && remaining.length > 0) {
+      await admin.rpc('reorder_stops', {
+        p_city_id: stop.city_id,
+        p_stop_ids: remaining.map((r) => r.id),
+      });
+    }
+
     await admin
       .from('cities')
       .update({ draft_updated_at: new Date().toISOString() })

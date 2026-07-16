@@ -32,16 +32,24 @@ interface SponsorRow {
 interface Props {
   citySlug: string;
   cityId: string;
+  /** Town/area name, used to disambiguate the Google lookup. */
+  cityName?: string;
   /** undefined = new sponsor, otherwise editing existing */
   sponsor?: SponsorRow;
 }
 
-export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
+export function SponsorForm({ citySlug, cityId, cityName, sponsor }: Props) {
   const router = useRouter();
   const isNew = !sponsor;
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // Autofill-from-Google state.
+  const [lookupQuery, setLookupQuery] = useState('');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [foundLabel, setFoundLabel] = useState<string | null>(null);
+  const [aiDrafted, setAiDrafted] = useState(false);
 
   const [name, setName] = useState(sponsor?.name ?? '');
   const [category, setCategory] = useState(sponsor?.category ?? '');
@@ -51,7 +59,7 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
   const [lat, setLat] = useState(sponsor?.lat?.toString() ?? '');
   const [lng, setLng] = useState(sponsor?.lng?.toString() ?? '');
   const [radius, setRadius] = useState(
-    String(sponsor?.proximity_radius_metres ?? 50)
+    String(sponsor?.proximity_radius_metres ?? 20)
   );
   const [googlePlaceId, setGooglePlaceId] = useState(
     sponsor?.google_place_id ?? ''
@@ -75,6 +83,45 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
   );
   const [contactEmail, setContactEmail] = useState(sponsor?.contact_email ?? '');
 
+  async function autofillFromGoogle() {
+    if (!lookupQuery.trim()) {
+      setError('Paste the business’s Google link, or type its name.');
+      return;
+    }
+    setError(null);
+    setLookupLoading(true);
+    try {
+      const res = await fetch('/api/sponsors/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: lookupQuery, area: cityName || citySlug }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lookup failed');
+
+      if (data.name) setName(String(data.name).slice(0, 25));
+      if (data.category) setCategory(data.category);
+      if (data.emoji) setEmoji(data.emoji);
+      if (data.tagline) setTagline(data.tagline);
+      if (data.narration) setNarrationText(data.narration);
+      if (typeof data.lat === 'number') setLat(String(data.lat));
+      if (typeof data.lng === 'number') setLng(String(data.lng));
+      if (data.googlePlaceId) setGooglePlaceId(data.googlePlaceId);
+      if (data.googleBusinessUrl) setGoogleBusinessUrl(data.googleBusinessUrl);
+      if (data.ctaUrl) setCtaUrl(data.ctaUrl);
+      if (data.ctaLabel && !ctaLabel) setCtaLabel(data.ctaLabel);
+
+      setAiDrafted(Boolean(data.aiDrafted));
+      setFoundLabel(
+        `${data.name}${data.address ? ` · ${data.address}` : ''}`
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Lookup failed');
+    } finally {
+      setLookupLoading(false);
+    }
+  }
+
   function buildInput(): SponsorInput | { error: string } {
     const latNum = lat ? parseFloat(lat) : NaN;
     const lngNum = lng ? parseFloat(lng) : NaN;
@@ -96,7 +143,7 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
       emoji,
       lat: lat ? latNum : null,
       lng: lng ? lngNum : null,
-      proximity_radius_metres: parseInt(radius, 10) || 50,
+      proximity_radius_metres: parseInt(radius, 10) || 20,
       google_place_id: googlePlaceId,
       google_business_url: googleBusinessUrl,
       cta_label: ctaLabel,
@@ -160,7 +207,41 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
       onSubmit={handleSubmit}
       className="space-y-8 bg-white rounded-xl p-8 shadow-sm"
     >
-      <Section title="Identity">
+      {/* Autofill from Google — fills almost the whole form from one link. */}
+      <div className="bg-cream/60 border border-accent rounded-xl p-5">
+        <h2 className="text-lg font-semibold mb-1">✦ Fill it in from Google</h2>
+        <p className="text-sm text-gray-600 mb-3">
+          Paste the business’s Google link, or type its name. We’ll pin it on the
+          map and fill in the details, including a draft tagline and spoken line
+          you can edit.
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <input
+            type="text"
+            value={lookupQuery}
+            onChange={(e) => setLookupQuery(e.target.value)}
+            placeholder="Google link, or e.g. Castle Green Café"
+            className="flex-1 min-w-[220px] px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          <button
+            type="button"
+            onClick={autofillFromGoogle}
+            disabled={lookupLoading || isPending}
+            className="px-5 py-2 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
+          >
+            {lookupLoading ? 'Looking up…' : 'Look up'}
+          </button>
+        </div>
+        {foundLabel && (
+          <div className="mt-3 flex items-start gap-2 bg-white border border-green-200 rounded-lg p-3">
+            <span aria-hidden>📍</span>
+            <p className="text-sm text-gray-700 flex-1">{foundLabel}</p>
+            <span className="text-xs font-bold text-green-700 whitespace-nowrap">✓ Found &amp; pinned</span>
+          </div>
+        )}
+      </div>
+
+      <Section title="How it appears">
         <Field label="Name" required hint="Max 25 characters — this is shown in the sponsored pill on the stop list alongside the emoji.">
           <input
             type="text"
@@ -192,7 +273,10 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
             />
           </Field>
         </div>
-        <Field label="Tagline" hint="One line shown on the visual sponsor card at the stop.">
+        <Field
+          label={<>Tagline{aiDrafted && <AiChip />}</>}
+          hint="One line shown on the visual sponsor card at the stop."
+        >
           <input
             type="text"
             value={tagline}
@@ -203,8 +287,8 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
           />
         </Field>
         <Field
-          label="Narration text"
-          hint='What the guide reads aloud at arrival. Speak directly to the visitor — write the whole sentence as you want it heard. The business itself often has a preferred wording; ask them. Example: "Why not pop in for a coffee and a cake from the award-winning café at Castle Green?". Leave blank to fall back to a generic mention using the tagline above.'
+          label={<>What the guide says{aiDrafted && <AiChip />}</>}
+          hint='The line read aloud as a walker passes. Speak directly to the visitor. The business often has preferred wording, so do ask them, and edit freely. Leave blank to fall back to a generic mention using the tagline above.'
         >
           <textarea
             value={narrationText}
@@ -218,11 +302,11 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
       </Section>
 
       <Section
-        title="Location"
-        subtitle="The tour fires the sponsor callout when the walker enters the proximity radius."
+        title="Where it fires"
+        subtitle="The callout plays when a walker comes within the radius of this spot. The lookup pins the location for you."
       >
         <div className="grid grid-cols-3 gap-4">
-          <Field label="Latitude">
+          <Field label="Latitude" hint="Pinned by the lookup.">
             <input
               type="number"
               step="any"
@@ -231,7 +315,7 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
               className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
             />
           </Field>
-          <Field label="Longitude">
+          <Field label="Longitude" hint="Pinned by the lookup.">
             <input
               type="number"
               step="any"
@@ -240,7 +324,7 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
               className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
             />
           </Field>
-          <Field label="Radius (m)" hint="10–500">
+          <Field label="Radius (m)" hint="Default 20 m. Range 10–500.">
             <input
               type="number"
               min={10}
@@ -260,18 +344,6 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
             value={googleBusinessUrl}
             onChange={(e) => setGoogleBusinessUrl(e.target.value)}
             placeholder="https://www.google.com/maps/place/..."
-            className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono text-sm"
-          />
-        </Field>
-        <Field
-          label="Google Place ID (optional)"
-          hint="Direct identifier if you have it. Faster than parsing the URL above."
-        >
-          <input
-            type="text"
-            value={googlePlaceId}
-            onChange={(e) => setGooglePlaceId(e.target.value)}
-            placeholder="ChIJ..."
             className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono text-sm"
           />
         </Field>
@@ -320,12 +392,12 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
         </Field>
       </Section>
 
-      <Section
-        title="Subscription"
-        subtitle="Stripe billing comes in Phase 2. Until then, set status manually here. Only 'active' sponsors appear on the public tour."
-      >
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Status">
+      <details className="border-t border-gray-200 pt-6">
+        <summary className="text-sm font-bold text-gray-600 cursor-pointer select-none hover:text-gray-900">
+          Advanced &amp; billing
+        </summary>
+        <div className="space-y-6 mt-5">
+          <Field label="Status" hint="Only 'active' sponsors appear on the public tour.">
             <select
               value={status}
               onChange={(e) =>
@@ -339,30 +411,41 @@ export function SponsorForm({ citySlug, cityId, sponsor }: Props) {
               <option value="cancelled">Cancelled</option>
             </select>
           </Field>
-          <Field label="Monthly price (£)">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Monthly price (£)">
+              <input
+                type="number"
+                step="0.01"
+                value={monthlyPrice}
+                onChange={(e) => setMonthlyPrice(e.target.value)}
+                placeholder="100.00"
+                className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+              />
+            </Field>
+            <Field label="Contact email">
+              <input
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="business@example.co.uk"
+                className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </Field>
+          </div>
+          <Field
+            label="Google Place ID"
+            hint="Filled automatically by the lookup. You rarely need to touch this."
+          >
             <input
-              type="number"
-              step="0.01"
-              value={monthlyPrice}
-              onChange={(e) => setMonthlyPrice(e.target.value)}
-              placeholder="100.00"
-              className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+              type="text"
+              value={googlePlaceId}
+              onChange={(e) => setGooglePlaceId(e.target.value)}
+              placeholder="ChIJ..."
+              className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono text-sm"
             />
           </Field>
         </div>
-        <Field
-          label="Contact email"
-          hint="Where Stripe events route in Phase 2 (cancellation alerts, payment failures)."
-        >
-          <input
-            type="email"
-            value={contactEmail}
-            onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="business@example.co.uk"
-            className="w-full px-3 py-2 rounded border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </Field>
-      </Section>
+      </details>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded p-3 text-sm">
@@ -426,7 +509,7 @@ function Field({
   required,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   hint?: string;
   required?: boolean;
   children: React.ReactNode;
@@ -440,5 +523,15 @@ function Field({
       {hint && <p className="text-xs text-gray-500 mb-2">{hint}</p>}
       {children}
     </div>
+  );
+}
+
+// Small "AI draft" marker on fields the lookup wrote, so operators know to
+// check them and edit as they see fit.
+function AiChip() {
+  return (
+    <span className="ml-2 inline-block align-middle text-[10px] font-bold uppercase tracking-wide text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+      AI draft · edit me
+    </span>
   );
 }
