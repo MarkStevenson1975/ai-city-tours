@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { BuildWizard } from './build-wizard';
 import { FirstRunRail } from '../../first-run-rail';
@@ -37,6 +38,14 @@ export default async function BuildPage({
   return (
     <div className="flex flex-col lg:flex-row gap-8 max-w-5xl">
       <div className="flex-1 min-w-0 max-w-2xl">
+        {/* Escape hatch: this page used to be a dead end. From the tour page an
+            operator can resume later or delete the tour. */}
+        <Link
+          href={`/dashboard/${city.slug}`}
+          className="inline-block text-sm text-gray-500 hover:text-primary transition mb-4"
+        >
+          ← Back to my tour (save for later, or delete)
+        </Link>
         {/* The heading lives inside the wizard, because it has to change once
             the stops are drafted. Leaving "Let's build your tour" sitting above
             a finished draft made the page look like a step you had already done. */}

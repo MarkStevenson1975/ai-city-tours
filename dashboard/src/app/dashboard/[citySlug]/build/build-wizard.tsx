@@ -267,6 +267,32 @@ export function BuildWizard({
 
       <MapPicker area={defaultArea} onConfirm={addMapPicks} disabled={drafting} />
 
+      {/* Guided landmark finder. Always recoverable: if the auto-search is still
+          running, show it; if it came back empty or errored, show why and a
+          button to try again — so the operator is never stuck on a bare map. */}
+      {!venueMode && suggestions.length === 0 && (
+        <div>
+          {loading ? (
+            <BuildingAnimation label={`Finding ${defaultArea}'s landmarks…`} />
+          ) : (
+            <div className="bg-cream/60 border border-gray-200 rounded-lg p-4">
+              <p className="text-sm text-gray-700 mb-3">
+                {error
+                  ? error
+                  : `Tap the places you want on the map above, or let us find ${defaultArea}'s landmarks for you.`}
+              </p>
+              <button
+                type="button"
+                onClick={() => findSites(defaultArea)}
+                className="px-5 py-2.5 rounded-full bg-accent text-primary text-sm font-bold hover:bg-accent-light transition"
+              >
+                Find {defaultArea}&apos;s landmarks
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           {hasMap && (
