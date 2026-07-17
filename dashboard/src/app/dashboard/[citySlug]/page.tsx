@@ -124,12 +124,6 @@ export default async function CityOverview({
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
-          <Link
-            href={`/dashboard/${citySlug}/settings`}
-            className="text-sm font-bold text-primary hover:underline"
-          >
-            ⚙ Settings
-          </Link>
           <PublishStatus
             cityId={city.id}
             citySlug={city.slug}
