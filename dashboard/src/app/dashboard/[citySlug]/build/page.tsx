@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { BuildWizard } from './build-wizard';
 import { FirstRunRail } from '../../first-run-rail';
+import { TourActions } from '../tour-actions';
 
 // Guided AI build journey for a city: location, suggested local sites, then
 // AI-drafted stops. New operators land here straight after creating a tour.
@@ -38,14 +39,23 @@ export default async function BuildPage({
   return (
     <div className="flex flex-col lg:flex-row gap-8 max-w-5xl">
       <div className="flex-1 min-w-0 max-w-2xl">
-        {/* Escape hatch: this page used to be a dead end. From the tour page an
-            operator can resume later or delete the tour. */}
-        <Link
-          href={`/dashboard/${city.slug}`}
-          className="inline-block text-sm text-gray-500 hover:text-primary transition mb-4"
-        >
-          ← Back to my tour (save for later, or delete)
-        </Link>
+        {/* Escape hatch: this page used to be a dead end. Leave to Mission
+            Control (progress is kept), or delete the tour outright here — with
+            an "Are you sure?" confirm — without needing another page to load. */}
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <Link
+            href="/dashboard"
+            className="text-sm text-gray-500 hover:text-primary transition"
+          >
+            ← Back to Mission Control
+          </Link>
+          <TourActions
+            cityId={city.id}
+            citySlug={city.slug}
+            cityName={city.name}
+            isLive={false}
+          />
+        </div>
         {/* The heading lives inside the wizard, because it has to change once
             the stops are drafted. Leaving "Let's build your tour" sitting above
             a finished draft made the page look like a step you had already done. */}
