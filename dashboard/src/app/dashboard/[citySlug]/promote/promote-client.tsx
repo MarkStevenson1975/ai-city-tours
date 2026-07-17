@@ -569,12 +569,12 @@ export function PromoteClient(props: Props) {
             style={{ width: 300, maxWidth: '100%' }}
             dangerouslySetInnerHTML={{ __html: posterSvg }}
           />
-          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={downloadPdf}
               disabled={busy !== null}
-              className="px-3.5 py-2 rounded-full bg-primary text-cream text-xs font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
+              className="px-4 py-2 rounded-full bg-primary text-cream text-xs font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
             >
               {busy === 'pdf' ? 'Preparing…' : 'Download PDF'}
             </button>
@@ -582,7 +582,7 @@ export function PromoteClient(props: Props) {
               type="button"
               onClick={downloadPng}
               disabled={busy !== null}
-              className="px-3.5 py-2 rounded-full bg-accent text-primary text-xs font-bold hover:bg-accent-light transition disabled:opacity-50 whitespace-nowrap"
+              className="px-4 py-2 rounded-full bg-accent text-primary text-xs font-bold hover:bg-accent-light transition disabled:opacity-50 whitespace-nowrap"
             >
               {busy === 'png' ? 'Preparing…' : 'Download PNG'}
             </button>
@@ -590,16 +590,16 @@ export function PromoteClient(props: Props) {
               type="button"
               onClick={downloadKit}
               disabled={busy !== null}
-              className="px-3.5 py-2 rounded-full border border-primary text-primary text-xs font-bold hover:bg-cream transition disabled:opacity-50 whitespace-nowrap"
+              className="px-4 py-2 rounded-full border border-primary text-primary text-xs font-bold hover:bg-cream transition disabled:opacity-50 whitespace-nowrap"
             >
-              {busy === 'kit' ? 'Preparing…' : 'Download design elements (for Canva)'}
+              {busy === 'kit' ? 'Preparing…' : 'Download for Canva'}
             </button>
           </div>
           {posterError && <p className="text-xs text-red-700 mt-3">{posterError}</p>}
           <p className="text-xs text-gray-500 mt-2">
-            The Canva option gives you a zip of the separate pieces (QR, logo,
-            photo) plus a guide with the wording, colours and fonts, so you can
-            rebuild it in Canva with fully editable layers.
+            The Canva option is a zip of the separate pieces (QR, logo, photo)
+            plus a guide with the wording, colours and fonts. Unzip it, then
+            upload the pieces into Canva, where each becomes an editable layer.
           </p>
           <p className="text-xs text-gray-500 mt-4">
             Live tour: <span className="font-mono break-all">{props.liveUrl}</span>
