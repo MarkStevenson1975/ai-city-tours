@@ -150,14 +150,14 @@ export default async function CityVisitorsPage({
               </h2>
               <div className="space-y-4">
                 <Metric
-                  label="Avg stops completed per registered visitor"
+                  label="Avg stops logged per active visitor"
                   value={String(kpi.avg_stops_completed)}
                 />
                 <Metric
                   label="Return visitor rate"
                   value={
-                    kpi.total_visitors > 0
-                      ? `${Math.round((kpi.returning_visitors / kpi.total_visitors) * 100)}%`
+                    kpi.combined_visitors > 0
+                      ? `${Math.round((kpi.returning_visitors / kpi.combined_visitors) * 100)}%`
                       : '0%'
                   }
                 />
