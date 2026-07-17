@@ -315,7 +315,7 @@ export function PromoteClient(props: Props) {
     return m;
   }, [props]);
 
-  const [busy, setBusy] = useState<null | 'pdf' | 'png'>(null);
+  const [busy, setBusy] = useState<null | 'pdf' | 'png' | 'svg'>(null);
   const [posterError, setPosterError] = useState<string | null>(null);
   const [imgBusy, setImgBusy] = useState<string | null>(null);
 
@@ -395,6 +395,23 @@ export function PromoteClient(props: Props) {
       }, 'image/png');
     } catch (e) {
       setPosterError(e instanceof Error ? e.message : 'Could not build the PNG.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // The poster is already a vector (SVG). Hand it over raw so it can be
+  // uploaded into Canva Pro and edited, rather than the flattened PDF/PNG.
+  function downloadSvg() {
+    setPosterError(null);
+    setBusy('svg');
+    try {
+      const blob = new Blob([posterSvg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, `${props.citySlug}-storied-poster-${posterStyle}.svg`);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) {
+      setPosterError(e instanceof Error ? e.message : 'Could not build the SVG.');
     } finally {
       setBusy(null);
     }
@@ -507,8 +524,20 @@ export function PromoteClient(props: Props) {
             >
               {busy === 'png' ? 'Preparing…' : 'Download PNG'}
             </button>
+            <button
+              type="button"
+              onClick={downloadSvg}
+              disabled={busy !== null}
+              className="px-5 py-2.5 rounded-full border border-primary text-primary text-sm font-bold hover:bg-cream transition disabled:opacity-50"
+            >
+              {busy === 'svg' ? 'Preparing…' : 'Download SVG (for Canva)'}
+            </button>
           </div>
           {posterError && <p className="text-xs text-red-700 mt-3">{posterError}</p>}
+          <p className="text-xs text-gray-500 mt-2">
+            SVG opens as an editable design in Canva Pro (upload it under Uploads).
+            Canva swaps in its own fonts, so a line or two may need retyping.
+          </p>
           <p className="text-xs text-gray-500 mt-4">
             Live tour: <span className="font-mono break-all">{props.liveUrl}</span>
           </p>
