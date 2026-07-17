@@ -375,6 +375,9 @@
     .weather-cta{background:var(--color-accent);color:var(--color-primary);border:none;border-radius:50px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
     .event-banner{background:var(--color-highlight-tint);border:1px solid var(--color-highlight-border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:.85rem;line-height:1.5;text-align:left}
     .event-banner .ev-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-highlight);margin-bottom:4px}
+    .event-banner .ev-loc{font-size:.8rem;color:var(--color-text-light);opacity:.85;margin-top:6px}
+    .event-banner .ev-cal{margin-top:9px}
+    .event-banner .ev-cal-btn{background:var(--color-highlight);color:#fff;border:none;border-radius:50px;padding:6px 15px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:var(--font-body);letter-spacing:.02em;display:inline-flex;align-items:center;gap:5px}
     .open-badge{display:inline-flex;align-items:center;gap:3px;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:50px;vertical-align:middle;margin-left:6px}
     .open-badge.open{background:rgba(64,145,108,.25);color:#6fcf97}
     .open-badge.closed{background:rgba(220,38,38,.2);color:#f87171}
@@ -1829,19 +1832,75 @@ function getCurrentEventMention(){
     if(end<start){if(now>=start){end=new Date(y+1,endMonth-1,ev.dayTo,23,59,59);}else{start=new Date(y-1,startMonth-1,ev.dayFrom,0,0,0);}}
     const upcomingStart=new Date(start);upcomingStart.setDate(upcomingStart.getDate()-10);
     const recentEnd=new Date(end);recentEnd.setDate(recentEnd.getDate()+7);
-    if(now>=start&&now<=end)return{ev,type:'during'};
-    if(now>end&&now<=recentEnd)return{ev,type:'recent'};
-    if(now>=upcomingStart&&now<start)return{ev,type:'upcoming'};
+    if(now>=start&&now<=end)return{ev,type:'during',start,end};
+    if(now>end&&now<=recentEnd)return{ev,type:'recent',start,end};
+    if(now>=upcomingStart&&now<start)return{ev,type:'upcoming',start,end};
   }
   return null;
 }
 function showEventBanner(){
   const mention=getCurrentEventMention();
   if(!mention)return;
-  const{ev,type}=mention;
+  const{ev,type,start,end}=mention;
   const banner=document.getElementById('event-banner');
   const textEl=document.getElementById('event-text');
-  if(banner&&textEl){banner.classList.remove('hidden');textEl.textContent=ev[type];}
+  if(!banner||!textEl)return;
+  banner.classList.remove('hidden');
+  textEl.textContent=ev[type];
+  // Venue line + Add-to-calendar (built once).
+  if(!banner.querySelector('.ev-cal')){
+    const wrap=document.createElement('div');wrap.className='ev-cal';
+    if(ev.location){const loc=document.createElement('div');loc.className='ev-loc';loc.textContent='📍 '+ev.location;wrap.appendChild(loc);}
+    const btn=document.createElement('button');btn.type='button';btn.className='ev-cal-btn';
+    btn.innerHTML='<span aria-hidden="true">＋</span> Add to calendar';
+    btn.onclick=()=>addEventToCalendar(ev,start,end);
+    wrap.appendChild(btn);
+    banner.appendChild(wrap);
+  }
+}
+// ── ADD TO CALENDAR (.ics, generated in the browser) ──────
+function _p2(n){return String(n).padStart(2,'0');}
+function _icsDate(d){return d.getFullYear()+_p2(d.getMonth()+1)+_p2(d.getDate());}
+function _icsDT(d){return _icsDate(d)+'T'+_p2(d.getHours())+_p2(d.getMinutes())+'00';}
+function _icsEsc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');}
+function buildEventICS(ev,start,end){
+  const now=new Date();
+  const stamp=_icsDate(now)+'T'+_p2(now.getHours())+_p2(now.getMinutes())+_p2(now.getSeconds());
+  const timed=ev.startTime&&/^\d{2}:\d{2}$/.test(ev.startTime);
+  let dtStart,dtEnd;
+  if(timed){
+    const[sh,sm]=ev.startTime.split(':').map(Number);
+    const s=new Date(start);s.setHours(sh,sm,0,0);
+    let e;
+    if(ev.endTime&&/^\d{2}:\d{2}$/.test(ev.endTime)){const[eh,em]=ev.endTime.split(':').map(Number);e=new Date(start);e.setHours(eh,em,0,0);if(e<=s)e=new Date(s.getTime()+3600000);}
+    else{e=new Date(s.getTime()+3600000);}
+    dtStart='DTSTART:'+_icsDT(s);dtEnd='DTEND:'+_icsDT(e);
+  }else{
+    const s=new Date(start.getFullYear(),start.getMonth(),start.getDate());
+    const e=new Date(end.getFullYear(),end.getMonth(),end.getDate());e.setDate(e.getDate()+1); // DTEND is exclusive
+    dtStart='DTSTART;VALUE=DATE:'+_icsDate(s);dtEnd='DTEND;VALUE=DATE:'+_icsDate(e);
+  }
+  const title=(ev.emoji?ev.emoji+' ':'')+(ev.name||'Event');
+  const desc=[ev.upcoming||ev.during||'',ev.link||''].filter(Boolean).join('\n\n');
+  const loc=ev.location||CONFIG.city||'';
+  const uid='storied-'+(CONFIG.citySlug||'tour')+'-'+_icsDate(start)+'-'+Math.random().toString(36).slice(2,8)+'@storiedtours.co.uk';
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//StorieD//Tours//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+stamp,dtStart,dtEnd,'SUMMARY:'+_icsEsc(title)];
+  if(desc)lines.push('DESCRIPTION:'+_icsEsc(desc));
+  if(loc)lines.push('LOCATION:'+_icsEsc(loc));
+  if(ev.link)lines.push('URL:'+_icsEsc(ev.link));
+  lines.push('END:VEVENT','END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function addEventToCalendar(ev,start,end){
+  try{
+    const ics=buildEventICS(ev,start,end);
+    const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const fname=((ev.name||'event').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||'event')+'.ics';
+    const a=document.createElement('a');a.href=url;a.download=fname;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    try{if(window.StoriedTrack)window.StoriedTrack.send('event_add_to_calendar',{meta:{name:ev.name}});}catch(e){}
+  }catch(e){console.warn('Add to calendar failed',e);if(typeof showToast==='function')showToast('Could not open the calendar file.');}
 }
 
 // ── BUSINESS HOURS (Google Places with 6h cache) ──────────

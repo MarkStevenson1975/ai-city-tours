@@ -14,6 +14,10 @@ interface EventRow {
   day_to: number;
   year_cycle: number | null;
   next_year: number | null;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  link: string | null;
   upcoming_text: string | null;
   during_text: string | null;
   recent_text: string | null;
@@ -45,6 +49,11 @@ export function EventForm({ citySlug, cityId, event }: Props) {
   const [dayTo, setDayTo] = useState(String(event?.day_to ?? 1));
   const [yearCycle, setYearCycle] = useState(event?.year_cycle?.toString() ?? '');
   const [nextYear, setNextYear] = useState(event?.next_year?.toString() ?? '');
+  // Optional time of day (blank = all-day in the calendar file), venue and link.
+  const [startTime, setStartTime] = useState(event?.start_time?.slice(0, 5) ?? '');
+  const [endTime, setEndTime] = useState(event?.end_time?.slice(0, 5) ?? '');
+  const [location, setLocation] = useState(event?.location ?? '');
+  const [link, setLink] = useState(event?.link ?? '');
   const [upcomingText, setUpcomingText] = useState(event?.upcoming_text ?? '');
   const [duringText, setDuringText] = useState(event?.during_text ?? '');
   const [recentText, setRecentText] = useState(event?.recent_text ?? '');
@@ -59,6 +68,10 @@ export function EventForm({ citySlug, cityId, event }: Props) {
       day_to: parseInt(dayTo, 10) || 1,
       year_cycle: yearCycle ? parseInt(yearCycle, 10) : null,
       next_year: nextYear ? parseInt(nextYear, 10) : null,
+      start_time: startTime,
+      end_time: endTime,
+      location,
+      link,
       upcoming_text: upcomingText,
       during_text: duringText,
       recent_text: recentText,
@@ -188,6 +201,31 @@ export function EventForm({ citySlug, cityId, event }: Props) {
 
         <div className="grid grid-cols-2 gap-4">
           <Field
+            label="Start time (optional)"
+            hint="Leave blank for an all-day event. Used when a visitor taps Add to calendar."
+          >
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field
+            label="End time (optional)"
+            hint="Only used if a start time is set."
+          >
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field
             label="Year cycle (optional)"
             hint="For events that don't run every year. e.g. 3 means every 3 years."
           >
@@ -215,6 +253,31 @@ export function EventForm({ citySlug, cityId, event }: Props) {
             />
           </Field>
         </div>
+      </Section>
+
+      <Section
+        title="Where & link"
+        subtitle="Optional. Shown on the splash event banner and added to the visitor's calendar entry when they tap Add to calendar."
+      >
+        <Field label="Venue / location" hint="e.g. Ledbury Rugby Club">
+          <input
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            maxLength={160}
+            placeholder="e.g. Ledbury Rugby Club"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Link" hint="A web page for the event, e.g. tickets or details.">
+          <input
+            type="url"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="https://..."
+            className={inputCls}
+          />
+        </Field>
       </Section>
 
       <Section

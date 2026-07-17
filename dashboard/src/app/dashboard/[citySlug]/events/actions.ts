@@ -14,9 +14,21 @@ export interface EventInput {
   day_to: number;
   year_cycle: number | null;
   next_year: number | null;
+  // Optional time of day. Blank start_time = all-day event in the calendar file.
+  start_time: string;
+  end_time: string;
+  // Optional venue and URL, used on the banner and the calendar entry.
+  location: string;
+  link: string;
   upcoming_text: string;
   during_text: string;
   recent_text: string;
+}
+
+/** Accept only "HH:MM" (24h). Returns null for anything else. */
+function sanitizeTime(input: string): string | null {
+  const t = (input || '').trim();
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : null;
 }
 
 function sanitize(input: EventInput) {
@@ -27,6 +39,9 @@ function sanitize(input: EventInput) {
       : null;
   // An end month equal to the start month is just a single-month event.
   if (month_to === month) month_to = null;
+  const start_time = sanitizeTime(input.start_time);
+  // End time is only meaningful alongside a start time.
+  const end_time = start_time ? sanitizeTime(input.end_time) : null;
   return {
     name: input.name.trim(),
     emoji: input.emoji.trim() || null,
@@ -36,6 +51,10 @@ function sanitize(input: EventInput) {
     day_to: Math.max(1, Math.min(31, input.day_to)),
     year_cycle: input.year_cycle && input.year_cycle > 0 ? input.year_cycle : null,
     next_year: input.next_year && input.next_year > 1900 ? input.next_year : null,
+    start_time,
+    end_time,
+    location: input.location.trim() || null,
+    link: input.link.trim() || null,
     upcoming_text: input.upcoming_text.trim() || null,
     during_text: input.during_text.trim() || null,
     recent_text: input.recent_text.trim() || null,
