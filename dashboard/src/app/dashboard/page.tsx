@@ -107,9 +107,15 @@ export default async function DashboardHome({
                 </div>
                 <div className="text-right flex-shrink-0">
                   <SubscriptionBadge status={city.subscription_status} />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Published v{city.published_version || 0}
-                  </p>
+                  {(city.published_version ?? 0) > 0 ? (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Published v{city.published_version}
+                    </p>
+                  ) : (
+                    <p className="text-xs font-bold text-amber-800 bg-amber-100 inline-block px-2 py-0.5 rounded-full mt-2">
+                      Unfinished draft
+                    </p>
+                  )}
                 </div>
               </div>
             </Link>

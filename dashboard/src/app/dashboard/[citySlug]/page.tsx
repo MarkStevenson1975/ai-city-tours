@@ -5,6 +5,7 @@ import { PublishButton } from './publish-button';
 import { InviteOperatorForm } from './invite-operator-form';
 import { StopsReorder } from './stops-reorder';
 import { FirstRunRail } from '../first-run-rail';
+import { ResumeBanner } from './resume-banner';
 import { ManageBillingButton, UpgradeButton } from './go-live-panel';
 import { SeeItLiveButton } from './subscribe-modal';
 import { PLAN_STOP_LIMIT, PLAN_TOUR_LIMIT, PLAN_LABEL, nextTier, type Tier } from '@/lib/plans';
@@ -141,6 +142,16 @@ export default async function CityOverview({
         </div>
       </header>
 
+      {/* Unfinished tour: never published, and owned by an operator. Show them
+          where they left off, with a way to continue or delete. */}
+      {!isAdmin && (city.published_version ?? 0) === 0 && (
+        <ResumeBanner
+          citySlug={citySlug}
+          stopCount={stops?.length ?? 0}
+          previewed={Boolean(city.previewed_at)}
+        />
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
         <Stat label="Stops" value={stops?.length ?? 0} />
         <Stat
@@ -252,7 +263,7 @@ export default async function CityOverview({
         <StopsReorder citySlug={citySlug} initialStops={stops ?? []} stopLimit={stopLimit} />
       </section>
 
-      <section className="mb-12 border-t border-gray-200 pt-8">
+      <section id="manage-tour" className="mb-12 border-t border-gray-200 pt-8 scroll-mt-6">
         <h2 className="text-2xl font-semibold mb-1">Manage tour</h2>
         <p className="text-sm text-gray-600 mb-4 max-w-xl">
           {isLive
@@ -277,7 +288,10 @@ export default async function CityOverview({
             previewed: Boolean(city.previewed_at),
             published: Boolean(city.published_at),
             citySlug: city.slug,
-            currentStep: 4, // this page IS where they edit and publish
+            // Honest "you are here": if the tour was abandoned early, point at
+            // the step they still owe rather than always Publish.
+            currentStep:
+              stopCount === 0 ? 2 : !city.previewed_at ? 3 : 4,
           }}
         />
       )}
