@@ -22,6 +22,7 @@ type FeedbackResult = {
 type KpiResult = {
   total_visitors: number;
   guest_visitors: number;
+  combined_visitors: number;
   returning_visitors: number;
   avg_stops_completed: number;
   most_visited_stops: StopStat[] | null;
@@ -112,22 +113,33 @@ export default async function CityVisitorsPage({
 
       {hasData && kpi && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            <KpiCard
+              label="Total visitors"
+              value={kpi.combined_visitors}
+              hint="Registered + guests"
+            />
             <KpiCard
               label="Registered visitors"
               value={kpi.total_visitors}
+              hint="Signed in with an account"
             />
             <KpiCard
               label="Guest visitors"
               value={kpi.guest_visitors}
+              hint="Used the tour without signing in"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-10">
             <KpiCard
-              label="Visits last 7 days"
+              label="Visitors last 7 days"
               value={kpi.visits_last_7_days}
+              hint="Registered + guests active"
             />
             <KpiCard
-              label="Visits last 30 days"
+              label="Visitors last 30 days"
               value={kpi.visits_last_30_days}
+              hint="Registered + guests active"
             />
           </div>
 
@@ -162,10 +174,11 @@ export default async function CityVisitorsPage({
 
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <h2 className="text-xs uppercase tracking-widest font-bold text-gray-500 mb-1">
-                Most visited stops
+                Most visited stops · last 30 days
               </h2>
               <p className="text-xs text-gray-400 mb-4">
-                Every logged visit, guests included.
+                Top 5 stops by logged visits over the past 30 days, guests
+                included.
               </p>
               {!kpi.most_visited_stops || kpi.most_visited_stops.length === 0 ? (
                 <p className="text-sm text-gray-400 italic">
@@ -301,13 +314,22 @@ function ratingChip(rating: string | null): string {
   return 'bg-gray-100 text-gray-600';
 }
 
-function KpiCard({ label, value }: { label: string; value: number }) {
+function KpiCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+}) {
   return (
     <div className="bg-white rounded-xl p-5 shadow-sm">
       <p className="text-4xl font-display font-semibold text-primary">{value}</p>
       <p className="text-xs uppercase tracking-wider text-gray-600 mt-1 font-bold">
         {label}
       </p>
+      {hint && <p className="text-[11px] text-gray-400 mt-1">{hint}</p>}
     </div>
   );
 }

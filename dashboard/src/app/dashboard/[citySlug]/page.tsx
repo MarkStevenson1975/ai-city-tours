@@ -48,7 +48,7 @@ export default async function CityOverview({
     profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing';
   const paused = profile?.subscription_status === 'paused';
 
-  const [{ data: stops }, sponsorCount, factCount, eventCount, visitorCount] =
+  const [{ data: stops }, sponsorCount, factCount, eventCount, visitorTotal] =
     await Promise.all([
       supabase
         .from('stops')
@@ -69,11 +69,11 @@ export default async function CityOverview({
         .from('events')
         .select('id', { count: 'exact', head: true })
         .eq('city_id', city.id),
-      supabase
-        .from('user_tours')
-        .select('id', { count: 'exact', head: true })
-        .eq('city_slug', citySlug),
+      // Combined registered + guest visitors (SECURITY DEFINER RPC reads
+      // guest_events past RLS). Returns 0 if the caller has no access.
+      supabase.rpc('city_visitor_total', { p_city_slug: citySlug }),
     ]);
+  const visitorCount = Number(visitorTotal.data ?? 0);
 
   // A tour with no stops yet drops straight into the guided AI build journey
   // rather than showing an empty editor.
@@ -165,7 +165,7 @@ export default async function CityOverview({
         />
         <Stat
           label="Visitors"
-          value={visitorCount.count ?? 0}
+          value={visitorCount}
           href={`/dashboard/${citySlug}/visitors`}
         />
         <NavTile label="Settings" href={`/dashboard/${citySlug}/settings`} />
