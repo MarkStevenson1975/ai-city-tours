@@ -315,7 +315,7 @@ export function PromoteClient(props: Props) {
     return m;
   }, [props]);
 
-  const [busy, setBusy] = useState<null | 'pdf' | 'png' | 'svg'>(null);
+  const [busy, setBusy] = useState<null | 'pdf' | 'png' | 'kit'>(null);
   const [posterError, setPosterError] = useState<string | null>(null);
   const [imgBusy, setImgBusy] = useState<string | null>(null);
 
@@ -400,18 +400,80 @@ export function PromoteClient(props: Props) {
     }
   }
 
-  // The poster is already a vector (SVG). Hand it over raw so it can be
-  // uploaded into Canva Pro and edited, rather than the flattened PDF/PNG.
-  function downloadSvg() {
+  // Canva flattens an uploaded SVG into one image, so instead we hand over the
+  // parts: the QR, the logo, the photo, a reference of the finished poster, and
+  // a plain-text guide with the exact wording, colours and fonts. Uploaded into
+  // Canva, each becomes its own editable layer.
+  function buildKitGuide(): string {
+    const L = (s: string) => s + '\n';
+    let g = '';
+    g += L('StorieD poster — design elements for Canva');
+    g += L(`Tour: ${props.cityName}`);
+    g += L(`Live tour URL: ${props.liveUrl}`);
+    g += L('');
+    g += L('FILES IN THIS KIT');
+    g += L('- qr-code.png ............ the scannable QR for your tour');
+    if (props.logoDataUrl) g += L('- logo.png ............... your logo');
+    if (props.stopImageDataUrl) g += L('- photo.png .............. your tour photo');
+    g += L('- poster-reference.png ... the finished poster, for layout reference');
+    g += L('');
+    g += L('BRAND COLOURS (hex)');
+    g += L(`- Background (green): ${props.colorPrimary}`);
+    g += L(`- Accent (gold): ${props.colorAccent}`);
+    g += L('- Text (cream): #F5F0E8');
+    g += L('');
+    g += L('FONTS (both free in Canva)');
+    g += L('- Headings: Cormorant Garamond');
+    g += L('- Body text: Lato');
+    g += L('');
+    g += L('THE WORDS');
+    g += L('- Brand: StorieD');
+    g += L(`- Headline: ${props.cityName} has a story.`);
+    g += L('- Second line: Take the walk.');
+    g += L('- Blurb: A free guided walking tour, straight to your phone. No app to download. Just scan and go.');
+    g += L('- QR label: Scan to start walking');
+    if (props.attribution) g += L(`- Brought to you by: ${props.attribution}`);
+    g += L('');
+    g += L('HOW TO USE IN CANVA');
+    g += L('1. In Canva, open Uploads and upload the PNG files above.');
+    g += L('2. Start a new A4 design (portrait).');
+    g += L('3. Drag in the QR, logo and photo, then add text using the words, colours and fonts above.');
+    g += L('Each piece is now its own editable layer.');
+    return g;
+  }
+
+  async function downloadKit() {
     setPosterError(null);
-    setBusy('svg');
+    setBusy('kit');
     try {
-      const blob = new Blob([posterSvg], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      triggerDownload(url, `${props.citySlug}-storied-poster-${posterStyle}.svg`);
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      const toBlob = async (dataUrl: string) => (await fetch(dataUrl)).blob();
+
+      zip.file('qr-code.png', await toBlob(props.qrDataUrl));
+      if (props.logoDataUrl) zip.file('logo.png', await toBlob(props.logoDataUrl));
+      if (props.stopImageDataUrl) zip.file('photo.png', await toBlob(props.stopImageDataUrl));
+
+      // A flattened reference of the finished poster so they can copy the layout.
+      const landscape = posterStyle === 'landmark';
+      const canvas = await renderCanvas(
+        posterSvg,
+        landscape ? A4_H : A4_W,
+        landscape ? A4_W : A4_H
+      );
+      const refBlob: Blob | null = await new Promise((res) =>
+        canvas.toBlob((b) => res(b), 'image/png')
+      );
+      if (refBlob) zip.file('poster-reference.png', refBlob);
+
+      zip.file('read-me-brand-and-copy.txt', buildKitGuide());
+
+      const out = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(out);
+      triggerDownload(url, `${props.citySlug}-storied-canva-kit.zip`);
       setTimeout(() => URL.revokeObjectURL(url), 4000);
     } catch (e) {
-      setPosterError(e instanceof Error ? e.message : 'Could not build the SVG.');
+      setPosterError(e instanceof Error ? e.message : 'Could not build the kit.');
     } finally {
       setBusy(null);
     }
@@ -507,12 +569,12 @@ export function PromoteClient(props: Props) {
             style={{ width: 300, maxWidth: '100%' }}
             dangerouslySetInnerHTML={{ __html: posterSvg }}
           />
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto">
             <button
               type="button"
               onClick={downloadPdf}
               disabled={busy !== null}
-              className="px-5 py-2.5 rounded-full bg-primary text-cream text-sm font-bold hover:bg-primary-light transition disabled:opacity-50"
+              className="px-3.5 py-2 rounded-full bg-primary text-cream text-xs font-bold hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
             >
               {busy === 'pdf' ? 'Preparing…' : 'Download PDF'}
             </button>
@@ -520,23 +582,24 @@ export function PromoteClient(props: Props) {
               type="button"
               onClick={downloadPng}
               disabled={busy !== null}
-              className="px-5 py-2.5 rounded-full bg-accent text-primary text-sm font-bold hover:bg-accent-light transition disabled:opacity-50"
+              className="px-3.5 py-2 rounded-full bg-accent text-primary text-xs font-bold hover:bg-accent-light transition disabled:opacity-50 whitespace-nowrap"
             >
               {busy === 'png' ? 'Preparing…' : 'Download PNG'}
             </button>
             <button
               type="button"
-              onClick={downloadSvg}
+              onClick={downloadKit}
               disabled={busy !== null}
-              className="px-5 py-2.5 rounded-full border border-primary text-primary text-sm font-bold hover:bg-cream transition disabled:opacity-50"
+              className="px-3.5 py-2 rounded-full border border-primary text-primary text-xs font-bold hover:bg-cream transition disabled:opacity-50 whitespace-nowrap"
             >
-              {busy === 'svg' ? 'Preparing…' : 'Download SVG (for Canva)'}
+              {busy === 'kit' ? 'Preparing…' : 'Download design elements (for Canva)'}
             </button>
           </div>
           {posterError && <p className="text-xs text-red-700 mt-3">{posterError}</p>}
           <p className="text-xs text-gray-500 mt-2">
-            SVG opens as an editable design in Canva Pro (upload it under Uploads).
-            Canva swaps in its own fonts, so a line or two may need retyping.
+            The Canva option gives you a zip of the separate pieces (QR, logo,
+            photo) plus a guide with the wording, colours and fonts, so you can
+            rebuild it in Canva with fully editable layers.
           </p>
           <p className="text-xs text-gray-500 mt-4">
             Live tour: <span className="font-mono break-all">{props.liveUrl}</span>

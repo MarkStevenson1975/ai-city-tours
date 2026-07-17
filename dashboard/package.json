@@ -12,6 +12,7 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.0",
     "jspdf": "^2.5.2",
+    "jszip": "^3.10.1",
     "next": "^15.0.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
