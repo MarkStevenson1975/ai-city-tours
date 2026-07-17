@@ -152,7 +152,7 @@ export default async function CityOverview({
         />
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-12">
         <Stat label="Stops" value={stops?.length ?? 0} />
         <Stat
           label="Sponsors"
@@ -174,6 +174,7 @@ export default async function CityOverview({
           value={visitorCount.count ?? 0}
           href={`/dashboard/${citySlug}/visitors`}
         />
+        <NavTile label="Settings" href={`/dashboard/${citySlug}/settings`} />
       </div>
 
       {!isAdmin && (
@@ -330,6 +331,35 @@ function Stat({
     );
   }
   return <div className={className}>{inner}</div>;
+}
+
+// A KPI-styled tile that is a shortcut rather than a count. Used to surface
+// Settings alongside the stat tiles, because operators reported it was hard to
+// find buried in the nav.
+function NavTile({ label, href }: { label: string; href: string }) {
+  return (
+    <Link
+      href={href}
+      className="block bg-white rounded-xl p-5 shadow-sm hover:shadow-md hover:border-accent border border-transparent transition"
+    >
+      <svg
+        className="w-9 h-9 text-primary"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+      <p className="text-xs uppercase tracking-wider text-gray-600 mt-2 font-bold">
+        {label}
+      </p>
+    </Link>
+  );
 }
 
 function PublishStatus({
