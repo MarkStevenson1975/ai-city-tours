@@ -18,6 +18,7 @@ interface City {
   color_primary: string | null;
   color_accent: string | null;
   color_background: string | null;
+  color_highlight: string | null;
   guide_name: string | null;
   guide_voice_id: string | null;
   travel_mode: string | null;
@@ -72,6 +73,11 @@ export function SettingsForm({ city }: { city: City }) {
   const [colorBackground, setColorBackground] = useState(
     city.color_background ?? '#F5F0E8'
   );
+  // Highlight drives the completed/visited tick and the events banner on the
+  // tour. Defaults to the original green so nothing changes until it is set.
+  const [colorHighlight, setColorHighlight] = useState(
+    city.color_highlight ?? '#40916C'
+  );
 
   // Guide
   const [guideName, setGuideName] = useState(city.guide_name ?? '');
@@ -109,6 +115,7 @@ export function SettingsForm({ city }: { city: City }) {
         color_primary: colorPrimary,
         color_accent: colorAccent,
         color_background: colorBackground,
+        color_highlight: colorHighlight,
         guide_name: guideName,
         guide_voice_id: guideVoiceId,
         travel_mode: travelMode,
@@ -228,7 +235,7 @@ export function SettingsForm({ city }: { city: City }) {
               Used across the public tour. Click the swatch to pick, or type a
               6-digit hex code (e.g. #1B4332).
             </p>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <ColorField
                 label="Primary"
                 hint="Headers, buttons, dark backgrounds"
@@ -247,11 +254,18 @@ export function SettingsForm({ city }: { city: City }) {
                 value={colorBackground}
                 onChange={setColorBackground}
               />
+              <ColorField
+                label="Highlight"
+                hint="Completed stop ticks and the events banner"
+                value={colorHighlight}
+                onChange={setColorHighlight}
+              />
             </div>
             <BrandPreview
               primary={colorPrimary}
               accent={colorAccent}
               background={colorBackground}
+              highlight={colorHighlight}
               guideName={guideName || 'Guide'}
               cityName={cityName || 'City'}
             />
@@ -507,15 +521,19 @@ function BrandPreview({
   primary,
   accent,
   background,
+  highlight,
   guideName,
   cityName,
 }: {
   primary: string;
   accent: string;
   background: string;
+  highlight: string;
   guideName: string;
   cityName: string;
 }) {
+  const hlTint = hexToRgba(highlight, 0.12);
+  const hlBorder = hexToRgba(highlight, 0.3);
   return (
     <div
       className="mt-6 rounded-xl overflow-hidden border border-gray-200"
@@ -546,10 +564,39 @@ function BrandPreview({
         >
           Start the Tour
         </div>
+        {/* Highlight preview: completed tick + events banner both follow it */}
+        <div className="flex items-center justify-center gap-2 mt-5">
+          <span
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+            style={{ background: highlight, color: background }}
+          >
+            ✓
+          </span>
+          <span
+            className="text-[11px] font-bold px-3 py-1.5 rounded-md"
+            style={{
+              background: hlTint,
+              border: `1px solid ${hlBorder}`,
+              color: highlight,
+            }}
+          >
+            📅 Happening in {cityName}
+          </span>
+        </div>
         <p className="text-[10px] opacity-50 mt-3 italic">
-          Live preview of splash screen styling
+          Live preview of splash, completed tick and events colours
         </p>
       </div>
     </div>
   );
+}
+
+/** #RRGGBB → rgba() string; falls back to the default green if malformed. */
+function hexToRgba(hex: string, alpha: number): string {
+  const m = /^#([0-9A-Fa-f]{6})$/.exec((hex || '').trim());
+  const h = m ? m[1] : '40916C';
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

@@ -23,7 +23,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
-    :root{--color-primary:#ffffff;--color-primary-light:#2D6A4F;--color-bg:#F5F0E8;--color-accent:#C9A84C;--color-accent-light:#E8C96A;--color-text:#1A1A1A;--color-text-light:#F5F0E8;--color-muted:#E8E0D0;--color-muted-dark:#B0A898;--color-visited:#40916C;--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Lato',sans-serif;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,.12);--shadow-lg:0 8px 32px rgba(0,0,0,.18);--transition:200ms ease}
+    :root{--color-primary:#ffffff;--color-primary-light:#2D6A4F;--color-bg:#F5F0E8;--color-accent:#C9A84C;--color-accent-light:#E8C96A;--color-text:#1A1A1A;--color-text-light:#F5F0E8;--color-muted:#E8E0D0;--color-muted-dark:#B0A898;--color-visited:#40916C;--color-highlight:#40916C;--color-highlight-tint:rgba(64,145,108,.12);--color-highlight-border:rgba(64,145,108,.3);--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Lato',sans-serif;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,.12);--shadow-lg:0 8px 32px rgba(0,0,0,.18);--transition:200ms ease}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;overflow:hidden;background:var(--color-bg)}
     body{font-family:var(--font-body);color:var(--color-text)}
@@ -98,10 +98,10 @@
     .stoplist-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:16px 16px 100px}
     .stop-card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:10px;display:block;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;transition:transform .15s;border:1.5px solid transparent;position:relative}
     .stop-card:active{transform:scale(.98)}
-    .stop-card.visited{border-color:var(--color-visited)}
+    .stop-card.visited{border-color:var(--color-highlight)}
     .stop-card-top{display:flex;align-items:center;gap:14px}
     .stop-number{width:40px;height:40px;border-radius:50%;background:var(--color-accent);color:var(--color-primary);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0}
-    .stop-card.visited .stop-number{background:var(--color-visited);color:var(--color-text-light)}
+    .stop-card.visited .stop-number{background:var(--color-highlight);color:var(--color-text-light)}
     .stop-card.skipped .stop-number{font-size:1.1rem;line-height:1}
     .stop-card-info{flex:1;min-width:0}
     .stop-card-name{flex:1;min-width:0;font-family:var(--font-display);font-size:1.1rem;font-weight:600;line-height:1.2;margin-bottom:0}
@@ -213,7 +213,7 @@
     .nav-stat-lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em}
     .nav-stamp-btn{margin-left:auto;background:rgba(201,168,76,.2);border:1.5px solid var(--color-accent);color:var(--color-accent);padding:8px 14px;border-radius:50px;font-size:.8rem;font-weight:700}
     .map-marker-current{width:32px;height:32px;background:var(--color-accent);border:3px solid #fff;border-radius:50%;animation:pulse-gold 2s infinite}
-    .map-marker-visited{width:28px;height:28px;background:var(--color-visited);border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem}
+    .map-marker-visited{width:28px;height:28px;background:var(--color-highlight);border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem}
     .map-marker-future{width:28px;height:28px;background:var(--color-primary);border:2px solid rgba(255,255,255,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700}
     .map-marker-user{width:18px;height:18px;background:#4A90E2;border:3px solid #fff;border-radius:50%;animation:pulse-blue 2s infinite}
     .map-marker-sponsor{width:22px;height:22px;background:var(--color-accent);border:2px solid var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem}
@@ -373,8 +373,8 @@
     .weather-icon-lrg{font-size:1.6rem;flex-shrink:0}
     .weather-text{flex:1;opacity:.88}
     .weather-cta{background:var(--color-accent);color:var(--color-primary);border:none;border-radius:50px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
-    .event-banner{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:.85rem;line-height:1.5;text-align:left}
-    .event-banner .ev-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:4px}
+    .event-banner{background:var(--color-highlight-tint);border:1px solid var(--color-highlight-border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:.85rem;line-height:1.5;text-align:left}
+    .event-banner .ev-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-highlight);margin-bottom:4px}
     .open-badge{display:inline-flex;align-items:center;gap:3px;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:50px;vertical-align:middle;margin-left:6px}
     .open-badge.open{background:rgba(64,145,108,.25);color:#6fcf97}
     .open-badge.closed{background:rgba(220,38,38,.2);color:#f87171}
@@ -1665,7 +1665,7 @@ function applySplashIntro(){const el=document.getElementById('splash-intro-text'
 // facts (including ones used by the where-am-I button on a previous
 // visit) don't refire as the walker passes their proximity zones.
 function seedFiredFactsFromStorage(){try{const list=getPlayedFactIds();list.forEach(id=>state.firedFacts.add(id));}catch(e){}}
-function applyBrand(){const root=document.documentElement;const isHex=v=>typeof v==='string'&&/^#[0-9A-Fa-f]{6}$/.test(v);if(isHex(CONFIG.colorPrimary)){root.style.setProperty('--color-primary',CONFIG.colorPrimary);}if(isHex(CONFIG.colorAccent))root.style.setProperty('--color-accent',CONFIG.colorAccent);if(isHex(CONFIG.colorBackground))root.style.setProperty('--color-bg',CONFIG.colorBackground);// Operator-uploaded splash image overrides the hardcoded default
+function applyBrand(){const root=document.documentElement;const isHex=v=>typeof v==='string'&&/^#[0-9A-Fa-f]{6}$/.test(v);if(isHex(CONFIG.colorPrimary)){root.style.setProperty('--color-primary',CONFIG.colorPrimary);}if(isHex(CONFIG.colorAccent))root.style.setProperty('--color-accent',CONFIG.colorAccent);if(isHex(CONFIG.colorBackground))root.style.setProperty('--color-bg',CONFIG.colorBackground);if(isHex(CONFIG.colorHighlight)){const h=CONFIG.colorHighlight;root.style.setProperty('--color-highlight',h);const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);root.style.setProperty('--color-highlight-tint',`rgba(${r},${g},${b},.12)`);root.style.setProperty('--color-highlight-border',`rgba(${r},${g},${b},.3)`);}// Operator-uploaded splash image overrides the hardcoded default
 {const img=document.getElementById('splash-city-img');if(img){const splashSrc=CONFIG.splashImageUrl||(CONFIG.stops&&CONFIG.stops[0]&&CONFIG.stops[0].heroImageUrl)||'';if(splashSrc){img.src=splashSrc;img.parentElement.style.display='';}else{img.parentElement.style.display='none';}}}}
 function applyGuideName(){const guide=(CONFIG.guideName||'Harriet').trim();if(!guide||guide==='Harriet')return;const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null);const nodes=[];let n;while((n=walker.nextNode()))if(n.nodeValue&&n.nodeValue.includes('Harriet'))nodes.push(n);nodes.forEach(node=>{node.nodeValue=node.nodeValue.split('Harriet').join(guide);});if(document.title)document.title=document.title.split('Harriet').join(guide);}
 function renderOperatorCredit(){const credit=document.getElementById('operator-credit');const logo=document.getElementById('operator-logo');const attr=document.getElementById('operator-attribution');if(!credit||!logo||!attr)return;const hasLogo=CONFIG.operatorLogoUrl&&!CONFIG.operatorLogoUrl.startsWith('{{');const hasAttr=CONFIG.operatorAttributionText&&!CONFIG.operatorAttributionText.startsWith('{{');if(hasLogo){logo.src=CONFIG.operatorLogoUrl;logo.alt=CONFIG.operatorName||'';logo.style.display='block';}else{logo.style.display='none';}if(hasAttr){attr.textContent=CONFIG.operatorAttributionText;attr.style.display='block';}else{attr.style.display='none';}if(hasLogo||hasAttr)credit.classList.add('visible');else credit.classList.remove('visible');const spUrl=(CONFIG.tcSponsorUrl&&!CONFIG.tcSponsorUrl.startsWith('{{'))?CONFIG.tcSponsorUrl:'';if(spUrl&&(hasLogo||hasAttr)){credit.style.cursor='pointer';credit.onclick=()=>window.open(spUrl,'_blank','noopener');}else{credit.style.cursor='';credit.onclick=null;}}

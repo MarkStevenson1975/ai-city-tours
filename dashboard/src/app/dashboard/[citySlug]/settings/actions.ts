@@ -18,6 +18,7 @@ interface SaveSettingsInput {
   color_primary: string;
   color_accent: string;
   color_background: string;
+  color_highlight: string;
   // Guide
   guide_name: string;
   guide_voice_id: string;
@@ -61,6 +62,7 @@ export async function saveSettings(input: SaveSettingsInput) {
   const colorPrimary = sanitizeHex(input.color_primary, '#1B4332');
   const colorAccent = sanitizeHex(input.color_accent, '#C9A84C');
   const colorBackground = sanitizeHex(input.color_background, '#F5F0E8');
+  const colorHighlight = sanitizeHex(input.color_highlight, '#40916C');
 
   // City name is required (we already require it via NOT NULL on the column)
   const cityName = input.city_name.trim();
@@ -83,6 +85,7 @@ export async function saveSettings(input: SaveSettingsInput) {
       color_primary: colorPrimary,
       color_accent: colorAccent,
       color_background: colorBackground,
+      color_highlight: colorHighlight,
       // Guide
       guide_name: input.guide_name.trim() || 'Guide',
       guide_voice_id: input.guide_voice_id.trim() || null,
