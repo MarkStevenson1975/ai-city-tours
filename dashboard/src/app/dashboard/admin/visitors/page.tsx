@@ -179,11 +179,23 @@ export default async function AdminVisitorsPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {formatDate(r.firstSeen)}
+                  <td className="px-6 py-4 text-gray-600 whitespace-nowrap">
+                    <span className="block">{formatDate(r.firstSeen)}</span>
+                    <span className="block text-xs text-gray-400">
+                      {formatTime(r.firstSeen)}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {r.lastActive ? formatDate(r.lastActive) : 'Never'}
+                  <td className="px-6 py-4 text-gray-600 whitespace-nowrap">
+                    {r.lastActive ? (
+                      <>
+                        <span className="block">{formatDate(r.lastActive)}</span>
+                        <span className="block text-xs text-gray-400">
+                          {formatTime(r.lastActive)}
+                        </span>
+                      </>
+                    ) : (
+                      'Never'
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     {r.cities.length === 0 ? (
@@ -270,5 +282,12 @@ function formatDate(iso: string): string {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+  });
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
