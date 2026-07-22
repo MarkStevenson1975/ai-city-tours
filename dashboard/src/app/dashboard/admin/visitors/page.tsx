@@ -18,6 +18,7 @@ type GuestRow = {
   last_active: string;
   cities_visited: string[];
   stops_logged: number;
+  stops_by_city: Record<string, string[]> | null;
 };
 
 // One shape for the merged table
@@ -73,7 +74,7 @@ export default async function AdminVisitorsPage() {
     firstSeen: g.first_seen,
     lastActive: g.last_active,
     cities: g.cities_visited,
-    stopsByCity: null,
+    stopsByCity: g.stops_by_city ?? null,
     stopsCount: g.stops_logged,
     userId: null,
   }));
@@ -201,18 +202,7 @@ export default async function AdminVisitorsPage() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {r.kind === 'guest' ? (
-                      r.stopsCount === 0 ? (
-                        <span className="text-gray-400 italic">None yet</span>
-                      ) : (
-                        <span className="text-gray-700">
-                          {r.stopsCount} stop{r.stopsCount === 1 ? '' : 's'} reached
-                        </span>
-                      )
-                    ) : !r.stopsByCity ||
-                      Object.keys(r.stopsByCity).length === 0 ? (
-                      <span className="text-gray-400 italic">None yet</span>
-                    ) : (
+                    {r.stopsByCity && Object.keys(r.stopsByCity).length > 0 ? (
                       <div className="space-y-2">
                         {Object.entries(r.stopsByCity).map(
                           ([citySlug, stops]) => (
@@ -234,6 +224,12 @@ export default async function AdminVisitorsPage() {
                           )
                         )}
                       </div>
+                    ) : r.stopsCount > 0 ? (
+                      <span className="text-gray-700">
+                        {r.stopsCount} stop{r.stopsCount === 1 ? '' : 's'} reached
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 italic">None yet</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">

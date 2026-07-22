@@ -4,6 +4,12 @@ import { createClient } from '@/lib/supabase/server';
 
 type StopStat = { stop_name: string; visit_count: number };
 
+type StopBreakdownRow = {
+  stop_name: string;
+  stop_position: number;
+  reached: number;
+};
+
 type FeedbackComment = {
   rating: string | null;
   comment: string;
@@ -60,6 +66,15 @@ export default async function CityVisitorsPage({
     kpiRows && kpiRows.length > 0 ? kpiRows[0] : null;
 
   const hasData = kpi && (kpi.total_visitors > 0 || kpi.guest_visitors > 0);
+
+  const { data: breakdownRows } = await supabase.rpc('city_stop_breakdown', {
+    p_city_slug: citySlug,
+  });
+  const stopBreakdown: StopBreakdownRow[] = breakdownRows ?? [];
+  const maxReached = stopBreakdown.reduce(
+    (m, s) => Math.max(m, s.reached),
+    0
+  );
 
   const { data: feedbackRows } = await supabase.rpc('city_visitor_feedback', {
     p_city_slug: citySlug,
@@ -204,7 +219,48 @@ export default async function CityVisitorsPage({
             </div>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+          {stopBreakdown.length > 0 && (
+            <div className="bg-white rounded-xl p-6 shadow-sm mt-8">
+              <h2 className="text-xs uppercase tracking-widest font-bold text-gray-500 mb-1">
+                Which stops visitors reach
+              </h2>
+              <p className="text-xs text-gray-400 mb-5">
+                Every stop in walking order, with how many visitors reached it. A
+                gentle tail-off is normal. A sharp drop can flag a confusing step
+                or a long gap between stops.
+              </p>
+              <ol className="space-y-2.5">
+                {stopBreakdown.map((s) => {
+                  const pct =
+                    maxReached > 0 ? Math.round((s.reached / maxReached) * 100) : 0;
+                  return (
+                    <li key={s.stop_position} className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-400 w-5 text-right">
+                        {s.stop_position}
+                      </span>
+                      <span
+                        className="w-40 text-sm font-medium text-gray-700 truncate"
+                        title={s.stop_name}
+                      >
+                        {s.stop_name}
+                      </span>
+                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-gray-600 w-20 text-right">
+                        {s.reached} {s.reached === 1 ? 'visitor' : 'visitors'}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
+
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mt-8">
             <strong>Privacy note:</strong> These KPIs are aggregated and
             anonymised. No email addresses or personal details are stored or
             displayed here. Individual visitor records are accessible to the
