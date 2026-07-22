@@ -212,6 +212,22 @@
       }
     });
 
+    // Physically reached a stop: GPS arrival within range, or the "I've
+    // arrived" tap. triggerArrival marks the stop visited internally but
+    // otherwise emits nothing, so most walkers who navigate to stops without
+    // opening the detail screen never registered. Log stop_viewed here too.
+    // Reporting counts distinct stop ids, so a stop the visitor also opens is
+    // not double-counted.
+    wrap('triggerArrival', function (idx) {
+      try {
+        var s = (typeof CONFIG !== 'undefined' && CONFIG.stops) ? CONFIG.stops[idx] : null;
+        if (s) send('stop_viewed', { stopId: s.uid || s.id, meta: { name: s.name } });
+        else send('stop_viewed');
+      } catch (e) {
+        send('stop_viewed');
+      }
+    });
+
     // Started playing a stop's narration audio (the core product moment).
     wrap('playNarrationTrack', function (text, label) {
       try {
