@@ -150,7 +150,7 @@ export default async function CityVisitorsPage({
               </h2>
               <div className="space-y-4">
                 <Metric
-                  label="Avg stops logged per active visitor"
+                  label="Avg stops reached per active visitor"
                   value={String(kpi.avg_stops_completed)}
                 />
                 <Metric
@@ -177,7 +177,7 @@ export default async function CityVisitorsPage({
                 Most visited stops · last 30 days
               </h2>
               <p className="text-xs text-gray-400 mb-4">
-                Top 5 stops by logged visits over the past 30 days, guests
+                Top 5 stops by visits reached over the past 30 days, guests
                 included.
               </p>
               {!kpi.most_visited_stops || kpi.most_visited_stops.length === 0 ? (

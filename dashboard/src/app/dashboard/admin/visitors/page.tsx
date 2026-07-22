@@ -206,7 +206,7 @@ export default async function AdminVisitorsPage() {
                         <span className="text-gray-400 italic">None yet</span>
                       ) : (
                         <span className="text-gray-700">
-                          {r.stopsCount} stop{r.stopsCount === 1 ? '' : 's'} logged
+                          {r.stopsCount} stop{r.stopsCount === 1 ? '' : 's'} reached
                         </span>
                       )
                     ) : !r.stopsByCity ||
