@@ -153,7 +153,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Could not build your stop. Please try again.' }, { status: 502 });
   }
 
-  // Store the photo (best effort).
+  // Store the photo (best effort). Use it for the stop AND as the tour's splash
+  // hero image, so the demo splash looks as complete as a real tour.
   if (photoRef && mapsKey) {
     try {
       const photo = await fetchPlacePhoto(photoRef, mapsKey);
@@ -166,6 +167,7 @@ export async function POST(req: NextRequest) {
         if (!upErr) {
           const publicUrl = admin.storage.from('stop-images').getPublicUrl(path).data.publicUrl;
           await admin.from('stops').update({ hero_image_url: publicUrl }).eq('id', stop.id);
+          await admin.from('cities').update({ splash_image_url: publicUrl }).eq('id', city.id);
         }
       }
     } catch (e) {
@@ -173,7 +175,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Publish so the demo can be previewed.
+  // Publish so the demo can be previewed. (After the splash image is set, so it
+  // is baked into the published config.)
   try {
     const { data: config } = await admin.rpc('build_city_config', { p_city_id: city.id });
     await admin

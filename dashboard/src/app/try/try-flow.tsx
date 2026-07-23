@@ -239,19 +239,19 @@ export function TryFlow({ initialArea, org }: Props) {
                   whole device down, so the layout matches a real handset
                   instead of being squashed into a narrow frame. */}
               <div
-                className="rounded-[2.2rem] border-[7px] border-primary bg-primary overflow-hidden shadow-2xl"
-                style={{ width: 335, height: 670, boxSizing: 'content-box' }}
+                className="rounded-[2.4rem] border-[8px] border-primary bg-primary overflow-hidden shadow-2xl"
+                style={{ width: 335, height: 697, boxSizing: 'content-box' }}
               >
                 <iframe
                   src={result.tourUrl}
                   title="Your tour preview"
                   className="bg-cream"
                   style={{
-                    width: 390,
-                    height: 780,
+                    width: 414,
+                    height: 860,
                     border: 0,
                     display: 'block',
-                    transform: 'scale(0.859)',
+                    transform: 'scale(0.809)',
                     transformOrigin: 'top left',
                   }}
                 />
