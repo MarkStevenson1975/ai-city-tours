@@ -235,12 +235,25 @@ export function TryFlow({ initialArea, org }: Props) {
             </div>
 
             <div className="flex justify-center my-6">
-              <div className="w-[270px] max-w-full rounded-[2rem] border-[7px] border-primary bg-primary overflow-hidden shadow-2xl">
+              {/* Render the tour at a true phone width (390px) then scale the
+                  whole device down, so the layout matches a real handset
+                  instead of being squashed into a narrow frame. */}
+              <div
+                className="rounded-[2.2rem] border-[7px] border-primary bg-primary overflow-hidden shadow-2xl"
+                style={{ width: 335, height: 670, boxSizing: 'content-box' }}
+              >
                 <iframe
                   src={result.tourUrl}
                   title="Your tour preview"
-                  className="w-full bg-cream"
-                  style={{ height: 540, border: 0 }}
+                  className="bg-cream"
+                  style={{
+                    width: 390,
+                    height: 780,
+                    border: 0,
+                    display: 'block',
+                    transform: 'scale(0.859)',
+                    transformOrigin: 'top left',
+                  }}
                 />
               </div>
             </div>
