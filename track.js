@@ -100,8 +100,10 @@
     }
   } catch (e) {}
 
-  // If this browser is one of ours, record nothing at all.
-  var SUPPRESS = isInternal();
+  // If this browser is one of ours, record nothing at all. Also suppress the
+  // "try it" example demo tours (slug example-...) so anonymous prospects
+  // previewing a demo never enter the real guest analytics.
+  var SUPPRESS = isInternal() || /^example-/.test(SLUG || '');
 
   // Mirror every journey event into Google Analytics 4 so GA shows the same
   // funnel as our own guest_events table. gtag is loaded by analytics.js on

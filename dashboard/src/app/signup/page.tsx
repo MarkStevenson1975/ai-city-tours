@@ -35,13 +35,20 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
+    // If they arrived from the /try demo (?claim=<example-slug>), send them to
+    // the claim handoff after signup so their demo becomes their real tour.
+    const claim = new URLSearchParams(window.location.search).get('claim');
+    const dest = claim
+      ? `/dashboard/claim?slug=${encodeURIComponent(claim)}`
+      : '/dashboard/new';
+
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName, organisation },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard/new`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(dest)}`,
       },
     });
 
@@ -55,7 +62,7 @@ export default function SignupPage() {
     // If email confirmation is off, a session is returned immediately and we
     // can go straight into building. If it is on, ask them to confirm first.
     if (data.session) {
-      router.push('/dashboard/new');
+      router.push(dest);
       router.refresh();
     } else {
       setCheckEmail(true);
