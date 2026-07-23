@@ -261,12 +261,12 @@ export function TryFlow({ initialArea, org }: Props) {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm text-left mb-5">
+            <div className="bg-white rounded-xl p-5 shadow-sm text-center mb-5">
               <p className="text-sm font-bold mb-1">That took seconds.</p>
               <p className="text-sm text-gray-600 mb-3">
                 A whole tour is just as quick to build and get live.
               </p>
-              <ul className="space-y-2 text-sm text-gray-700">
+              <ul className="space-y-2 text-sm text-gray-700 inline-block text-left">
                 <li className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-visited text-cream text-[10px] font-bold flex items-center justify-center flex-shrink-0">✓</span>
                   A real stop, written and voiced in seconds
@@ -282,13 +282,23 @@ export function TryFlow({ initialArea, org }: Props) {
               </ul>
             </div>
 
-            <a
-              href={`/signup?claim=${encodeURIComponent(result.slug)}`}
-              className="block w-full py-3 rounded-full bg-accent text-primary font-bold hover:bg-accent-light transition"
-            >
-              Claim this tour, first month free →
-            </a>
-            <p className="text-xs text-gray-500 mt-2">
+            <div className="flex gap-3">
+              <a
+                href={`/signup?claim=${encodeURIComponent(result.slug)}`}
+                className="flex-1 text-center py-3 rounded-full bg-accent text-primary font-bold hover:bg-accent-light transition"
+              >
+                Claim this tour →
+              </a>
+              <a
+                href={`mailto:team@thesetupcrew.co.uk?subject=${encodeURIComponent(
+                  `StorieD demo — ${result.town}`
+                )}`}
+                className="flex-1 text-center py-3 rounded-full bg-primary-light text-cream font-bold hover:opacity-90 transition"
+              >
+                Contact us
+              </a>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
               Keep this stop, build the rest, publish when you are ready.
             </p>
           </div>
