@@ -126,18 +126,19 @@ export function TryFlow({ initialArea, org }: Props) {
         {step === 'enter' && (
           <div className="max-w-md mx-auto text-center">
             <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
-              {org ? `Built for ${org}` : 'Free demo · No sign-up'}
+              {org ? `For ${org}` : 'A free taste · No sign-up'}
             </p>
             <h1 className="font-display text-4xl font-semibold mb-3">
-              See your town as a walking tour.
+              See a StorieD walk made for your area.
             </h1>
             <p className="text-sm text-gray-600 mb-7">
-              Tell us where. We will build a real stop you can walk on your phone
-              in seconds. No account, no card, nothing to install.
+              Tell us where you are, and we will build one real stop from your
+              own streets. See, hear and feel exactly what your visitors would.
+              No account, no card, nothing to install.
             </p>
             <form onSubmit={findLandmarks} className="bg-white rounded-xl p-6 shadow-sm text-left">
               <label htmlFor="area" className="block text-sm font-bold mb-2">
-                Your town or city
+                Your town or area
               </label>
               <input
                 id="area"
@@ -221,15 +222,17 @@ export function TryFlow({ initialArea, org }: Props) {
               <Sparkles />
               <div className="relative z-10">
                 <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
-                  ✨ Your example tour is live
+                  ✨ Here is a taste of your tour
                 </p>
                 <h1 className="font-display text-4xl font-semibold mb-3">
                   {result.town} has a story.
                 </h1>
                 <p className="text-sm text-gray-600">
-                  That is a real, AI-built stop for {result.stopName}, ready to
-                  walk right now. Picture the whole town: more stops, local
-                  sponsors, all built in an afternoon.
+                  This is a real stop for {result.stopName}, ready to walk right
+                  now. It is exactly what your visitors would see, hear and feel
+                  as they explore {result.town}, and it is only the first stop.
+                  Picture your whole area brought to life, more stops and your
+                  local sponsors alongside.
                 </p>
               </div>
             </div>
