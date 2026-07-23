@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { fetchPlacePhoto } from '@/lib/places';
+import { demoDedupeKey } from '@/lib/demo-lead';
 
 const TOUR_BASE = process.env.PUBLIC_TOUR_URL ?? 'https://storied-tours.vercel.app';
 const PER_IP_PER_DAY = 6;
@@ -185,6 +186,26 @@ export async function POST(req: NextRequest) {
       .eq('id', city.id);
   } catch (e) {
     console.error('try/build publish failed:', e);
+  }
+
+  // Mark the demo lead as built (or create one if they built without opening a
+  // tagged link first), so the Kanban shows this prospect went all the way.
+  try {
+    const key = demoDedupeKey(org, area);
+    if (key) {
+      await admin.from('demo_leads').upsert(
+        {
+          dedupe_key: key,
+          area,
+          org,
+          built_at: new Date().toISOString(),
+          example_slug: slug,
+        },
+        { onConflict: 'dedupe_key' }
+      );
+    }
+  } catch (e) {
+    console.error('try/build lead upsert failed (non-fatal):', e);
   }
 
   return NextResponse.json({

@@ -7,18 +7,54 @@ import { addKanbanNote, hideOperator, restoreOperator } from './actions';
 
 // ---------------------------------------------------------------- Board
 
+export type DemoCard = {
+  key: string;
+  town: string;
+  org: string | null;
+  built: boolean;
+  opens: number;
+  when: string | null;
+  previewUrl: string | null;
+};
+
 export function KanbanBoard({
   columns,
   board,
+  demo,
 }: {
   columns: { key: ColumnKey; title: string; hint: string }[];
   board: Record<ColumnKey, OperatorCard[]>;
+  demo?: { title: string; hint: string; cards: DemoCard[] };
 }) {
   const [selected, setSelected] = useState<OperatorCard | null>(null);
 
   return (
     <>
       <div className="flex gap-4 overflow-x-auto pb-6 -mr-10 pr-10">
+        {demo && (
+          <div className="w-64 flex-shrink-0 bg-white rounded-xl shadow-sm flex flex-col max-h-[70vh] border-t-4 border-accent">
+            <div className="px-4 pt-4 pb-3 border-b border-cream">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-primary uppercase tracking-wide">
+                  {demo.title}
+                </h2>
+                <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-full bg-accent/20 text-primary text-xs font-bold">
+                  {demo.cards.length}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1 leading-snug">{demo.hint}</p>
+            </div>
+            <div className="p-3 space-y-2 overflow-y-auto flex-1">
+              {demo.cards.length === 0 ? (
+                <p className="text-xs text-gray-300 italic text-center py-8 border border-dashed border-gray-200 rounded-lg">
+                  No demos yet
+                </p>
+              ) : (
+                demo.cards.map((c) => <DemoTile key={c.key} card={c} />)
+              )}
+            </div>
+          </div>
+        )}
         {columns.map((col) => {
           const cards = board[col.key];
           return (
@@ -60,6 +96,44 @@ export function KanbanBoard({
         <OperatorModal card={selected} onClose={() => setSelected(null)} />
       )}
     </>
+  );
+}
+
+// -------------------------------------------------------------- Demo tile
+
+function DemoTile({ card }: { card: DemoCard }) {
+  return (
+    <div className="w-full text-left bg-cream rounded-lg p-3 text-xs border-l-4 border-accent shadow-sm">
+      <p className="font-semibold text-gray-800 text-sm leading-tight">{card.town}</p>
+      {card.org && (
+        <p className="text-[10px] font-bold uppercase tracking-wide text-[#8a6a1c] mt-0.5 leading-snug">
+          {card.org}
+        </p>
+      )}
+      <div className="flex items-center gap-2 mt-2">
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+            card.built ? 'bg-visited/20 text-visited' : 'bg-gray-200 text-gray-500'
+          }`}
+        >
+          {card.built ? 'Built a demo' : 'Opened link'}
+        </span>
+        {card.opens > 1 && (
+          <span className="text-[10px] text-gray-400">{card.opens} opens</span>
+        )}
+      </div>
+      {card.when && <p className="text-[10px] text-gray-400 mt-1.5">{card.when}</p>}
+      {card.previewUrl && (
+        <a
+          href={card.previewUrl}
+          target="_blank"
+          rel="noopener"
+          className="text-[11px] text-primary underline mt-1.5 inline-block"
+        >
+          Preview →
+        </a>
+      )}
+    </div>
   );
 }
 

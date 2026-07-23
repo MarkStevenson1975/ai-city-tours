@@ -4,7 +4,7 @@
 // watch StorieD build that stop for real, then walk the phone preview and claim
 // it. Centred and sized to match the operator build flow, with a little sparkle
 // energy when the tour lands so it feels special.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BuildingAnimation } from '@/app/dashboard/[citySlug]/build/building-animation';
 
 type Landmark = {
@@ -64,6 +64,18 @@ export function TryFlow({ initialArea, org }: Props) {
   const [result, setResult] = useState<BuildResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Record that this prospect opened their personalised link, so it shows on the
+  // Kanban even if they never build a demo. Fire once, best effort.
+  useEffect(() => {
+    if (!initialArea && !org) return;
+    fetch('/api/try/open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area: initialArea, org }),
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function findLandmarks(e: React.FormEvent) {
     e.preventDefault();

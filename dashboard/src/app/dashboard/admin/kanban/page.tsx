@@ -267,21 +267,27 @@ export default async function AdminKanbanPage({
   };
   visible.forEach((c) => board[c.column].push(c));
 
-  // "Tried the demo" lane: anonymous example tours built via the /try link that
-  // nobody has claimed yet. They graduate off this lane the moment someone
-  // claims one (which sets example_claimed_at and gives it an owner, so it then
-  // appears in the normal board). Not counted in any KPI.
+  // "Tried the demo" column: cold-outreach prospects from Louise's personalised
+  // /try links. A lead appears when they OPEN the link (even if they never
+  // build), and flips to "built" once they build a demo. Graduates off the
+  // moment they claim (claimed_at set), then flows through the normal board via
+  // created_by. Not counted in any KPI.
   const TOUR_BASE = process.env.PUBLIC_TOUR_URL ?? 'https://storied-tours.vercel.app';
-  const nowIso = new Date().toISOString();
-  const { data: demoRows } = await admin
-    .from('cities')
-    .select('slug, name, example_org, created_at')
-    .eq('is_example', true)
-    .is('example_claimed_at', null)
-    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
-    .order('created_at', { ascending: false })
-    .limit(50);
-  const demos = demoRows ?? [];
+  const { data: leadRows } = await admin
+    .from('demo_leads')
+    .select('dedupe_key, area, org, opens, opened_at, last_opened_at, built_at, example_slug')
+    .is('claimed_at', null)
+    .order('last_opened_at', { ascending: false })
+    .limit(60);
+  const demoCards = (leadRows ?? []).map((l) => ({
+    key: l.dedupe_key,
+    town: l.area || l.org || 'Unknown',
+    org: l.org ?? null,
+    built: Boolean(l.built_at),
+    opens: l.opens ?? 1,
+    when: fmtDateTime(l.built_at ?? l.last_opened_at ?? l.opened_at),
+    previewUrl: l.built_at && l.example_slug ? `${TOUR_BASE}/${l.example_slug}` : null,
+  }));
 
   return (
     <div>
@@ -304,48 +310,18 @@ export default async function AdminKanbanPage({
         </Link>
       </div>
 
-      {!showHidden && demos.length > 0 && (
-        <section className="mb-10">
-          <h2 className="text-sm font-bold text-primary uppercase tracking-wide mb-1">
-            Tried the demo
-          </h2>
-          <p className="text-[11px] text-gray-400 mb-3 max-w-2xl">
-            Anonymous example tours from the try-it link, not yet claimed. Not
-            counted in KPIs. They move into the board when someone claims one.
-          </p>
-          <div className="flex gap-3 overflow-x-auto pb-3">
-            {demos.map((d) => (
-              <div
-                key={d.slug}
-                className="w-56 flex-shrink-0 bg-white rounded-xl shadow-sm p-4 border-l-4 border-accent"
-              >
-                <p className="font-semibold text-gray-800">{d.name}</p>
-                {d.example_org && (
-                  <p className="text-[10px] text-accent font-bold uppercase tracking-wide mt-0.5">
-                    {d.example_org}
-                  </p>
-                )}
-                <p className="text-xs text-gray-500 mt-2">
-                  Tried {fmtDateTime(d.created_at)}
-                </p>
-                <a
-                  href={`${TOUR_BASE}/${d.slug}`}
-                  target="_blank"
-                  rel="noopener"
-                  className="text-xs text-primary underline mt-2 inline-block"
-                >
-                  Preview →
-                </a>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {showHidden ? (
         <HiddenList cards={hidden} />
       ) : (
-        <KanbanBoard columns={COLUMNS} board={board} />
+        <KanbanBoard
+          columns={COLUMNS}
+          board={board}
+          demo={{
+            title: 'Tried the demo',
+            hint: 'From the try-it link. Opened or built, not yet claimed. Not counted in KPIs.',
+            cards: demoCards,
+          }}
+        />
       )}
 
       <p className="text-xs text-gray-400 mt-2">

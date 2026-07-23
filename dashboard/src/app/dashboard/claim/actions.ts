@@ -60,5 +60,13 @@ export async function claimExample(
     .eq('id', city.id);
 
   if (error) return { ok: false, error: error.message };
+
+  // Graduate the demo lead off the Kanban demo column (it now flows through the
+  // normal operator stages via created_by).
+  await admin
+    .from('demo_leads')
+    .update({ claimed_at: new Date().toISOString() })
+    .eq('example_slug', exampleSlug);
+
   return { ok: true, slug };
 }
