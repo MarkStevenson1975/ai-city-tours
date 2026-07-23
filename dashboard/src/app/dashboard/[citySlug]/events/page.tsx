@@ -58,8 +58,8 @@ export default async function EventsListPage({
         </Link>
       </header>
 
-      <div className="bg-white rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full">
+      <div className="bg-white rounded-xl overflow-x-auto shadow-sm">
+        <table className="w-full min-w-[640px]">
           <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
             <tr>
               <th className="px-6 py-3 w-10"></th>

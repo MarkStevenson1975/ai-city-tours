@@ -110,14 +110,14 @@ export default async function AdminOperatorsPage() {
         access when an operator no longer needs it.
       </p>
 
-      <div className="grid grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10">
         <KpiCard label="Total accounts" value={operators.length} />
         <KpiCard label="Admins" value={adminCount} />
         <KpiCard label="Operators" value={operators.length - adminCount} />
       </div>
 
-      <div className="bg-white rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl overflow-x-auto shadow-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
             <tr>
               <th className="px-6 py-3">Email</th>

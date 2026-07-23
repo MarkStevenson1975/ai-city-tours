@@ -46,7 +46,7 @@ export default async function NewCityPage() {
           <label htmlFor="slug" className="block text-sm font-bold mb-2">
             URL slug
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <span className="text-sm text-gray-500 whitespace-nowrap">
               storied-tours.vercel.app/
             </span>
@@ -58,7 +58,7 @@ export default async function NewCityPage() {
               placeholder="gloucester"
               pattern="[a-z0-9\-]+"
               title="Lowercase letters, numbers and hyphens only"
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono text-sm"
+              className="w-full sm:flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono text-sm"
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">

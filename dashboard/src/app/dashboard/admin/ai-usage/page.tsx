@@ -56,14 +56,14 @@ export default async function AdminAiUsagePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10">
         <KpiCard label="Operators active today" value={busyToday} />
         <KpiCard label="At the daily cap" value={atDayCap} />
         <KpiCard label="Operators tracked" value={usage.length} />
       </div>
 
-      <div className="bg-white rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl overflow-x-auto shadow-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
             <tr>
               <Th title="Operator" desc="The account using AI features" />

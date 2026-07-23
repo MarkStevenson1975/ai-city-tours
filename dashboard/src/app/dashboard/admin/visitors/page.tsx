@@ -119,7 +119,7 @@ export default async function AdminVisitorsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-4 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
         <KpiCard
           label="Registered visitors"
           value={rows.filter((r) => r.kind === 'registered').length}
@@ -135,8 +135,8 @@ export default async function AdminVisitorsPage() {
         <KpiCard label="Areas with activity" value={allCities.size} />
       </div>
 
-      <div className="bg-white rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl overflow-x-auto shadow-sm">
+        <table className="w-full min-w-[880px] text-sm">
           <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
             <tr>
               <th className="px-6 py-3">Visitor</th>
