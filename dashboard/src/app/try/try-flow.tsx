@@ -262,19 +262,22 @@ export function TryFlow({ initialArea, org }: Props) {
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm text-left mb-5">
-              <p className="text-sm font-bold mb-3">Your tour, imagined</p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <p className="text-sm font-bold mb-1">That took seconds.</p>
+              <p className="text-sm text-gray-600 mb-3">
+                A whole tour is just as quick to build and get live.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-700">
                 <li className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-visited text-cream text-[10px] font-bold flex items-center justify-center flex-shrink-0">✓</span>
-                  {result.stopName}, built and voiced
+                  A real stop, written and voiced in seconds
                 </li>
-                <li className="flex items-center gap-2 opacity-60">
-                  <span className="w-5 h-5 rounded-full bg-gray-300 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">2</span>
-                  Add your next landmark
+                <li className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-accent text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">›</span>
+                  Add the rest just as fast, we write each one for you
                 </li>
-                <li className="flex items-center gap-2 opacity-60">
-                  <span className="w-5 h-5 rounded-full bg-gray-300 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">3</span>
-                  A local sponsor callout
+                <li className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-accent text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">›</span>
+                  Publish in a tap, and you are live the same afternoon
                 </li>
               </ul>
             </div>
