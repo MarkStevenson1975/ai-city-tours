@@ -1,8 +1,6 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { SidebarPreview } from './sidebar-preview';
-import { FeedbackWidget } from './feedback-widget';
+import { DashboardShell } from './dashboard-shell';
 
 export default async function DashboardLayout({
   children,
@@ -22,96 +20,8 @@ export default async function DashboardLayout({
     .single();
 
   return (
-    <div className="min-h-screen flex">
-      <aside className="w-60 bg-primary text-cream p-6 flex flex-col flex-shrink-0">
-        <Link
-          href="/dashboard"
-          title="Mission Control"
-          className="block font-display text-3xl leading-none mb-8 mt-2"
-        >
-          <span className="text-cream font-semibold">Storie</span>
-          <span className="text-accent font-semibold">D</span>
-        </Link>
-
-        <nav className="space-y-1 flex-1 text-sm">
-          <Link
-            href="/dashboard"
-            className="block px-3 py-2 rounded hover:bg-white/10 transition"
-          >
-            Mission Control
-          </Link>
-          {profile?.role !== 'admin' && (
-            <Link
-              href="/dashboard/new"
-              className="block px-3 py-2 rounded hover:bg-white/10 transition"
-            >
-              + New tour
-            </Link>
-          )}
-          {profile?.role === 'admin' && (
-            <>
-              <Link
-                href="/dashboard/admin/cities/new"
-                className="block px-3 py-2 rounded hover:bg-white/10 transition"
-              >
-                + Add area
-              </Link>
-              <Link
-                href="/dashboard/admin/visitors"
-                className="block px-3 py-2 rounded hover:bg-white/10 transition"
-              >
-                All Visitors
-              </Link>
-              <Link
-                href="/dashboard/admin/operators"
-                className="block px-3 py-2 rounded hover:bg-white/10 transition"
-              >
-                Operators
-              </Link>
-              <Link
-                href="/dashboard/admin/kanban"
-                className="block px-3 py-2 rounded hover:bg-white/10 transition"
-              >
-                Kanban
-              </Link>
-              <Link
-                href="/dashboard/admin/funnel"
-                className="block px-3 py-2 rounded hover:bg-white/10 transition"
-              >
-                Operator funnel
-              </Link>
-              <Link
-                href="/dashboard/admin/ai-usage"
-                className="block px-3 py-2 rounded hover:bg-white/10 transition"
-              >
-                AI usage
-              </Link>
-            </>
-          )}
-          <SidebarPreview />
-        </nav>
-
-        <div className="text-xs border-t border-white/10 pt-4 space-y-2">
-          <p className="text-cream/70 truncate" title={user.email ?? ''}>
-            {user.email}
-          </p>
-          <p className="text-[10px] text-accent uppercase tracking-widest font-bold">
-            {profile?.role ?? 'operator'}
-          </p>
-          <form action="/auth/signout" method="post">
-            <button
-              type="submit"
-              className="text-cream/60 hover:text-cream underline transition"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
-      </aside>
-
-      <main className="flex-1 p-10 overflow-y-auto">{children}</main>
-
-      <FeedbackWidget />
-    </div>
+    <DashboardShell role={profile?.role ?? null} userEmail={user.email ?? null}>
+      {children}
+    </DashboardShell>
   );
 }
