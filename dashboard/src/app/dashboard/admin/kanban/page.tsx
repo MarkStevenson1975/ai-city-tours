@@ -275,11 +275,11 @@ export default async function AdminKanbanPage({
   const TOUR_BASE = process.env.PUBLIC_TOUR_URL ?? 'https://storied-tours.vercel.app';
   const { data: leadRows } = await admin
     .from('demo_leads')
-    .select('dedupe_key, area, org, opens, opened_at, last_opened_at, built_at, example_slug')
+    .select('dedupe_key, area, org, opens, opened_at, last_opened_at, built_at, example_slug, hidden_at')
     .is('claimed_at', null)
     .order('last_opened_at', { ascending: false })
-    .limit(60);
-  const demoCards = (leadRows ?? []).map((l) => ({
+    .limit(80);
+  const toDemoCard = (l: NonNullable<typeof leadRows>[number]) => ({
     key: l.dedupe_key,
     town: l.area || l.org || 'Unknown',
     org: l.org ?? null,
@@ -287,7 +287,9 @@ export default async function AdminKanbanPage({
     opens: l.opens ?? 1,
     when: fmtDateTime(l.built_at ?? l.last_opened_at ?? l.opened_at),
     previewUrl: l.built_at && l.example_slug ? `${TOUR_BASE}/${l.example_slug}` : null,
-  }));
+  });
+  const demoCards = (leadRows ?? []).filter((l) => !l.hidden_at).map(toDemoCard);
+  const demoHiddenCards = (leadRows ?? []).filter((l) => l.hidden_at).map(toDemoCard);
 
   return (
     <div>
@@ -306,12 +308,14 @@ export default async function AdminKanbanPage({
           href={showHidden ? '/dashboard/admin/kanban' : '/dashboard/admin/kanban?view=hidden'}
           className="text-sm underline text-primary hover:text-accent transition"
         >
-          {showHidden ? 'Back to board' : `Hidden (${hidden.length})`}
+          {showHidden
+            ? 'Back to board'
+            : `Hidden (${hidden.length + demoHiddenCards.length})`}
         </Link>
       </div>
 
       {showHidden ? (
-        <HiddenList cards={hidden} />
+        <HiddenList cards={hidden} demos={demoHiddenCards} />
       ) : (
         <KanbanBoard
           columns={COLUMNS}

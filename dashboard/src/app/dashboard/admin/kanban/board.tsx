@@ -3,7 +3,13 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ColumnKey, OperatorCard, JourneyStep } from './columns';
-import { addKanbanNote, hideOperator, restoreOperator } from './actions';
+import {
+  addKanbanNote,
+  hideOperator,
+  restoreOperator,
+  hideDemoLead,
+  restoreDemoLead,
+} from './actions';
 
 // ---------------------------------------------------------------- Board
 
@@ -102,9 +108,27 @@ export function KanbanBoard({
 // -------------------------------------------------------------- Demo tile
 
 function DemoTile({ card }: { card: DemoCard }) {
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
   return (
-    <div className="w-full text-left bg-cream rounded-lg p-3 text-xs border-l-4 border-accent shadow-sm">
-      <p className="font-semibold text-gray-800 text-sm leading-tight">{card.town}</p>
+    <div className="relative w-full text-left bg-cream rounded-lg p-3 text-xs border-l-4 border-accent shadow-sm">
+      <button
+        type="button"
+        title="Hide this demo"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            await hideDemoLead(card.key);
+            router.refresh();
+          })
+        }
+        className="absolute top-1.5 right-1.5 text-gray-300 hover:text-gray-600 transition disabled:opacity-40"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </button>
+      <p className="font-semibold text-gray-800 text-sm leading-tight pr-5">{card.town}</p>
       {card.org && (
         <p className="text-[10px] font-bold uppercase tracking-wide text-[#8a6a1c] mt-0.5 leading-snug">
           {card.org}
@@ -466,20 +490,28 @@ function JourneyTrail({ journey }: { journey: JourneyStep[] }) {
   );
 }
 
-export function HiddenList({ cards }: { cards: OperatorCard[] }) {
+export function HiddenList({
+  cards,
+  demos = [],
+}: {
+  cards: OperatorCard[];
+  demos?: DemoCard[];
+}) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  if (cards.length === 0) {
+  if (cards.length === 0 && demos.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-gray-400 italic">
-        No hidden operators. Tiles removed from the board will appear here.
+        Nothing hidden. Tiles removed from the board appear here.
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm">
+    <div className="space-y-8">
+      {cards.length > 0 && (
+      <div className="bg-white rounded-xl overflow-hidden shadow-sm">
       <table className="w-full text-sm">
         <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
           <tr>
@@ -528,6 +560,61 @@ export function HiddenList({ cards }: { cards: OperatorCard[] }) {
           ))}
         </tbody>
       </table>
+      </div>
+      )}
+
+      {demos.length > 0 && (
+        <div>
+          <h3 className="text-sm font-bold text-primary uppercase tracking-wide mb-2">
+            Hidden demos
+          </h3>
+          <div className="bg-white rounded-xl overflow-x-auto shadow-sm">
+            <table className="w-full text-sm min-w-[520px]">
+              <thead className="bg-cream text-left text-[11px] uppercase tracking-wider text-gray-600 font-bold">
+                <tr>
+                  <th className="px-6 py-3">Prospect</th>
+                  <th className="px-6 py-3">State</th>
+                  <th className="px-6 py-3">When</th>
+                  <th className="px-6 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-cream">
+                {demos.map((d) => (
+                  <tr key={d.key} className="hover:bg-cream/40 transition">
+                    <td className="px-6 py-4">
+                      <p className="font-semibold text-gray-800">{d.town}</p>
+                      {d.org && (
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#8a6a1c]">
+                          {d.org}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-600">
+                      {d.built ? 'Built a demo' : 'Opened link'}
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-500">{d.when ?? '—'}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        type="button"
+                        disabled={pendingId === d.key}
+                        onClick={async () => {
+                          setPendingId(d.key);
+                          await restoreDemoLead(d.key);
+                          setPendingId(null);
+                          router.refresh();
+                        }}
+                        className="text-xs font-bold text-primary underline disabled:opacity-50"
+                      >
+                        {pendingId === d.key ? 'Restoring…' : 'Restore to board'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

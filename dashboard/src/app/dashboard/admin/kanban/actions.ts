@@ -78,3 +78,33 @@ export async function restoreOperator(operatorId: string): Promise<ActionResult>
   revalidatePath('/dashboard/admin/kanban');
   return { ok: true };
 }
+
+export async function hideDemoLead(dedupeKey: string): Promise<ActionResult> {
+  const caller = await requireAdmin();
+  if (!caller) return { ok: false, error: 'Unauthorised' };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('demo_leads')
+    .update({ hidden_at: new Date().toISOString() })
+    .eq('dedupe_key', dedupeKey);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/dashboard/admin/kanban');
+  return { ok: true };
+}
+
+export async function restoreDemoLead(dedupeKey: string): Promise<ActionResult> {
+  const caller = await requireAdmin();
+  if (!caller) return { ok: false, error: 'Unauthorised' };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('demo_leads')
+    .update({ hidden_at: null })
+    .eq('dedupe_key', dedupeKey);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/dashboard/admin/kanban');
+  return { ok: true };
+}
