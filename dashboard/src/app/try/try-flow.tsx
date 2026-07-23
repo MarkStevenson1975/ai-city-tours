@@ -2,8 +2,10 @@
 
 // The public "try it" demo experience: enter your town, pick one real landmark,
 // watch StorieD build that stop for real, then walk the phone preview and claim
-// it. No account needed until they claim.
+// it. Centred and sized to match the operator build flow, with a little sparkle
+// energy when the tour lands so it feels special.
 import { useState } from 'react';
+import { BuildingAnimation } from '@/app/dashboard/[citySlug]/build/building-animation';
 
 type Landmark = {
   placeId: string;
@@ -18,6 +20,42 @@ type Landmark = {
 type BuildResult = { slug: string; town: string; stopName: string; tourUrl: string };
 
 type Props = { initialArea: string; org: string };
+
+// A gentle burst of sparkles for the celebration moment.
+const SPARKLES = [
+  { top: '-6%', left: '6%', size: 22, delay: '0s' },
+  { top: '10%', left: '92%', size: 16, delay: '0.3s' },
+  { top: '-10%', left: '52%', size: 14, delay: '0.6s' },
+  { top: '38%', left: '-4%', size: 18, delay: '0.15s' },
+  { top: '30%', left: '98%', size: 20, delay: '0.5s' },
+  { top: '70%', left: '4%', size: 14, delay: '0.8s' },
+  { top: '64%', left: '90%', size: 16, delay: '0.35s' },
+  { top: '-4%', left: '30%', size: 12, delay: '0.9s' },
+];
+
+function Sparkles() {
+  return (
+    <>
+      <style>{`@keyframes storiedTwinkle{0%,100%{opacity:0;transform:scale(0) rotate(0deg)}50%{opacity:1;transform:scale(1) rotate(20deg)}}`}</style>
+      <span aria-hidden className="pointer-events-none absolute inset-0 z-0">
+        {SPARKLES.map((s, i) => (
+          <span
+            key={i}
+            style={{
+              position: 'absolute',
+              top: s.top,
+              left: s.left,
+              fontSize: s.size,
+              animation: `storiedTwinkle 1.9s ease-in-out ${s.delay} infinite`,
+            }}
+          >
+            ✨
+          </span>
+        ))}
+      </span>
+    </>
+  );
+}
 
 export function TryFlow({ initialArea, org }: Props) {
   const [step, setStep] = useState<'enter' | 'picking' | 'building' | 'done'>('enter');
@@ -76,31 +114,28 @@ export function TryFlow({ initialArea, org }: Props) {
   return (
     <div className="min-h-screen bg-cream text-primary">
       <header className="bg-primary text-cream">
-        <div className="max-w-5xl mx-auto px-5 h-16 flex items-center">
-          <span className="font-display text-3xl leading-none">
+        <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-center">
+          <span className="font-display text-2xl leading-none">
             <span className="font-semibold">Storie</span>
             <span className="text-accent font-semibold">D</span>
           </span>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-5 py-10 md:py-14">
-        {org && step === 'enter' && (
-          <p className="text-xs uppercase tracking-widest text-accent font-bold mb-3">
-            Built for {org}
-          </p>
-        )}
-
+      <main className="max-w-3xl mx-auto px-5 py-10">
         {step === 'enter' && (
-          <div className="max-w-2xl">
-            <h1 className="font-display text-4xl md:text-5xl font-semibold mb-3">
-              See your town as a walking tour, in seconds.
-            </h1>
-            <p className="text-gray-600 mb-8 text-lg">
-              Tell us where. We will build a real stop for you to walk on your
-              phone. No sign-up, no card, nothing to install.
+          <div className="max-w-md mx-auto text-center">
+            <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
+              {org ? `Built for ${org}` : 'Free demo · No sign-up'}
             </p>
-            <form onSubmit={findLandmarks} className="bg-white rounded-2xl p-6 shadow-sm">
+            <h1 className="font-display text-4xl font-semibold mb-3">
+              See your town as a walking tour.
+            </h1>
+            <p className="text-sm text-gray-600 mb-7">
+              Tell us where. We will build a real stop you can walk on your phone
+              in seconds. No account, no card, nothing to install.
+            </p>
+            <form onSubmit={findLandmarks} className="bg-white rounded-xl p-6 shadow-sm text-left">
               <label htmlFor="area" className="block text-sm font-bold mb-2">
                 Your town or city
               </label>
@@ -109,37 +144,42 @@ export function TryFlow({ initialArea, org }: Props) {
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
                 placeholder="e.g. Worcester"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg mb-4"
+                className="w-full px-4 py-3 text-lg rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 mb-4"
               />
               <button
                 type="submit"
                 disabled={busy || !area.trim()}
-                className="w-full px-6 py-4 rounded-full bg-primary text-cream font-bold text-lg hover:bg-primary-light transition disabled:opacity-50"
+                className="w-full py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition disabled:opacity-50"
               >
                 {busy ? 'Looking around…' : 'Show me my landmarks →'}
               </button>
-              {error && <p className="text-sm text-red-700 mt-3">{error}</p>}
+              {error && <p className="text-sm text-red-700 mt-3 text-center">{error}</p>}
             </form>
           </div>
         )}
 
         {step === 'picking' && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setStep('enter')}
-              className="text-sm text-gray-500 hover:text-primary mb-4"
-            >
-              ← Change town
-            </button>
-            <h1 className="font-display text-3xl md:text-4xl font-semibold mb-2">
-              Pick a landmark in {area.trim()}
-            </h1>
-            <p className="text-gray-600 mb-6">
-              Choose one and we will write and voice a real stop for it. You can
-              add the rest later.
-            </p>
-            {error && <p className="text-sm text-red-700 mb-4">{error}</p>}
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-6">
+              <button
+                type="button"
+                onClick={() => setStep('enter')}
+                className="text-xs text-gray-500 hover:text-primary mb-3"
+              >
+                ← Change town
+              </button>
+              <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
+                Pick one to build
+              </p>
+              <h1 className="font-display text-3xl font-semibold mb-2">
+                Landmarks in {area.trim()}
+              </h1>
+              <p className="text-sm text-gray-600">
+                Choose one and we will write and voice a real stop for it. The
+                rest of the town comes later.
+              </p>
+            </div>
+            {error && <p className="text-sm text-red-700 mb-4 text-center">{error}</p>}
             <div className="grid sm:grid-cols-2 gap-3">
               {landmarks.map((l) => (
                 <button
@@ -147,12 +187,12 @@ export function TryFlow({ initialArea, org }: Props) {
                   type="button"
                   onClick={() => buildStop(l)}
                   disabled={busy}
-                  className="text-left bg-white rounded-xl p-5 shadow-sm border border-transparent hover:border-primary transition disabled:opacity-50"
+                  className="text-left bg-white rounded-xl p-5 shadow-sm border-2 border-transparent hover:border-primary transition disabled:opacity-50"
                 >
                   <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">
                     {l.category}
                   </p>
-                  <p className="font-display text-xl font-semibold leading-tight">{l.name}</p>
+                  <p className="font-display text-lg font-semibold leading-tight">{l.name}</p>
                   {l.address && (
                     <p className="text-xs text-gray-500 mt-1 line-clamp-1">{l.address}</p>
                   )}
@@ -163,72 +203,75 @@ export function TryFlow({ initialArea, org }: Props) {
         )}
 
         {step === 'building' && (
-          <div className="max-w-xl py-16 text-center">
-            <div className="inline-block w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-6" />
+          <div className="max-w-md mx-auto text-center py-12 flex flex-col items-center">
             <h1 className="font-display text-3xl font-semibold mb-2">
-              Writing your stop…
+              Building your {area.trim()} stop…
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm text-gray-600 mb-8">
               Researching it, writing the narration in Harriet&apos;s voice, and
-              finding a photo. This takes a few seconds.
+              finding a photo. A few seconds.
             </p>
+            <BuildingAnimation label="Building your example stop…" />
           </div>
         )}
 
         {step === 'done' && result && (
-          <div className="grid md:grid-cols-2 gap-10 items-start">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
-                Your example tour is live
-              </p>
-              <h1 className="font-display text-4xl font-semibold mb-3">
-                {result.town} has a story.
-              </h1>
-              <p className="text-gray-600 mb-6 text-lg">
-                That is a real, AI-built stop for {result.stopName}, ready to walk
-                on a phone right now. Imagine the whole town: more stops, local
-                sponsors, all built in an afternoon.
-              </p>
-
-              <div className="bg-white rounded-xl p-5 shadow-sm mb-6">
-                <p className="text-sm font-bold mb-3">Your tour, imagined</p>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-visited text-cream text-[10px] font-bold flex items-center justify-center">✓</span>
-                    {result.stopName} — built and voiced
-                  </li>
-                  <li className="flex items-center gap-2 opacity-60">
-                    <span className="w-5 h-5 rounded-full bg-gray-300 text-white text-[10px] font-bold flex items-center justify-center">2</span>
-                    Add your next landmark
-                  </li>
-                  <li className="flex items-center gap-2 opacity-60">
-                    <span className="w-5 h-5 rounded-full bg-gray-300 text-white text-[10px] font-bold flex items-center justify-center">3</span>
-                    A local sponsor callout
-                  </li>
-                </ul>
+          <div className="max-w-md mx-auto text-center">
+            <div className="relative pt-4 pb-2">
+              <Sparkles />
+              <div className="relative z-10">
+                <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
+                  ✨ Your example tour is live
+                </p>
+                <h1 className="font-display text-4xl font-semibold mb-3">
+                  {result.town} has a story.
+                </h1>
+                <p className="text-sm text-gray-600">
+                  That is a real, AI-built stop for {result.stopName}, ready to
+                  walk right now. Picture the whole town: more stops, local
+                  sponsors, all built in an afternoon.
+                </p>
               </div>
-
-              <a
-                href={`/signup?claim=${encodeURIComponent(result.slug)}`}
-                className="block text-center w-full px-6 py-4 rounded-full bg-accent text-primary font-bold text-lg hover:bg-accent-light transition"
-              >
-                Claim this tour, first month free →
-              </a>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Keep this stop, build the rest, publish when you are ready.
-              </p>
             </div>
 
-            <div className="flex justify-center">
-              <div className="w-[300px] max-w-full rounded-[2rem] border-8 border-primary bg-primary overflow-hidden shadow-2xl">
+            <div className="flex justify-center my-6">
+              <div className="w-[270px] max-w-full rounded-[2rem] border-[7px] border-primary bg-primary overflow-hidden shadow-2xl">
                 <iframe
                   src={result.tourUrl}
                   title="Your tour preview"
                   className="w-full bg-cream"
-                  style={{ height: 600, border: 0 }}
+                  style={{ height: 540, border: 0 }}
                 />
               </div>
             </div>
+
+            <div className="bg-white rounded-xl p-5 shadow-sm text-left mb-5">
+              <p className="text-sm font-bold mb-3">Your tour, imagined</p>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-visited text-cream text-[10px] font-bold flex items-center justify-center flex-shrink-0">✓</span>
+                  {result.stopName}, built and voiced
+                </li>
+                <li className="flex items-center gap-2 opacity-60">
+                  <span className="w-5 h-5 rounded-full bg-gray-300 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  Add your next landmark
+                </li>
+                <li className="flex items-center gap-2 opacity-60">
+                  <span className="w-5 h-5 rounded-full bg-gray-300 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  A local sponsor callout
+                </li>
+              </ul>
+            </div>
+
+            <a
+              href={`/signup?claim=${encodeURIComponent(result.slug)}`}
+              className="block w-full py-3 rounded-full bg-accent text-primary font-bold hover:bg-accent-light transition"
+            >
+              Claim this tour, first month free →
+            </a>
+            <p className="text-xs text-gray-500 mt-2">
+              Keep this stop, build the rest, publish when you are ready.
+            </p>
           </div>
         )}
       </main>
