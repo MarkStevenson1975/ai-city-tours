@@ -57,9 +57,17 @@ export function DashboardShell({ role, userEmail, children }: Props) {
             <Link href="/dashboard/admin/cities/new" className={link}>
               + Add area
             </Link>
-            <Link href="/dashboard/admin/visitors" className={link}>
+
+            <p className="px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-cream/50 font-bold">
+              Visitors
+            </p>
+            <Link href="/dashboard/admin/visitors" className={`${link} pl-5`}>
               All Visitors
             </Link>
+            <Link href="/dashboard/admin/tour-funnel" className={`${link} pl-5`}>
+              Tour Drop-off
+            </Link>
+
             <Link href="/dashboard/admin/operators" className={link}>
               Operators
             </Link>
