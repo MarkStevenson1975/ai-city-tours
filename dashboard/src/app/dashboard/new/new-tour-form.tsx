@@ -3,14 +3,19 @@
 import { useState } from 'react';
 import { createMyTour } from './actions';
 
-type Kind = 'town' | 'venue';
+type Kind = 'town' | 'venue' | 'event';
 
 // One screen, one typed answer. The pill only changes what we promise: a town
-// gets a landmark sweep, a venue gets the map picker (Google does not know the
-// inside of a stately home, so we must not pretend it does).
+// gets a landmark sweep, while a venue or an event gets the map picker (Google
+// does not know the inside of a stately home or a festival's stalls, so we must
+// not pretend it does). Event tours also gain date + countdown options later,
+// set in Settings.
 export function NewTourForm({ error }: { error?: string }) {
   const [kind, setKind] = useState<Kind>('town');
   const isVenue = kind === 'venue';
+  const isEvent = kind === 'event';
+  // Venue and event both drop their own pins rather than sweeping landmarks.
+  const usesMap = isVenue || isEvent;
 
   const pill = (value: Kind, title: string, sub: string) => {
     const active = kind === value;
@@ -41,15 +46,16 @@ export function NewTourForm({ error }: { error?: string }) {
 
       <div>
         <p className="text-sm font-bold mb-2">What kind of tour is it?</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {pill('town', 'A town or area', 'High street, trail, whole town')}
           {pill('venue', 'A single venue', 'Stately home, hotel, attraction')}
+          {pill('event', 'An event', 'Festival, market, open day')}
         </div>
       </div>
 
       <div>
         <label htmlFor="place" className="block text-sm font-bold mb-2">
-          {isVenue ? 'Venue name' : 'Town or city'}
+          {isEvent ? 'Where is the event?' : isVenue ? 'Venue name' : 'Town or city'}
         </label>
         <input
           id="place"
@@ -58,13 +64,15 @@ export function NewTourForm({ error }: { error?: string }) {
           required
           autoFocus
           autoComplete="off"
-          placeholder={isVenue ? 'e.g. Croft Castle' : 'e.g. Hereford'}
+          placeholder={isEvent ? 'e.g. Ledbury' : isVenue ? 'e.g. Croft Castle' : 'e.g. Hereford'}
           className="w-full px-4 py-3 text-lg rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
         <p className="text-xs text-gray-500 mt-2">
-          {isVenue
-            ? 'We’ll name your tour after it. Next you’ll drop your stops on a map, and the AI will write each one for you.'
-            : 'We’ll name your tour after it, then look around it for local landmarks. You can rename it any time.'}
+          {isEvent
+            ? 'We’ll name your tour after it. Next you’ll drop your event’s stops on a map, and the AI will write each one. You can set the event dates in Settings.'
+            : isVenue
+              ? 'We’ll name your tour after it. Next you’ll drop your stops on a map, and the AI will write each one for you.'
+              : 'We’ll name your tour after it, then look around it for local landmarks. You can rename it any time.'}
         </p>
       </div>
 
@@ -82,7 +90,7 @@ export function NewTourForm({ error }: { error?: string }) {
         type="submit"
         className="w-full py-3 rounded-full bg-primary text-cream font-bold hover:bg-primary-light transition"
       >
-        {isVenue ? 'Start placing my stops →' : 'Find my landmarks →'}
+        {usesMap ? 'Start placing my stops →' : 'Find my landmarks →'}
       </button>
     </form>
   );

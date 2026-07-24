@@ -19,6 +19,15 @@ interface SaveSettingsInput {
   color_accent: string;
   color_background: string;
   color_highlight: string;
+  // Event scheduling (only present for event tours)
+  event?: {
+    month: number;
+    month_to: number | null;
+    day_from: number;
+    day_to: number;
+    year: number | null;
+    auto_schedule: boolean;
+  };
   // Guide
   guide_name: string;
   guide_voice_id: string;
@@ -70,9 +79,30 @@ export async function saveSettings(input: SaveSettingsInput) {
     return { ok: false as const, error: 'City name is required.' };
   }
 
+  // Event scheduling (only for event tours). Clamp to sane ranges.
+  const clampDay = (n: number) => Math.max(1, Math.min(31, Math.round(n)));
+  const clampMonth = (n: number) => Math.max(1, Math.min(12, Math.round(n)));
+  const eventUpdate = input.event
+    ? {
+        event_month: clampMonth(input.event.month),
+        event_month_to:
+          input.event.month_to && input.event.month_to !== input.event.month
+            ? clampMonth(input.event.month_to)
+            : null,
+        event_day_from: clampDay(input.event.day_from),
+        event_day_to: clampDay(input.event.day_to),
+        event_year:
+          input.event.year && input.event.year >= 2024 && input.event.year <= 2099
+            ? Math.round(input.event.year)
+            : null,
+        event_auto_schedule: Boolean(input.event.auto_schedule),
+      }
+    : {};
+
   const { error } = await supabase
     .from('cities')
     .update({
+      ...eventUpdate,
       // Operator
       operator_name: input.operator_name.trim() || null,
       operator_type: operatorType,

@@ -39,7 +39,11 @@ export async function createMyTour(formData: FormData) {
   // Step 1 now asks only where the tour is. The tour name is derived from it,
   // so operators are never asked to invent anything before they see value.
   const place = String(formData.get('place') ?? '').trim();
-  const kind = String(formData.get('kind') ?? 'town') === 'venue' ? 'venue' : 'town';
+  const rawKind = String(formData.get('kind') ?? 'town');
+  const kind: 'town' | 'venue' | 'event' =
+    rawKind === 'venue' ? 'venue' : rawKind === 'event' ? 'event' : 'town';
+  // Venue and event tours place their own pins rather than sweeping landmarks.
+  const usesMap = kind === 'venue' || kind === 'event';
   const guideName = 'Harriet';
 
   if (!place) {
@@ -88,6 +92,15 @@ export async function createMyTour(formData: FormData) {
     await trackOperator(user.id, 'place_submitted', {
       meta: { kind, place: name, slug },
     });
+    // Persist the tour kind. Runtime behaviour (the event countdown / ended
+    // screen) depends on it, so it must live on the row, not just the URL.
+    // The operator owns this row (created_by), so RLS allows the update.
+    if (kind !== 'town') {
+      await supabase
+        .from('cities')
+        .update({ tour_kind: kind })
+        .eq('slug', createdSlug);
+    }
   }
 
   if (error) {
@@ -98,11 +111,11 @@ export async function createMyTour(formData: FormData) {
     redirect(`/dashboard/new?error=${encodeURIComponent(friendly)}`);
   }
 
-  // A town gets its landmarks swept automatically (auto=1). A venue does not:
-  // Google has no record of their walled garden, so we send them to the map
-  // picker to drop their own pins, with a tight radius.
+  // A town gets its landmarks swept automatically (auto=1). A venue or event
+  // does not: Google has no record of their walled garden or festival stalls,
+  // so we send them to the map picker to drop their own pins.
   redirect(
-    kind === 'venue'
+    usesMap
       ? `/dashboard/${createdSlug}/build?venue=1`
       : `/dashboard/${createdSlug}/build?auto=1`
   );

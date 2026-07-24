@@ -19,6 +19,13 @@ interface City {
   color_accent: string | null;
   color_background: string | null;
   color_highlight: string | null;
+  tour_kind: string | null;
+  event_month: number | null;
+  event_day_from: number | null;
+  event_day_to: number | null;
+  event_month_to: number | null;
+  event_year: number | null;
+  event_auto_schedule: boolean | null;
   guide_name: string | null;
   guide_voice_id: string | null;
   travel_mode: string | null;
@@ -42,6 +49,11 @@ const TRAVEL_MODE_OPTIONS = [
   { value: 'walking', label: 'Walking tour' },
   { value: 'cycling', label: 'Bike tour' },
   { value: 'driving', label: 'Driving tour' },
+];
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
 export function SettingsForm({ city }: { city: City }) {
@@ -77,6 +89,25 @@ export function SettingsForm({ city }: { city: City }) {
   // tour. Defaults to the original green so nothing changes until it is set.
   const [colorHighlight, setColorHighlight] = useState(
     city.color_highlight ?? '#40916C'
+  );
+
+  // Event tours carry a date and an optional auto-schedule (countdown + ended
+  // screen). These fields only apply, and only render, when tour_kind is event.
+  const isEventTour = city.tour_kind === 'event';
+  const [evMonth, setEvMonth] = useState(
+    String(city.event_month ?? new Date().getMonth() + 1)
+  );
+  const [evMonthTo, setEvMonthTo] = useState(
+    city.event_month_to ? String(city.event_month_to) : ''
+  );
+  const [evDayFrom, setEvDayFrom] = useState(String(city.event_day_from ?? 1));
+  const [evDayTo, setEvDayTo] = useState(String(city.event_day_to ?? 1));
+  const [evRepeatsYearly, setEvRepeatsYearly] = useState(city.event_year == null);
+  const [evYear, setEvYear] = useState(
+    String(city.event_year ?? new Date().getFullYear())
+  );
+  const [evAutoSchedule, setEvAutoSchedule] = useState(
+    Boolean(city.event_auto_schedule)
   );
 
   // Guide
@@ -116,6 +147,20 @@ export function SettingsForm({ city }: { city: City }) {
         color_accent: colorAccent,
         color_background: colorBackground,
         color_highlight: colorHighlight,
+        // Only send event scheduling for event tours, so a town/venue tour is
+        // never given stray event dates.
+        ...(isEventTour
+          ? {
+              event: {
+                month: parseInt(evMonth, 10) || 1,
+                month_to: evMonthTo ? parseInt(evMonthTo, 10) : null,
+                day_from: parseInt(evDayFrom, 10) || 1,
+                day_to: parseInt(evDayTo, 10) || 1,
+                year: evRepeatsYearly ? null : parseInt(evYear, 10) || null,
+                auto_schedule: evAutoSchedule,
+              },
+            }
+          : {}),
         guide_name: guideName,
         guide_voice_id: guideVoiceId,
         travel_mode: travelMode,
@@ -272,6 +317,113 @@ export function SettingsForm({ city }: { city: City }) {
           </div>
         </div>
       </Section>
+
+      {/* EVENT DATES (event tours only) */}
+      {isEventTour && (
+        <Section title="Event dates">
+          <div className="bg-white rounded-xl p-8 shadow-sm space-y-6">
+            <p className="text-sm text-gray-500">
+              This is an event tour. Set when the event runs. It can be a one-off
+              on a set date, or repeat every year.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Start month" required>
+                <select
+                  value={evMonth}
+                  onChange={(e) => setEvMonth(e.target.value)}
+                  className={inputCls}
+                >
+                  {MONTHS.map((m, i) => (
+                    <option key={i} value={i + 1}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field
+                label="End month"
+                hint="Leave as 'Same month' unless it runs into a later month."
+              >
+                <select
+                  value={evMonthTo}
+                  onChange={(e) => setEvMonthTo(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">Same month</option>
+                  {MONTHS.map((m, i) => (
+                    <option key={i} value={i + 1}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Start day" required>
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={evDayFrom}
+                  onChange={(e) => setEvDayFrom(e.target.value)}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="End day" required hint="Same as the start day for a single-day event.">
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={evDayTo}
+                  onChange={(e) => setEvDayTo(e.target.value)}
+                  className={inputCls}
+                />
+              </Field>
+            </div>
+
+            <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+              <input
+                type="checkbox"
+                checked={evRepeatsYearly}
+                onChange={(e) => setEvRepeatsYearly(e.target.checked)}
+                className="w-4 h-4 accent-primary"
+              />
+              Repeats every year
+            </label>
+            {!evRepeatsYearly && (
+              <Field label="Year" hint="The year this one-off event runs.">
+                <input
+                  type="number"
+                  min={2024}
+                  max={2099}
+                  value={evYear}
+                  onChange={(e) => setEvYear(e.target.value)}
+                  className={`${inputCls} max-w-[10rem]`}
+                />
+              </Field>
+            )}
+
+            <label className="flex items-start gap-3 text-sm cursor-pointer border-t border-gray-200 pt-5">
+              <input
+                type="checkbox"
+                checked={evAutoSchedule}
+                onChange={(e) => setEvAutoSchedule(e.target.checked)}
+                className="w-4 h-4 mt-0.5 accent-primary"
+              />
+              <span>
+                <span className="font-bold">Manage the tour around the date automatically</span>
+                <span className="block text-gray-500 mt-1">
+                  Show a countdown on the tour before it starts. After a one-off
+                  event finishes, visitors see a friendly &quot;this event has
+                  ended&quot; message instead of the tour. A yearly event simply
+                  counts down to next time. Leave off to publish and unpublish it
+                  yourself.
+                </span>
+              </span>
+            </label>
+          </div>
+        </Section>
+      )}
 
       {/* GUIDE */}
       {/* TOUR FORMAT */}

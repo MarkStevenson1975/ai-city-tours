@@ -1643,7 +1643,7 @@ function addUserDotToStoplistMap(lat,lng){if(!state.stoplistMap)return;if(state.
 function startStoplistGPS(){if(!navigator.geolocation)return;if(state.stoplistWatchId){navigator.geolocation.clearWatch(state.stoplistWatchId);state.stoplistWatchId=null;}// Immediate fix so distances appear straight away
 navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;addUserDotToStoplistMap(state.userLat,state.userLng);renderStopList();},()=>{},{enableHighAccuracy:true,timeout:8000,maximumAge:30000});// Keep updating while on the stoplist so distances stay live
 state.stoplistWatchId=navigator.geolocation.watchPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.currentScreen==='stoplist'){addUserDotToStoplistMap(state.userLat,state.userLng);renderStopList();}},()=>{},{enableHighAccuracy:true,maximumAge:10000,timeout:15000});}
-function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();state.mapLoaded=false;document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';const iframe=document.getElementById('nav-map-iframe');if(iframe)iframe.src='about:blank';const loadingDiv=document.getElementById('nav-map-loading');if(loadingDiv)loadingDiv.classList.remove('hidden');const loadMap=(fromLat,fromLng)=>{state.mapLoaded=true;document.getElementById('nav-turn-main').textContent='Follow the map to '+name;const iframeEl=document.getElementById('nav-map-iframe');if(iframeEl)iframeEl.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${fromLat},${fromLng}&dest=${lat},${lng}&mode=${googleTravelMode()}`;const loadEl=document.getElementById('nav-map-loading');if(loadEl)loadEl.classList.add('hidden');};if(state.userLat){loadMap(state.userLat,state.userLng);startGPSTracking_sponsor(lat,lng);}else if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;loadMap(state.userLat,state.userLng);startGPSTracking_sponsor(lat,lng);},()=>{const fb=CONFIG.stops&&CONFIG.stops[0]?CONFIG.stops[0].coordinates:{lat:52.056,lng:-2.716};loadMap(fb.lat,fb.lng);},{enableHighAccuracy:true,timeout:8000});}else{const fb=CONFIG.stops&&CONFIG.stops[0]?CONFIG.stops[0].coordinates:{lat:52.056,lng:-2.716};loadMap(fb.lat,fb.lng);}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){applyBrand();applyGuideName();seedFiredFactsFromStorage();loadSkippedStops().forEach(id=>state.skippedStops.add(id));applyCityFactButtonLabel();applyAreaLabels();applySplashIntro();document.getElementById('splash-city-name').textContent=CONFIG.city;const _authCity=document.getElementById('auth-city-name');if(_authCity)_authCity.textContent=CONFIG.city;showScreen('splash');initSupabase();renderStamps();renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();}
+function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();state.mapLoaded=false;document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';const iframe=document.getElementById('nav-map-iframe');if(iframe)iframe.src='about:blank';const loadingDiv=document.getElementById('nav-map-loading');if(loadingDiv)loadingDiv.classList.remove('hidden');const loadMap=(fromLat,fromLng)=>{state.mapLoaded=true;document.getElementById('nav-turn-main').textContent='Follow the map to '+name;const iframeEl=document.getElementById('nav-map-iframe');if(iframeEl)iframeEl.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${fromLat},${fromLng}&dest=${lat},${lng}&mode=${googleTravelMode()}`;const loadEl=document.getElementById('nav-map-loading');if(loadEl)loadEl.classList.add('hidden');};if(state.userLat){loadMap(state.userLat,state.userLng);startGPSTracking_sponsor(lat,lng);}else if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;loadMap(state.userLat,state.userLng);startGPSTracking_sponsor(lat,lng);},()=>{const fb=CONFIG.stops&&CONFIG.stops[0]?CONFIG.stops[0].coordinates:{lat:52.056,lng:-2.716};loadMap(fb.lat,fb.lng);},{enableHighAccuracy:true,timeout:8000});}else{const fb=CONFIG.stops&&CONFIG.stops[0]?CONFIG.stops[0].coordinates:{lat:52.056,lng:-2.716};loadMap(fb.lat,fb.lng);}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){if(applyEventSchedule())return;applyBrand();applyGuideName();seedFiredFactsFromStorage();loadSkippedStops().forEach(id=>state.skippedStops.add(id));applyCityFactButtonLabel();applyAreaLabels();applySplashIntro();document.getElementById('splash-city-name').textContent=CONFIG.city;const _authCity=document.getElementById('auth-city-name');if(_authCity)_authCity.textContent=CONFIG.city;showScreen('splash');initSupabase();renderStamps();renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();}
 function applyCityFactButtonLabel(){const btn=document.getElementById('btn-city-fact');if(btn)btn.textContent=`💡 Interesting facts`;}
 function applyAreaLabels(){
   if(!CONFIG||!CONFIG.city)return;
@@ -1902,6 +1902,60 @@ function addEventToCalendar(ev,start,end){
     setTimeout(()=>URL.revokeObjectURL(url),3000);
     try{if(window.StoriedTrack)window.StoriedTrack.send('event_add_to_calendar',{meta:{name:ev.name}});}catch(e){}
   }catch(e){console.warn('Add to calendar failed',e);if(typeof showToast==='function')showToast('Could not open the calendar file.');}
+}
+
+// ── EVENT TOUR SCHEDULING (countdown + ended screen) ──────
+// Event tours (tourKind==='event') can carry a date. When the operator turns on
+// auto-schedule we show a countdown on the splash and, once a one-off event has
+// finished, a friendly "this event has ended" screen instead of the tour. A
+// yearly event simply counts down to the next occurrence and never "ends".
+function computeEventWindow(){
+  const m=CONFIG.eventMonth, df=CONFIG.eventDayFrom, dt=CONFIG.eventDayTo;
+  if(!m||!df||!dt)return null;
+  const mt=CONFIG.eventMonthTo||m;
+  if(CONFIG.eventYear){
+    const y=CONFIG.eventYear;
+    return {start:new Date(y,m-1,df,0,0,0), end:new Date(y,mt-1,dt,23,59,59)};
+  }
+  // Recurring (no year): find the current or next occurrence.
+  const now=new Date(); const y=now.getFullYear();
+  let start=new Date(y,m-1,df,0,0,0);
+  let end=new Date(y,mt-1,dt,23,59,59);
+  if(end<start){ if(now>=start){end=new Date(y+1,mt-1,dt,23,59,59);} else {start=new Date(y-1,m-1,df,0,0,0);} }
+  if(now>end){ start=new Date(y+1,m-1,df,0,0,0); end=new Date(y+1,mt-1,dt,23,59,59); if(end<start)end=new Date(y+2,mt-1,dt,23,59,59); }
+  return {start,end};
+}
+function fmtEventDate(d){return d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});}
+function renderEventCountdown(win,now){
+  let label,txt;
+  if(now>=win.start&&now<=win.end){label='Happening now';txt='This event is on right now. Enjoy the tour.';}
+  else{
+    const days=Math.ceil((win.start-now)/86400000);const when=fmtEventDate(win.start);
+    if(days<=0){label='Starts today';txt='The event starts today, '+when+'.';}
+    else if(days===1){label='Starts tomorrow';txt='The event starts tomorrow, '+when+'.';}
+    else{label='Coming up';txt='Starts in '+days+' days, on '+when+'.';}
+  }
+  const wb=document.getElementById('weather-banner');
+  const parent=wb?wb.parentNode:null; if(!parent)return;
+  let el=document.getElementById('event-countdown');
+  if(!el){el=document.createElement('div');el.id='event-countdown';el.className='event-banner';parent.insertBefore(el,wb);}
+  el.innerHTML='<div class="ev-label">🎪 '+label+'</div><div id="event-countdown-text"></div>';
+  el.querySelector('#event-countdown-text').textContent=txt;
+  el.classList.remove('hidden');
+}
+function showEventEnded(name,endDate){
+  const safe=name?String(name).replace(/[<>]/g,''):'This event';
+  const when=endDate?endDate.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'';
+  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;font-family:Lato,sans-serif;color:#F5F0E8;background:#1B4332"><div style="max-width:380px"><p style="font-family:Cormorant Garamond,serif;font-size:1.9rem;line-height:1;margin-bottom:28px"><span style="color:#F5F0E8;font-weight:600">Storie</span><span style="color:#C9A84C;font-weight:600">D</span></p><h1 style="font-family:Cormorant Garamond,serif;font-size:1.9rem;font-weight:600;margin-bottom:16px">'+safe+' has ended</h1><p style="opacity:.85;line-height:1.6">Thank you for your interest. This event tour finished'+(when?(' on '+when):'')+'. Do keep an eye out for future events.</p></div></div>';
+}
+// Returns true if it took over the screen (ended), so init can stop.
+function applyEventSchedule(){
+  if(CONFIG.tourKind!=='event')return false;
+  const win=computeEventWindow(); if(!win)return false;
+  const now=new Date();
+  if(CONFIG.eventAutoSchedule&&CONFIG.eventYear&&now>win.end){showEventEnded(CONFIG.city,win.end);return true;}
+  if(CONFIG.eventAutoSchedule){renderEventCountdown(win,now);}
+  return false;
 }
 
 // ── BUSINESS HOURS (Google Places with 6h cache) ──────────
