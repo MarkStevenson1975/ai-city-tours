@@ -46,6 +46,13 @@ export function MapPicker({
   const inputRef = useRef<HTMLInputElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const serviceRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapObjRef = useRef<any>(null);
+  // Visible markers on the map, keyed by pick id, so pins land where you tap.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markersRef = useRef<Record<string, any>>({});
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [picks, setPicks] = useState<MapPick[]>([]);
@@ -86,6 +93,8 @@ export function MapPicker({
         });
 
         serviceRef.current = new g.maps.places.PlacesService(map);
+        gRef.current = g;
+        mapObjRef.current = map;
 
         // Centre on the operator's area if we can geocode it.
         if (area) {
@@ -101,25 +110,45 @@ export function MapPicker({
           );
         }
 
-        // Tap a point of interest on the map to add it.
+        // Tap the map to add a stop. Tapping a labelled place (a Google POI)
+        // pulls its real name; tapping ANY other point drops a custom pin the
+        // operator names themselves — essential for places Google doesn't know,
+        // like a walled garden, a long gallery, or a festival stall.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         map.addListener('click', (e: any) => {
-          if (!e.placeId) return;
-          e.stop(); // suppress the default info window
-          serviceRef.current.getDetails(
-            { placeId: e.placeId, fields: ['name', 'geometry', 'place_id'] },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (place: any, status: string) => {
-              if (status === 'OK' && place?.geometry?.location) {
-                addPick({
-                  place_id: place.place_id,
-                  name: place.name,
-                  lat: place.geometry.location.lat(),
-                  lng: place.geometry.location.lng(),
-                });
+          if (picksRef.current.length >= MAX) return;
+          if (e.placeId) {
+            e.stop(); // suppress the default info window
+            serviceRef.current.getDetails(
+              { placeId: e.placeId, fields: ['name', 'geometry', 'place_id'] },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (place: any, status: string) => {
+                if (status === 'OK' && place?.geometry?.location) {
+                  addPick({
+                    place_id: place.place_id,
+                    name: place.name,
+                    lat: place.geometry.location.lat(),
+                    lng: place.geometry.location.lng(),
+                  });
+                }
               }
-            }
-          );
+            );
+            return;
+          }
+          // Bare point: ask what this stop is, then drop a pin there.
+          if (!e.latLng) return;
+          const raw =
+            typeof window !== 'undefined'
+              ? window.prompt('Name this stop (e.g. The Walled Garden)')
+              : '';
+          const name = (raw || '').trim();
+          if (!name) return;
+          addPick({
+            place_id: `pin-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name,
+            lat: e.latLng.lat(),
+            lng: e.latLng.lng(),
+          });
         });
 
         // Search box: a NAVIGATION aid only. Restricted to geocode results
@@ -151,6 +180,33 @@ export function MapPicker({
     };
   }, [area]);
 
+  // Keep the map markers in sync with the current picks: drop a numbered pin for
+  // each new selection, remove it if the operator deletes the chip.
+  useEffect(() => {
+    const g = gRef.current;
+    const map = mapObjRef.current;
+    if (!g || !map) return;
+    const have = markersRef.current;
+    for (const id of Object.keys(have)) {
+      if (!picks.some((p) => p.place_id === id)) {
+        have[id].setMap(null);
+        delete have[id];
+      }
+    }
+    picks.forEach((p, i) => {
+      const label = { text: String(i + 1), color: '#ffffff', fontWeight: '700' };
+      if (have[p.place_id]) {
+        have[p.place_id].setLabel(label);
+        return;
+      }
+      have[p.place_id] = new g.maps.Marker({
+        position: { lat: p.lat, lng: p.lng },
+        map,
+        label,
+      });
+    });
+  }, [picks]);
+
   // Not configured: hide the picker entirely so the list option still shows.
   if (!MAPS_KEY) return null;
 
@@ -160,8 +216,9 @@ export function MapPicker({
         Option 1 · Pick on the map
       </p>
       <p className="text-sm text-gray-600 mb-3">
-        Search a town or postcode to jump there, then tap up to {MAX} places on the
-        map to add them as stops. You can add more later.
+        Search a town or postcode to jump there, then tap the map to add up to{' '}
+        {MAX} stops. Tap a labelled place to use its name, or tap any other point
+        to drop your own pin and name it. You can add more later.
       </p>
 
       {failed ? (
