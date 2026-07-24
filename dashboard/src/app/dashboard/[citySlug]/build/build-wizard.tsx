@@ -27,6 +27,7 @@ export function BuildWizard({
   guideName,
   autoSearch = false,
   venueMode = false,
+  eventMode = false,
 }: {
   citySlug: string;
   defaultArea: string;
@@ -36,6 +37,9 @@ export function BuildWizard({
   /** Single venue (stately home, hotel). Their stops are inside their own site,
    *  so Google cannot suggest them: lead with the map picker and a tight radius. */
   venueMode?: boolean;
+  /** Event tour. Pins only: the stalls, stages and points aren't on Google, so
+   *  there is no landmark or postcode search at all — just drop pins on the map. */
+  eventMode?: boolean;
 }) {
   const router = useRouter();
   const [postcode, setPostcode] = useState('');
@@ -243,15 +247,30 @@ export function BuildWizard({
         <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
           Your first tour · Step 2
         </p>
-        <h1 className="text-4xl font-semibold mb-2">Choose your stops</h1>
+        <h1 className="text-4xl font-semibold mb-2">
+          {eventMode ? 'Pin your stops' : 'Choose your stops'}
+        </h1>
         <p className="text-sm text-gray-600">
-          {venueMode
-            ? `Drop a pin for each place on your route around ${defaultArea}. ${guideName} writes the narration for every one, and you can edit all of it afterwards.`
-            : `Pick the places you want on your walk. ${guideName} writes the narration for every one, and you can edit all of it afterwards.`}
+          {eventMode
+            ? `Drop a pin on the map for each stop at your event. ${guideName} writes the narration for every one, and you can edit all of it afterwards.`
+            : venueMode
+              ? `Drop a pin for each place on your route around ${defaultArea}. ${guideName} writes the narration for every one, and you can edit all of it afterwards.`
+              : `Pick the places you want on your walk. ${guideName} writes the narration for every one, and you can edit all of it afterwards.`}
         </p>
       </div>
 
-      {venueMode && (
+      {eventMode ? (
+        <div className="bg-cream/70 border border-accent rounded-xl p-4">
+          <p className="text-sm font-bold text-primary mb-1">
+            This is an event tour, so you place every stop yourself
+          </p>
+          <p className="text-sm text-gray-700">
+            Your event&apos;s stalls, stages and points aren&apos;t on Google, so
+            drop a pin on the map for each one and give it a name. Once they&apos;re
+            placed, the AI writes the narration for every stop.
+          </p>
+        </div>
+      ) : venueMode ? (
         <div className="bg-cream/70 border border-accent rounded-xl p-4">
           <p className="text-sm font-bold text-primary mb-1">
             Your stops are inside {defaultArea}, so you place them
@@ -263,9 +282,14 @@ export function BuildWizard({
             narration for every one.
           </p>
         </div>
-      )}
+      ) : null}
 
-      <MapPicker area={defaultArea} onConfirm={addMapPicks} disabled={drafting} />
+      <MapPicker
+        area={defaultArea}
+        onConfirm={addMapPicks}
+        disabled={drafting}
+        pinsOnly={eventMode}
+      />
 
       {/* Guided landmark finder. Always recoverable: if the auto-search is still
           running, show it; if it came back empty or errored, show why and a
@@ -295,7 +319,7 @@ export function BuildWizard({
 
       <div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          {hasMap && (
+          {hasMap && !eventMode && (
             <button
               type="button"
               onClick={() => setShowPostcode((v) => !v)}
@@ -304,7 +328,7 @@ export function BuildWizard({
               {showPostcode ? 'Hide postcode search' : 'Prefer to search by postcode?'}
             </button>
           )}
-          {hasMap && <span className="text-gray-300">·</span>}
+          {hasMap && !eventMode && <span className="text-gray-300">·</span>}
           <button
             type="button"
             onClick={() => router.push(`/dashboard/${citySlug}/stops/new`)}
@@ -314,7 +338,7 @@ export function BuildWizard({
           </button>
         </div>
 
-        {showPostcode && (
+        {showPostcode && !eventMode && (
           <div className="mt-4">
             <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
               Search by postcode

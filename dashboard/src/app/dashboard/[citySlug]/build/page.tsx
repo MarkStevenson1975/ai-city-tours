@@ -25,11 +25,17 @@ export default async function BuildPage({
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, name, slug, guide_name, previewed_at, published_at')
+    .select('id, name, slug, guide_name, tour_kind, previewed_at, published_at')
     .eq('slug', citySlug)
     .single();
 
   if (!city) redirect('/dashboard');
+
+  // Event tours pin their own stops (stalls, stages) and never want the Google
+  // landmark search. Venue tours also use the map. Derive from the stored kind
+  // so it holds however the operator arrives (URL, resume link, or a re-visit).
+  const isEvent = city.tour_kind === 'event';
+  const usesMap = venue === '1' || isEvent || city.tour_kind === 'venue';
 
   const { count: stopCount } = await supabase
     .from('stops')
@@ -63,8 +69,9 @@ export default async function BuildPage({
           citySlug={city.slug}
           defaultArea={city.name}
           guideName={city.guide_name ?? 'Harriet'}
-          autoSearch={auto === '1'}
-          venueMode={venue === '1'}
+          autoSearch={auto === '1' && !usesMap}
+          venueMode={usesMap}
+          eventMode={isEvent}
         />
       </div>
 

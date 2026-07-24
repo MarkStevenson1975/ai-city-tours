@@ -37,10 +37,14 @@ export function MapPicker({
   area,
   onConfirm,
   disabled,
+  pinsOnly = false,
 }: {
   area: string;
   onConfirm: (picks: MapPick[]) => void;
   disabled?: boolean;
+  /** Event tours: the map is the only way to add stops, so drop the "Option 1"
+   *  framing and lead purely with dropping named pins. */
+  pinsOnly?: boolean;
 }) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -213,12 +217,12 @@ export function MapPicker({
   return (
     <div>
       <p className="text-xs uppercase tracking-widest text-accent font-bold mb-1">
-        Option 1 · Pick on the map
+        {pinsOnly ? 'Pin your stops on the map' : 'Option 1 · Pick on the map'}
       </p>
       <p className="text-sm text-gray-600 mb-3">
-        Search a town or postcode to jump there, then tap the map to add up to{' '}
-        {MAX} stops. Tap a labelled place to use its name, or tap any other point
-        to drop your own pin and name it. You can add more later.
+        {pinsOnly
+          ? `Search to jump to your area, then tap the map to drop up to ${MAX} stops. Give each pin a name as you place it. You can add more later.`
+          : `Search a town or postcode to jump there, then tap the map to add up to ${MAX} stops. Tap a labelled place to use its name, or tap any other point to drop your own pin and name it. You can add more later.`}
       </p>
 
       {failed ? (
