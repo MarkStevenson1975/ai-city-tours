@@ -191,13 +191,35 @@ export function BuildWizard({
     setDrafting(false);
   }
 
+  // Event stops carry no AI narration (there is nothing for the AI to research
+  // about a stall or a stage), so save them blank and take the operator straight
+  // to their tour to write each one by hand.
+  async function saveManual() {
+    const picks = Object.values(selected);
+    if (!picks.length) return;
+    const list: Drafted[] = picks.map((p) => ({
+      place_id: p.place_id,
+      placeId: p.place_id,
+      photoRef: p.photoRef ?? undefined,
+      name: p.name,
+      lat: p.lat,
+      lng: p.lng,
+      shortDescription: '',
+      narration: '',
+      facts: [],
+    }));
+    await save(list);
+  }
+
   async function save(list: Drafted[]) {
     if (!list.length) return;
     setSaving(true);
     setError(null);
     const r = await saveDraftStops(citySlug, list);
     if (r.ok) {
-      router.push(`/dashboard/${citySlug}/finish`);
+      // Event tours go to the tour page to write each stop; others flow on to
+      // the finishing-touches step.
+      router.push(eventMode ? `/dashboard/${citySlug}` : `/dashboard/${citySlug}/finish`);
       router.refresh();
     } else {
       setError(r.error);
@@ -449,13 +471,28 @@ export function BuildWizard({
 
       {(suggestions.length > 0 || selectedCount > 0) && !drafting && (
         <p className="text-xs text-gray-500 bg-cream/60 border border-gray-200 rounded-lg p-3">
-          Nothing here is final. Every stop we write can be edited, reordered or
-          removed later, and you can add your own at any time. This is just to
-          get you off a blank page.
+          {eventMode
+            ? 'Nothing here is final. Save your stops, then write each one in your own words. You can reorder, rename, remove or add stops at any time.'
+            : 'Nothing here is final. Every stop we write can be edited, reordered or removed later, and you can add your own at any time. This is just to get you off a blank page.'}
         </p>
       )}
 
-      {(suggestions.length > 0 || selectedCount > 0) && (
+      {(suggestions.length > 0 || selectedCount > 0) && eventMode && (
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={saveManual}
+            disabled={saving || selectedCount === 0}
+            className="px-6 py-3 rounded-full bg-accent text-primary font-bold hover:bg-accent-light transition disabled:opacity-50"
+          >
+            {saving
+              ? 'Saving…'
+              : `Save my ${selectedCount || ''} stop${selectedCount === 1 ? '' : 's'} to write`}
+          </button>
+        </div>
+      )}
+
+      {(suggestions.length > 0 || selectedCount > 0) && !eventMode && (
         <div className="flex items-center gap-4">
           <button
             type="button"

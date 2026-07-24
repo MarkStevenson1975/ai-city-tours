@@ -17,7 +17,7 @@ export function NewTourForm({ error }: { error?: string }) {
   // Venue and event both drop their own pins rather than sweeping landmarks.
   const usesMap = isVenue || isEvent;
 
-  const pill = (value: Kind, title: string, sub: string) => {
+  const pill = (value: Kind, title: string, sub: string, badge?: string) => {
     const active = kind === value;
     return (
       <button
@@ -31,9 +31,14 @@ export function NewTourForm({ error }: { error?: string }) {
         }`}
       >
         <span
-          className={`block text-sm font-bold ${active ? 'text-primary' : 'text-gray-700'}`}
+          className={`flex items-center gap-2 text-sm font-bold ${active ? 'text-primary' : 'text-gray-700'}`}
         >
           {title}
+          {badge && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-accent/25 border border-accent/60 rounded-full px-2 py-0.5">
+              {badge}
+            </span>
+          )}
         </span>
         <span className="block text-xs text-gray-500 mt-0.5">{sub}</span>
       </button>
@@ -49,7 +54,7 @@ export function NewTourForm({ error }: { error?: string }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {pill('town', 'A town or area', 'High street, trail, whole town')}
           {pill('venue', 'A single venue', 'Stately home, hotel, attraction')}
-          {pill('event', 'An event', 'Festival, market, open day')}
+          {pill('event', 'An event', 'Festival, market, open day', 'Beta')}
         </div>
       </div>
 
@@ -69,11 +74,18 @@ export function NewTourForm({ error }: { error?: string }) {
         />
         <p className="text-xs text-gray-500 mt-2">
           {isEvent
-            ? 'We’ll name your tour after it. Next you’ll drop your event’s stops on a map, and the AI will write each one. You can set the event dates in Settings.'
+            ? 'We’ll name your tour after it. Next you’ll drop your event’s stops on a map and write each one in your own words. You can set the event dates in Settings.'
             : isVenue
               ? 'We’ll name your tour after it. Next you’ll drop your stops on a map, and the AI will write each one for you.'
               : 'We’ll name your tour after it, then look around it for local landmarks. You can rename it any time.'}
         </p>
+        {isEvent && (
+          <p className="text-xs text-primary bg-cream/70 border border-accent/40 rounded-lg p-3 mt-3">
+            ✨ Event tours are brand new and still in beta. We’re busy building
+            something exciting here, so you’re among the very first to try it.
+            A few finishing touches are on the way.
+          </p>
+        )}
       </div>
 
       {error && (
