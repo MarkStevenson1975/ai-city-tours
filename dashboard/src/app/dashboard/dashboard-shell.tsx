@@ -43,7 +43,7 @@ export function DashboardShell({ role, userEmail, children }: Props) {
 
   const nav = (
     <>
-      <nav className="space-y-1 flex-1 text-sm">
+      <nav className="space-y-1 text-sm">
         <Link href="/dashboard" className={link}>
           Mission Control
         </Link>
@@ -85,7 +85,7 @@ export function DashboardShell({ role, userEmail, children }: Props) {
         <SidebarPreview />
       </nav>
 
-      <div className="text-xs border-t border-white/10 pt-4 space-y-2">
+      <div className="text-xs border-t border-white/10 mt-20 pt-4 space-y-2">
         <p className="text-cream/70 truncate" title={userEmail ?? ''}>
           {userEmail}
         </p>
