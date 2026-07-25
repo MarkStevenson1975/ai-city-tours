@@ -1404,11 +1404,12 @@ async function playSplashIntro(){
     // spoken aloud, plus a short live note about today's weather and
     // any current event. Operator-authored intros override the default
     // wording but still get the dynamic weather/event line appended.
+    // Speak only the fixed welcome. The live weather and event lines still
+    // appear on screen (weather + event banners), but keeping them OUT of the
+    // spoken clip means the intro is identical text every time, so it serves
+    // from the edge cache instead of re-billing ElevenLabs on each play.
     const baseIntro=getSplashIntroText();
-    const weatherLine=getWeatherIntroLine(state.weatherData||null);
-    const evMention=getCurrentEventMention();
-    const eventLine=evMention?` Also, ${evMention.ev[evMention.type]}`:'';
-    await playHarriet(`${baseIntro}${weatherLine}${eventLine}`,'Introduction');
+    await playHarriet(baseIntro,'Introduction');
   }catch(e){console.warn('Intro playback failed:',e);}
   finally{if(btn){btn.innerHTML=originalHTML||'<span>▶</span> Play Introduction';btn.classList.remove('loading');btn.disabled=false;}}
 }
@@ -1572,7 +1573,7 @@ function showFactModal(cityName,text){
   document.getElementById('modal-tellmore').classList.add('open');
   state.tmmFullText=text;
 }
-async function speakDirection(stepIdx){if(!state.osrmSteps[stepIdx])return;const step=state.osrmSteps[stepIdx];const dist=Math.round(step.distance);const rawInstruction=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);playHarriet(dist>0?`In about ${dist} metres, ${rawInstruction.toLowerCase()}.`:`${rawInstruction}.`,'Direction');}
+async function speakDirection(stepIdx){if(!state.osrmSteps[stepIdx])return;const step=state.osrmSteps[stepIdx];const rawInstruction=step.name?`${maneuverText(step.maneuver.type,step.maneuver.modifier)} onto ${step.name}`:maneuverText(step.maneuver.type,step.maneuver.modifier);playHarriet(/[.!?]$/.test(rawInstruction)?rawInstruction:rawInstruction+'.','Direction');}
 function haversine(lat1,lng1,lat2,lng2){const R=6371000,toRad=d=>d*Math.PI/180;const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 function formatDist(m){return m<1000?`${Math.round(m)}m`:`${(m/1000).toFixed(1)}km`;}
 function maneuverIcon(type,modifier){if(type==='arrive')return'🏁';if(type==='depart')return'▶️';if(modifier==='left')return'←';if(modifier==='right')return'→';if(modifier==='slight left')return'↖';if(modifier==='slight right')return'↗';if(modifier==='sharp left')return'↩';if(modifier==='sharp right')return'↪';return'↑';}
@@ -1623,7 +1624,10 @@ function updateSpokenNav(lat,lng){
       t.announced=true;
       const instr=navStepInstruction(t);
       const el=document.getElementById('nav-turn-main');if(el)el.textContent=instr;
-      try{playHarriet(d>15?`In about ${Math.round(d)} metres, ${instr.toLowerCase()}.`:`${instr}.`,'Direction');}catch(e){}
+      // Speak the instruction WITHOUT the live distance: identical text for the
+      // same step every time, so directions serve from the edge cache instead of
+      // re-billing ElevenLabs. The changing distance still shows on the map.
+      try{playHarriet(/[.!?]$/.test(instr)?instr:instr+'.','Direction');}catch(e){}
       return;
     }
     if(d<navReachedM()){
