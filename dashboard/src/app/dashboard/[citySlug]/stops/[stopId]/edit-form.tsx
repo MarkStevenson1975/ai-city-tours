@@ -21,6 +21,7 @@ interface Stop {
   gallery_urls: string[] | null;
   video_url: string | null;
   video_first: boolean | null;
+  video_has_sound: boolean | null;
 }
 
 interface Props {
@@ -32,6 +33,8 @@ interface Props {
   stop?: Stop;
   /** Suggested next-available position when creating a new stop */
   suggestedPosition?: number;
+  /** Event tours can add a longer video that plays with sound. */
+  isEventTour?: boolean;
 }
 
 export function StopEditForm({
@@ -40,6 +43,7 @@ export function StopEditForm({
   cityName,
   stop,
   suggestedPosition,
+  isEventTour = false,
 }: Props) {
   const router = useRouter();
   const isNew = !stop;
@@ -467,7 +471,11 @@ export function StopEditForm({
       {!isNew && stop && (
         <Section
           title="Gallery & video"
-          subtitle="Add up to four more images and one short silent video. These show as a swipeable gallery on the stop, after the main image. Saved instantly — Publish to push live."
+          subtitle={
+            isEventTour
+              ? 'Add up to four more images and one video. On an event tour the video can play with sound (tap to play). These show as a swipeable gallery after the main image. Saved instantly — Publish to push live.'
+              : 'Add up to four more images and one short silent video. These show as a swipeable gallery on the stop, after the main image. Saved instantly — Publish to push live.'
+          }
         >
           <GalleryVideoManager
             stopId={stop.id}
@@ -475,6 +483,8 @@ export function StopEditForm({
             initialGallery={stop.gallery_urls ?? []}
             initialVideo={stop.video_url ?? null}
             initialVideoFirst={stop.video_first ?? false}
+            allowSound={isEventTour}
+            initialHasSound={stop.video_has_sound ?? false}
           />
         </Section>
       )}

@@ -557,7 +557,7 @@ export async function removeStopGalleryImage(
 }
 
 // ── STOP VIDEO (short, silent, plays muted on loop in the tour) ───────────
-const MAX_VIDEO_BYTES = 15 * 1024 * 1024; // 15 MB
+const MAX_VIDEO_BYTES = 30 * 1024 * 1024; // 30 MB (allows ~30s with sound)
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 
 /**
@@ -569,6 +569,8 @@ export async function uploadStopVideo(formData: FormData) {
   const file = formData.get('file') as File | null;
   const stopId = String(formData.get('stopId') ?? '');
   const citySlug = String(formData.get('citySlug') ?? '');
+  // Event tours flag their video as a sound video (tap-to-play with audio).
+  const hasSound = String(formData.get('hasSound') ?? '') === '1';
 
   if (!file || file.size === 0) {
     return { ok: false as const, error: 'No file selected.' };
@@ -579,7 +581,7 @@ export async function uploadStopVideo(formData: FormData) {
   if (file.size > MAX_VIDEO_BYTES) {
     return {
       ok: false as const,
-      error: `Video is too large. Max 15 MB (yours is ${(file.size / 1024 / 1024).toFixed(1)} MB). Try a shorter or more compressed clip.`,
+      error: `Video is too large. Max 30 MB (yours is ${(file.size / 1024 / 1024).toFixed(1)} MB). Try a shorter or more compressed clip.`,
     };
   }
   if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
@@ -614,7 +616,7 @@ export async function uploadStopVideo(formData: FormData) {
 
   const { error: updateErr } = await admin
     .from('stops')
-    .update({ video_url: publicUrl })
+    .update({ video_url: publicUrl, video_has_sound: hasSound })
     .eq('id', stopId);
   if (updateErr) {
     await admin.storage.from('stop-videos').remove([path]);
@@ -697,7 +699,7 @@ export async function removeStopVideo(stopId: string, citySlug: string) {
 
   const { error } = await admin
     .from('stops')
-    .update({ video_url: null })
+    .update({ video_url: null, video_has_sound: false })
     .eq('id', stopId);
   if (error) return { ok: false as const, error: error.message };
 

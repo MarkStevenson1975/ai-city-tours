@@ -14,7 +14,7 @@ export default async function StopEditPage({
   // Fetch the stop and its parent city in parallel
   const [{ data: stop }, { data: city }] = await Promise.all([
     supabase.from('stops').select('*').eq('id', stopId).single(),
-    supabase.from('cities').select('id, slug, name').eq('slug', citySlug).single(),
+    supabase.from('cities').select('id, slug, name, tour_kind').eq('slug', citySlug).single(),
   ]);
 
   if (!stop || !city) notFound();
@@ -37,7 +37,13 @@ export default async function StopEditPage({
         <h1 className="text-4xl font-semibold">{stop.name}</h1>
       </header>
 
-      <StopEditForm stop={stop} citySlug={citySlug} cityId={city.id} cityName={city.name} />
+      <StopEditForm
+        stop={stop}
+        citySlug={citySlug}
+        cityId={city.id}
+        cityName={city.name}
+        isEventTour={city.tour_kind === 'event'}
+      />
     </div>
   );
 }

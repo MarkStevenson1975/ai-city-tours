@@ -11,7 +11,6 @@ import {
 } from './actions';
 
 const MAX_GALLERY = 4; // plus the hero = 5 images total
-const MAX_VIDEO_SECONDS = 10;
 
 interface Props {
   stopId: string;
@@ -19,6 +18,9 @@ interface Props {
   initialGallery: string[];
   initialVideo: string | null;
   initialVideoFirst: boolean;
+  /** Event tours: allow a longer video that plays with sound (tap to play). */
+  allowSound?: boolean;
+  initialHasSound?: boolean;
 }
 
 export function GalleryVideoManager({
@@ -27,7 +29,11 @@ export function GalleryVideoManager({
   initialGallery,
   initialVideo,
   initialVideoFirst,
+  allowSound = false,
+  initialHasSound = false,
 }: Props) {
+  // Sound videos get a longer allowance; the silent loop stays short.
+  const MAX_VIDEO_SECONDS = allowSound ? 30 : 10;
   const router = useRouter();
   const [gallery, setGallery] = useState<string[]>(initialGallery ?? []);
   const [video, setVideo] = useState<string | null>(initialVideo);
@@ -109,6 +115,7 @@ export function GalleryVideoManager({
       fd.append('file', file);
       fd.append('stopId', stopId);
       fd.append('citySlug', citySlug);
+      fd.append('hasSound', allowSound ? '1' : '');
       startTransition(async () => {
         const r = await uploadStopVideo(fd);
         setBusy(null);
@@ -201,12 +208,26 @@ export function GalleryVideoManager({
 
       {/* Video */}
       <div>
-        <h3 className="text-sm font-bold mb-1">Short video (optional)</h3>
+        <h3 className="text-sm font-bold mb-1">
+          {allowSound ? 'Video with sound (optional)' : 'Short video (optional)'}
+        </h3>
         <p className="text-xs text-gray-500 mb-3">
-          Up to {MAX_VIDEO_SECONDS} seconds. It always plays{' '}
-          <span className="font-medium">silently on a loop</span> in the tour, so
-          sound is never used. Great for a flag moving, water, or a bit of
-          atmosphere.
+          {allowSound ? (
+            <>
+              Up to {MAX_VIDEO_SECONDS} seconds. On the tour it shows a play
+              button and{' '}
+              <span className="font-medium">plays with sound when tapped</span>,
+              pausing the guide while it runs. Great for a performance clip or a
+              welcome message.
+            </>
+          ) : (
+            <>
+              Up to {MAX_VIDEO_SECONDS} seconds. It always plays{' '}
+              <span className="font-medium">silently on a loop</span> in the tour,
+              so sound is never used. Great for a flag moving, water, or a bit of
+              atmosphere.
+            </>
+          )}
         </p>
 
         {video ? (
@@ -216,14 +237,24 @@ export function GalleryVideoManager({
               style={{ aspectRatio: '16/10' }}
             >
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video
-                src={video}
-                muted
-                loop
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
+              {allowSound ? (
+                <video
+                  src={video}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <video
+                  src={video}
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
             <div className="flex gap-2 items-center flex-wrap">
               <button
@@ -280,7 +311,7 @@ export function GalleryVideoManager({
           className="hidden"
         />
         <p className="mt-2 text-xs text-gray-400">
-          MP4, WebM or MOV · max 15 MB · {MAX_VIDEO_SECONDS} seconds max (checked
+          MP4, WebM or MOV · max 30 MB · {MAX_VIDEO_SECONDS} seconds max (checked
           on upload).
         </p>
       </div>

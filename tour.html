@@ -1132,7 +1132,17 @@ function loadStopMedia(stop){
   });
   const hasVideo=stop.videoUrl&&typeof stop.videoUrl==='string';
   const makeImg=(u)=>{const slide=document.createElement('div');slide.className='detail-media-slide';const im=document.createElement('img');im.src=u;im.alt=stop.name||'';slide.appendChild(im);return slide;};
-  const makeVid=()=>{const slide=document.createElement('div');slide.className='detail-media-slide';const v=document.createElement('video');v.src=stop.videoUrl;v.muted=true;v.loop=true;v.playsInline=true;v.preload='metadata';v.setAttribute('muted','');v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');const badge=document.createElement('div');badge.className='detail-media-badge';badge.textContent='Video';slide.appendChild(v);slide.appendChild(badge);return slide;};
+  const makeVid=()=>{const slide=document.createElement('div');slide.className='detail-media-slide';const v=document.createElement('video');v.src=stop.videoUrl;v.playsInline=true;v.preload='metadata';v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');const badge=document.createElement('div');badge.className='detail-media-badge';
+    if(stop.videoHasSound){
+      // Event sound video: tap to play, with controls and audio. Never autoplays
+      // (browsers block sound autoplay), and pauses the guide's narration while
+      // it runs so they don't talk over each other.
+      v.controls=true;v.classList.add('has-sound');badge.textContent='▶ Video';
+      v.addEventListener('play',()=>{try{if(typeof stopAudio==='function')stopAudio();}catch(e){}});
+    } else {
+      v.muted=true;v.loop=true;v.setAttribute('muted','');badge.textContent='Video';
+    }
+    slide.appendChild(v);slide.appendChild(badge);return slide;};
   (async()=>{
     const good=[];
     for(const u of list){if(await probe(u))good.push(u);}
@@ -1159,7 +1169,7 @@ function loadStopMedia(stop){
       if(next)next.classList.toggle('show',i<n-1);
       if(next)next.classList.toggle('hint',i===0&&n>1);
       for(let j=0;j<dots.children.length;j++)dots.children[j].classList.toggle('active',j===i);
-      for(let j=0;j<track.children.length;j++){const vid=track.children[j].querySelector('video');if(vid){if(j===i){try{vid.play&&vid.play().catch(()=>{});}catch(e){}}else{try{vid.pause&&vid.pause();}catch(e){}}}}
+      for(let j=0;j<track.children.length;j++){const vid=track.children[j].querySelector('video');if(vid){if(j===i){if(!vid.classList.contains('has-sound')){try{vid.play&&vid.play().catch(()=>{});}catch(e){}}}else{try{vid.pause&&vid.pause();}catch(e){}}}}
     };
     if(slides>1){
       for(let i=0;i<slides;i++){const d=document.createElement('span');if(i===0)d.className='active';dots.appendChild(d);}
