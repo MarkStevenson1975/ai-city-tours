@@ -4,9 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { OPERATOR_FUNNEL } from '@/lib/track-operator';
 
+type Row = { label: string; count: number };
+
 // Where operators fall off, step by step. This is the operator-side twin of the
 // guest funnel, and it exists because "12 of 14 verified operators never created
-// a tour" was invisible until we measured it.
+// a tour" was invisible until we measured it. It now opens with the anonymous
+// try-it demo journey (from Louise's cold-email links) before the signed-in
+// operator steps, so the whole path is visible top to bottom.
 export default async function OperatorFunnelPage({
   searchParams,
 }: {
@@ -33,7 +37,20 @@ export default async function OperatorFunnelPage({
 
   const admin = createAdminClient();
 
-  // Operators only: admins testing the flow would flatter the numbers.
+  // --- Try-it demo journey (anonymous, from the /try links) -----------------
+  const [demoOpened, demoBuilt, demoClaimed] = await Promise.all([
+    admin.from('demo_leads').select('id', { count: 'exact', head: true }).gte('opened_at', since),
+    admin.from('demo_leads').select('id', { count: 'exact', head: true }).gte('built_at', since),
+    admin.from('demo_leads').select('id', { count: 'exact', head: true }).gte('claimed_at', since),
+  ]);
+  const demoRows: Row[] = [
+    { label: 'Opened a try-it link', count: demoOpened.count ?? 0 },
+    { label: 'Built a demo stop', count: demoBuilt.count ?? 0 },
+    { label: 'Claimed it (became an account)', count: demoClaimed.count ?? 0 },
+  ];
+  const demoTop = demoRows[0].count;
+
+  // --- Signed-in operator journey (operator_events) -------------------------
   const { data: operators } = await admin
     .from('user_profiles')
     .select('id')
@@ -45,7 +62,6 @@ export default async function OperatorFunnelPage({
     .select('user_id, event, created_at')
     .gte('created_at', since);
 
-  // Distinct operators who reached each step.
   const reached = new Map<string, Set<string>>();
   for (const e of events ?? []) {
     if (!operatorIds.has(e.user_id)) continue;
@@ -53,38 +69,33 @@ export default async function OperatorFunnelPage({
     reached.get(e.event)!.add(e.user_id);
   }
 
-  const rows = OPERATOR_FUNNEL.map((s) => ({
-    ...s,
+  const opRows: Row[] = OPERATOR_FUNNEL.map((s) => ({
+    label: s.label,
     count: reached.get(s.event)?.size ?? 0,
   }));
+  const opTop = opRows[0]?.count ?? 0;
 
-  const top = rows[0]?.count ?? 0;
-  const worst = rows.reduce(
+  const worst = opRows.reduce(
     (acc, r, i) => {
       if (i === 0) return acc;
-      const lost = (rows[i - 1].count ?? 0) - r.count;
-      return lost > acc.lost ? { lost, from: rows[i - 1].label, to: r.label } : acc;
+      const lost = (opRows[i - 1].count ?? 0) - r.count;
+      return lost > acc.lost ? { lost, from: opRows[i - 1].label, to: r.label } : acc;
     },
     { lost: 0, from: '', to: '' }
   );
 
   return (
     <div className="max-w-3xl">
-      <Link
-        href="/dashboard"
-        className="text-sm text-gray-500 hover:text-primary transition"
-      >
+      <Link href="/dashboard" className="text-sm text-gray-500 hover:text-primary transition">
         ← Mission Control
       </Link>
 
       <header className="mt-4 mb-8">
-        <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
-          Admin
-        </p>
+        <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">Admin</p>
         <h1 className="text-4xl font-semibold mb-1">Operator funnel</h1>
         <p className="text-sm text-gray-500">
-          How far operators get when building their first tour, and exactly where
-          they give up. Admin accounts excluded.
+          The whole path: the anonymous try-it demo from Louise&apos;s links, then
+          how far operators get once they sign up. Admin accounts excluded.
         </p>
       </header>
 
@@ -99,9 +110,7 @@ export default async function OperatorFunnelPage({
             key={d}
             href={`/dashboard/admin/funnel?days=${d}`}
             className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${
-              days === d
-                ? 'bg-primary text-cream'
-                : 'bg-white text-gray-600 hover:bg-cream'
+              days === d ? 'bg-primary text-cream' : 'bg-white text-gray-600 hover:bg-cream'
             }`}
           >
             {l}
@@ -109,63 +118,78 @@ export default async function OperatorFunnelPage({
         ))}
       </div>
 
-      {top === 0 ? (
+      {demoTop === 0 && opTop === 0 ? (
         <div className="bg-white rounded-xl p-10 text-center shadow-sm">
-          <p className="font-display text-2xl text-gray-400 mb-2">
-            No operator activity yet
-          </p>
+          <p className="font-display text-2xl text-gray-400 mb-2">No activity yet</p>
           <p className="text-sm text-gray-500">
-            Steps appear here as operators move through the build journey.
+            Steps appear here as prospects open the try-it link and operators build.
           </p>
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            {rows.map((r, i) => {
-              const pctOfTop = top ? Math.round((r.count / top) * 100) : 0;
-              const prev = i === 0 ? null : rows[i - 1].count;
-              const lost = prev === null ? 0 : prev - r.count;
-              const dropPct =
-                prev && prev > 0 ? Math.round((lost / prev) * 100) : 0;
+          {demoTop > 0 && (
+            <div className="mb-6">
+              <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
+                From the try-it link
+              </p>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <FunnelBars rows={demoRows} top={demoTop} />
+              </div>
+            </div>
+          )}
 
-              return (
-                <div key={r.event} className="mb-4 last:mb-0">
-                  <div className="flex items-baseline justify-between gap-4 mb-1">
-                    <p className="text-sm font-bold text-gray-900">{r.label}</p>
-                    <p className="text-sm font-bold text-primary whitespace-nowrap">
-                      {r.count}
-                      <span className="text-gray-400 font-normal">
-                        {' '}
-                        · {pctOfTop}%
-                      </span>
-                    </p>
-                  </div>
-                  <div className="h-2 bg-cream rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full"
-                      style={{ width: `${pctOfTop}%` }}
-                    />
-                  </div>
-                  {prev !== null && lost > 0 && (
-                    <p className="text-xs text-red-700 mt-1">
-                      ↓ lost {lost} here ({dropPct}% of the previous step)
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          {opTop > 0 && (
+            <div className="mb-6">
+              <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
+                After they sign up
+              </p>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <FunnelBars rows={opRows} top={opTop} />
+              </div>
+            </div>
+          )}
 
           {worst.lost > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
-              <strong>Biggest leak:</strong> {worst.lost} operator
+              <strong>Biggest leak (after sign-up):</strong> {worst.lost} operator
               {worst.lost === 1 ? '' : 's'} dropped between &ldquo;{worst.from}
-              &rdquo; and &ldquo;{worst.to}&rdquo;. That is the screen worth
-              fixing next.
+              &rdquo; and &ldquo;{worst.to}&rdquo;. That is the screen worth fixing next.
             </div>
           )}
         </>
       )}
     </div>
+  );
+}
+
+function FunnelBars({ rows, top }: { rows: Row[]; top: number }) {
+  return (
+    <>
+      {rows.map((r, i) => {
+        const pctOfTop = top ? Math.round((r.count / top) * 100) : 0;
+        const prev = i === 0 ? null : rows[i - 1].count;
+        const lost = prev === null ? 0 : prev - r.count;
+        const dropPct = prev && prev > 0 ? Math.round((lost / prev) * 100) : 0;
+        return (
+          <div key={r.label} className="mb-4 last:mb-0">
+            <div className="flex items-baseline justify-between gap-4 mb-1">
+              <p className="text-sm font-bold text-gray-900">{r.label}</p>
+              <p className="text-sm font-bold text-primary whitespace-nowrap">
+                {r.count}
+                <span className="text-gray-400 font-normal"> · {pctOfTop}%</span>
+              </p>
+            </div>
+            <div className="h-2 bg-cream rounded-full overflow-hidden">
+              <div className="h-full bg-primary rounded-full" style={{ width: `${pctOfTop}%` }} />
+            </div>
+            {prev !== null && lost > 0 && (
+              <p className="text-xs text-red-700 mt-1">
+                ↓ lost {lost} here ({dropPct}% of the previous step)
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </>
   );
 }
