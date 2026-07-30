@@ -12,8 +12,55 @@
   BEFORE DEPLOYING: Replace all {{PLACEHOLDER}} values in CONFIG.
   TO DEPLOY FOR A NEW CITY: Update only the CONFIG object.
   -->
-  <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-K870M6C49G"></script>
+  <!-- Analytics consent gate: GA4 + Microsoft Clarity load ONLY after opt-in.
+       Added 2026-07 for the Clarity trial. analytics.js/track.js still load:
+       analytics.js only queues GA config (inert until the GA library loads on
+       consent), and track.js is our own first-party guest tracking (no GA
+       cookies), which powers the dashboards and keeps running. Delete this
+       block and restore the gtag loader to fully remove. -->
+  <script>
+  (function(){
+    var GA='G-K870M6C49G', CLARITY='xui7mo4v4b', KEY='storied_cookie_consent';
+    var PRIVACY='https://storiedtours.co.uk/privacy.html';
+    function loadGA(){ // analytics.js already ran gtag('js')+config; just load the library
+      if(window.__sdGA)return; window.__sdGA=1;
+      var s=document.createElement('script'); s.async=1;
+      s.src='https://www.googletagmanager.com/gtag/js?id='+GA;
+      document.head.appendChild(s);
+    }
+    function loadClarity(){
+      if(window.__sdCL)return; window.__sdCL=1;
+      (function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script",CLARITY);
+    }
+    function enable(){ try{loadGA();}catch(e){} try{loadClarity();}catch(e){} }
+    var choice=null; try{choice=localStorage.getItem(KEY);}catch(e){}
+    if(choice==='granted'){ enable(); }
+    else if(choice!=='denied'){
+      var save=function(v){ try{localStorage.setItem(KEY,v);}catch(e){} var el=document.getElementById('sd-consent'); if(el&&el.parentNode)el.parentNode.removeChild(el); if(v==='granted')enable(); };
+      var render=function(){
+        if(document.getElementById('sd-consent'))return;
+        var css=".sd-consent{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:2147483000;width:calc(100% - 24px);max-width:420px;background:#F5F0E8;color:#1f2723;border-radius:16px;box-shadow:0 10px 34px rgba(27,67,50,.28);padding:16px 16px 14px;font-family:'Lato',system-ui,sans-serif;line-height:1.45}"
+          +".sd-consent h4{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.15rem;font-weight:700;color:#1B4332;margin:0 0 4px}"
+          +".sd-consent p{font-size:.8rem;color:#55605a;margin:0 0 12px}"
+          +".sd-consent a{color:#a98a2e;text-decoration:underline}"
+          +".sd-consent .sd-row{display:flex;gap:8px}"
+          +".sd-consent button{flex:1;border:none;border-radius:50px;padding:11px 10px;font-size:.82rem;font-weight:700;font-family:inherit;cursor:pointer}"
+          +".sd-consent .sd-yes{background:#1B4332;color:#F5F0E8}"
+          +".sd-consent .sd-no{background:transparent;border:1.5px solid #1B4332;color:#1B4332}";
+        var st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
+        var d=document.createElement('div'); d.className='sd-consent'; d.id='sd-consent';
+        d.setAttribute('role','dialog'); d.setAttribute('aria-label','Cookie choices');
+        d.innerHTML='<h4>A quick word on cookies</h4>'
+          +'<p>We use analytics to understand how the tour is used and make it better. Nothing personal, and you can say no. <a href="'+PRIVACY+'" target="_blank" rel="noopener">Privacy&nbsp;policy</a></p>'
+          +'<div class="sd-row"><button type="button" class="sd-no" id="sd-no">Essential only</button><button type="button" class="sd-yes" id="sd-yes">Accept</button></div>';
+        document.body.appendChild(d);
+        document.getElementById('sd-yes').onclick=function(){save('granted');};
+        document.getElementById('sd-no').onclick=function(){save('denied');};
+      };
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',render); else render();
+    }
+  })();
+  </script>
   <script src="/analytics.js"></script>
   <script src="/track.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -463,7 +510,7 @@
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908C18.619 14.007 17.64 11.698 17.64 9.2z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A9 9 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A9 9 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
           Continue with Google and start tour
         </button>
-        <p class="auth-consent-note">By saving your progress, you agree to your email being stored for this purpose only. We will not share your data. <a href="/privacy" target="_blank">Privacy policy</a></p>
+        <p class="auth-consent-note">By saving your progress, you agree to your email being stored for this purpose only. We will not share your data. <a href="https://storiedtours.co.uk/privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>
       </div>
       <!-- Forgot password panel -->
       <div class="auth-forgot-panel" id="auth-forgot-panel">
