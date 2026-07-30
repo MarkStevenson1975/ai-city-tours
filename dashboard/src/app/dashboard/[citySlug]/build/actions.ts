@@ -191,27 +191,13 @@ export async function saveDraftStops(citySlug: string, stops: DraftStop[]) {
     }
   } catch { /* non-blocking */ }
 
-  // Give the tour a welcome image for free: take the first stop's photo rather
-  // than asking the operator to go and find one. They can swap it in Settings.
-  // (The public tour and the poster already fall back to stop 1 anyway, so this
-  // just makes the choice explicit and editable.)
+  // We no longer borrow the first stop's photo as the welcome cover — a raw
+  // Google stop photo makes a weak first impression. Until the operator uploads
+  // their own cover in Settings, the public tour shows a polished default cover
+  // image (see tour.html). So splash_image_url stays null unless they choose one.
   const cityUpdate: Record<string, string> = {
     draft_updated_at: new Date().toISOString(),
   };
-  if (!city.splash_image_url) {
-    const { data: firstStop } = await admin
-      .from('stops')
-      .select('hero_image_url, hero_image_override_url')
-      .eq('city_id', city.id)
-      .not('hero_image_url', 'is', null)
-      .order('position')
-      .limit(1)
-      .maybeSingle();
-
-    const inherited =
-      firstStop?.hero_image_override_url || firstStop?.hero_image_url || null;
-    if (inherited) cityUpdate.splash_image_url = inherited;
-  }
 
   await admin.from('cities').update(cityUpdate).eq('id', city.id);
 

@@ -168,7 +168,8 @@ export async function POST(req: NextRequest) {
         if (!upErr) {
           const publicUrl = admin.storage.from('stop-images').getPublicUrl(path).data.publicUrl;
           await admin.from('stops').update({ hero_image_url: publicUrl }).eq('id', stop.id);
-          await admin.from('cities').update({ splash_image_url: publicUrl }).eq('id', city.id);
+          // Cover stays on the polished default (tour.html) until an operator
+          // picks their own — the raw stop photo made a weak first impression.
         }
       }
     } catch (e) {
