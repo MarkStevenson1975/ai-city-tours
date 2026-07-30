@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { tierFromPriceId } from '@/lib/plans';
+import { tierFromPriceId, isStandbyPriceId } from '@/lib/plans';
 
 export const runtime = 'nodejs';
 
@@ -69,10 +69,12 @@ export async function POST(req: NextRequest) {
         const priceId = priceIdFromSubscription(sub);
         const tier = priceId ? tierFromPriceId(priceId) : undefined;
 
-        // A paused subscription keeps Stripe status 'active' but carries a
-        // pause_collection. Treat that as our 'paused' state and mirror the
-        // restart date; clearing the pause returns it to its real status.
-        const paused = Boolean(sub.pause_collection);
+        // A paused subscription is now moved onto a per-tier standby price (it
+        // stays Stripe-'active' and keeps billing the standby fee). So the paused
+        // state is: the current price is a standby price. (We still honour a
+        // legacy pause_collection as paused, for safety.) plan_tier is preserved
+        // because tierFromPriceId also maps standby prices back to their tier.
+        const paused = (priceId ? isStandbyPriceId(priceId) : false) || Boolean(sub.pause_collection);
         const status =
           paused ? 'paused'
           : sub.status === 'active' ? 'active'
@@ -81,13 +83,11 @@ export async function POST(req: NextRequest) {
           : sub.status === 'canceled' ? 'canceled'
           : sub.status;
 
-        const resumesAt = sub.pause_collection?.resumes_at;
+        // pause_resume_at is an optional reminder managed by the pause/resume
+        // routes, so the webhook does not touch it here (avoids clobbering).
         const update = {
           subscription_status: status,
           plan_tier: tier ?? undefined,
-          pause_resume_at: paused
-            ? (resumesAt ? new Date(resumesAt * 1000).toISOString() : undefined)
-            : null,
           subscription_current_period_end: sub.current_period_end
             ? new Date(sub.current_period_end * 1000).toISOString()
             : undefined,

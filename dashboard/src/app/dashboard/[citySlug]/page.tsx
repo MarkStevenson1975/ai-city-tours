@@ -8,7 +8,7 @@ import { FirstRunRail } from '../first-run-rail';
 import { ResumeBanner } from './resume-banner';
 import { ManageBillingButton, UpgradeButton } from './go-live-panel';
 import { SeeItLiveButton } from './subscribe-modal';
-import { PLAN_STOP_LIMIT, PLAN_TOUR_LIMIT, PLAN_LABEL, nextTier, type Tier } from '@/lib/plans';
+import { PLAN_STOP_LIMIT, PLAN_TOUR_LIMIT, PLAN_LABEL, STANDBY_PRICE_PENCE, nextTier, type Tier } from '@/lib/plans';
 import { TourActions } from './tour-actions';
 import { PauseButton, PausedPanel } from './pause-controls';
 
@@ -183,7 +183,7 @@ export default async function CityOverview({
               {stopLimit === null ? ', unlimited stops' : `, up to ${stopLimit} stops each`}).
             </p>
             <div className="flex items-center gap-4">
-              <PauseButton />
+              <PauseButton feePence={STANDBY_PRICE_PENCE[planTier]} />
               <ManageBillingButton citySlug={citySlug} />
               {nextTier(planTier) && (
                 <UpgradeButton
@@ -194,7 +194,7 @@ export default async function CityOverview({
             </div>
           </div>
         ) : paused ? (
-          <PausedPanel resumeAt={profile?.pause_resume_at ?? null} />
+          <PausedPanel resumeAt={profile?.pause_resume_at ?? null} feePence={STANDBY_PRICE_PENCE[planTier]} />
         ) : (
           <SeeItLiveButton citySlug={citySlug} totalStops={stops?.length ?? 0} />
         )}
