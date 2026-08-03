@@ -22,6 +22,7 @@ export default function SignupPage() {
     const organisation = String(formData.get('organisation') ?? '').trim();
     const email = String(formData.get('email') ?? '').trim();
     const password = String(formData.get('password') ?? '');
+    const agreed = formData.get('agree') === 'on';
 
     if (!fullName || !email || !password) {
       setError('Please fill in your name, email and a password.');
@@ -29,6 +30,10 @@ export default function SignupPage() {
     }
     if (password.length < 8) {
       setError('Please choose a password of at least 8 characters.');
+      return;
+    }
+    if (!agreed) {
+      setError('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
 
@@ -47,7 +52,12 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { full_name: fullName, organisation },
+        data: {
+          full_name: fullName,
+          organisation,
+          terms_accepted: true,
+          terms_accepted_at: new Date().toISOString(),
+        },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(dest)}`,
       },
     });
@@ -163,6 +173,35 @@ export default function SignupPage() {
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
+
+          <label className="flex items-start gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              name="agree"
+              className="mt-0.5 h-4 w-4 flex-shrink-0 accent-primary"
+            />
+            <span>
+              I agree to the{' '}
+              <a
+                href="https://storiedtours.co.uk/terms.html"
+                target="_blank"
+                rel="noopener"
+                className="font-bold text-primary underline"
+              >
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a
+                href="https://storiedtours.co.uk/privacy.html"
+                target="_blank"
+                rel="noopener"
+                className="font-bold text-primary underline"
+              >
+                Privacy Policy
+              </a>
+              .
+            </span>
+          </label>
 
           {error && (
             <p className="text-red-700 text-sm bg-red-50 border border-red-200 rounded p-3">
