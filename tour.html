@@ -1699,7 +1699,7 @@ function updateSpokenNav(lat,lng){
       const instr=navStepInstruction(t);
       const el=document.getElementById('nav-turn-main');if(el)el.textContent=instr;
       // Directions are shown on screen only (nav banner + map) — not spoken —
-      // to save voice credits on the Starter plan.
+      // to save voice credits.
       return;
     }
     if(d<navReachedM()){
