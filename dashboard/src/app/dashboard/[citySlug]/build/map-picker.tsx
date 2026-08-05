@@ -60,6 +60,18 @@ export function MapPicker({
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [picks, setPicks] = useState<MapPick[]>([]);
+  // Venue and event tours are about placing pins on a specific building, so we
+  // open on the aerial (hybrid) view — the operator sees the real roof, paths
+  // and courtyard instead of a flat grey polygon. Town tours default to the map
+  // view. Either way a Map / Satellite toggle lets them switch.
+  const [mapType, setMapType] = useState<'roadmap' | 'hybrid'>(
+    pinsOnly ? 'hybrid' : 'roadmap'
+  );
+
+  function switchMapType(next: 'roadmap' | 'hybrid') {
+    setMapType(next);
+    if (mapObjRef.current) mapObjRef.current.setMapTypeId(next);
+  }
 
   // Keep the latest picks in a ref so the map click handler (bound once) can
   // read the current selection without being re-bound.
@@ -78,6 +90,29 @@ export function MapPicker({
     setPicks((prev) => prev.filter((p) => p.place_id !== placeId));
   }
 
+  // Precise placement for phones: instead of fat-fingering a tap, the operator
+  // pans the building under the fixed centre crosshair, then presses this to
+  // drop a named pin exactly on the crosshair. They can still drag it after.
+  function dropPinAtCentre() {
+    const map = mapObjRef.current;
+    if (!map) return;
+    if (picksRef.current.length >= MAX) return;
+    const c = map.getCenter();
+    if (!c) return;
+    const raw =
+      typeof window !== 'undefined'
+        ? window.prompt('Name this stop (e.g. The Walled Garden)')
+        : '';
+    const name = (raw || '').trim();
+    if (!name) return;
+    addPick({
+      place_id: `pin-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      lat: c.lat(),
+      lng: c.lng(),
+    });
+  }
+
   useEffect(() => {
     if (!MAPS_KEY) return;
     let cancelled = false;
@@ -91,9 +126,11 @@ export function MapPicker({
         const map = new g.maps.Map(mapRef.current, {
           center: { lat: 54.5, lng: -3 },
           zoom: 6,
+          mapTypeId: pinsOnly ? 'hybrid' : 'roadmap',
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          gestureHandling: 'greedy',
         });
 
         serviceRef.current = new g.maps.places.PlacesService(map);
@@ -108,7 +145,9 @@ export function MapPicker({
             (res: any, status: string) => {
               if (status === 'OK' && res?.[0]?.geometry?.location) {
                 map.setCenter(res[0].geometry.location);
-                map.setZoom(15);
+                // Venue tours open tight on the building so the operator can see
+                // the doorway, courtyard and paths; town tours stay wider.
+                map.setZoom(pinsOnly ? 18 : 15);
               }
             }
           );
@@ -182,7 +221,7 @@ export function MapPicker({
     return () => {
       cancelled = true;
     };
-  }, [area]);
+  }, [area, pinsOnly]);
 
   // Keep the map markers in sync with the current picks: drop a numbered pin for
   // each new selection, remove it if the operator deletes the chip.
@@ -203,11 +242,26 @@ export function MapPicker({
         have[p.place_id].setLabel(label);
         return;
       }
-      have[p.place_id] = new g.maps.Marker({
+      // Pins are draggable so the operator can drop roughly then nudge to the
+      // exact doorway, statue or courtyard spot. On drop we update that pick's
+      // coordinates so the saved stop lands precisely where they placed it.
+      const marker = new g.maps.Marker({
         position: { lat: p.lat, lng: p.lng },
         map,
         label,
+        draggable: true,
+        title: 'Drag to fine-tune this stop',
       });
+      marker.addListener('dragend', () => {
+        const pos = marker.getPosition();
+        if (!pos) return;
+        const lat = pos.lat();
+        const lng = pos.lng();
+        setPicks((prev) =>
+          prev.map((x) => (x.place_id === p.place_id ? { ...x, lat, lng } : x))
+        );
+      });
+      have[p.place_id] = marker;
     });
   }, [picks]);
 
@@ -221,8 +275,8 @@ export function MapPicker({
       </p>
       <p className="text-sm text-gray-600 mb-3">
         {pinsOnly
-          ? `Search to jump to your area, then tap the map to drop up to ${MAX} stops. Give each pin a name as you place it. You can add more later.`
-          : `Search a town or postcode to jump there, then tap the map to add up to ${MAX} stops. Tap a labelled place to use its name, or tap any other point to drop your own pin and name it. You can add more later.`}
+          ? `The map opens on the satellite view so you can see your actual building. Line the crosshair up on the exact spot, then press Drop pin here to add a stop (up to ${MAX}). Drag any pin to fine-tune it. Tap a labelled place to use its name.`
+          : `Search a town or postcode to jump there, then tap the map to add up to ${MAX} stops. Tap a labelled place to use its name, or tap any other point to drop your own pin and name it. Switch to Satellite to pinpoint a building, and drag any pin to fine-tune it.`}
       </p>
 
       {failed ? (
@@ -237,10 +291,71 @@ export function MapPicker({
             placeholder="Search a town or postcode"
             className="w-full px-4 py-3 mb-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <div
-            ref={mapRef}
-            className="w-full h-80 rounded-xl border border-gray-200 bg-gray-100"
-          />
+          <div className="relative w-full h-80">
+            <div
+              ref={mapRef}
+              className="absolute inset-0 rounded-xl border border-gray-200 bg-gray-100"
+            />
+
+            {ready && (
+              <>
+                {/* Map / Satellite toggle */}
+                <div className="absolute top-3 right-3 z-10 flex rounded-full overflow-hidden shadow-md border border-white/70 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => switchMapType('roadmap')}
+                    className={`px-3 py-1.5 transition ${
+                      mapType === 'roadmap'
+                        ? 'bg-primary text-white'
+                        : 'bg-white/95 text-gray-700 hover:bg-white'
+                    }`}
+                  >
+                    Map
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchMapType('hybrid')}
+                    className={`px-3 py-1.5 transition ${
+                      mapType === 'hybrid'
+                        ? 'bg-primary text-white'
+                        : 'bg-white/95 text-gray-700 hover:bg-white'
+                    }`}
+                  >
+                    Satellite
+                  </button>
+                </div>
+
+                {/* Fixed centre crosshair — pan the target under it, then Drop pin here */}
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
+                  <svg
+                    width="46"
+                    height="46"
+                    viewBox="0 0 46 46"
+                    className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+                    aria-hidden="true"
+                  >
+                    <circle cx="23" cy="23" r="11" fill="none" stroke="#ffffff" strokeWidth="2.5" />
+                    <circle cx="23" cy="23" r="11" fill="none" stroke="#1f4d3f" strokeWidth="1.2" />
+                    <line x1="23" y1="2" x2="23" y2="14" stroke="#ffffff" strokeWidth="2.5" />
+                    <line x1="23" y1="32" x2="23" y2="44" stroke="#ffffff" strokeWidth="2.5" />
+                    <line x1="2" y1="23" x2="14" y2="23" stroke="#ffffff" strokeWidth="2.5" />
+                    <line x1="32" y1="23" x2="44" y2="23" stroke="#ffffff" strokeWidth="2.5" />
+                    <circle cx="23" cy="23" r="2.5" fill="#ffffff" />
+                  </svg>
+                </div>
+
+                {/* Drop pin here — places a named stop on the crosshair */}
+                <button
+                  type="button"
+                  onClick={dropPinAtCentre}
+                  disabled={picks.length >= MAX}
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-5 py-2.5 rounded-full bg-accent text-primary font-bold text-sm shadow-md hover:bg-accent-light transition disabled:opacity-50"
+                >
+                  {picks.length >= MAX ? `Max ${MAX} stops` : 'Drop pin here'}
+                </button>
+              </>
+            )}
+          </div>
           {!ready && <p className="text-xs text-gray-500 mt-2">Loading map…</p>}
 
           {picks.length > 0 && (
