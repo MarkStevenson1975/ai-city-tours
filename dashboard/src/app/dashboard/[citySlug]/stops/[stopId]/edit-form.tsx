@@ -22,6 +22,7 @@ interface Stop {
   video_url: string | null;
   video_first: boolean | null;
   video_has_sound: boolean | null;
+  next_directions: string | null;
 }
 
 interface Props {
@@ -35,6 +36,9 @@ interface Props {
   suggestedPosition?: number;
   /** Event tours can add a longer video that plays with sound. */
   isEventTour?: boolean;
+  /** Venue and event tours (indoor/among stalls) show a "Directions to the next
+   *  stop" field, because GPS and the street map can't guide room to room. */
+  showNextDirections?: boolean;
 }
 
 export function StopEditForm({
@@ -44,6 +48,7 @@ export function StopEditForm({
   stop,
   suggestedPosition,
   isEventTour = false,
+  showNextDirections = false,
 }: Props) {
   const router = useRouter();
   const isNew = !stop;
@@ -130,6 +135,7 @@ export function StopEditForm({
   const [googleBusinessUrl, setGoogleBusinessUrl] = useState(
     stop?.google_business_url ?? ''
   );
+  const [nextDirections, setNextDirections] = useState(stop?.next_directions ?? '');
   // Staged image for new stops — uploaded after the stop row is created
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [stagedPreview, setStagedPreview] = useState<string | null>(null);
@@ -179,6 +185,7 @@ export function StopEditForm({
       lng: lng ? lngNum : 0,
       hero_image_url: heroImageUrl,
       google_business_url: googleBusinessUrl,
+      next_directions: nextDirections,
     };
   }
 
@@ -552,6 +559,26 @@ export function StopEditForm({
           + Add fact
         </button>
       </Section>
+
+      {/* Directions to the next stop (venue/event only) */}
+      {showNextDirections && (
+        <Section
+          title="Directions to the next stop"
+          subtitle="Inside a building or across an event, GPS and the map can't guide people room to room, so write the way yourself. This shows at the end of this stop, as the visitor sets off for the next one. Leave it blank on your final stop."
+        >
+          <textarea
+            value={nextDirections}
+            onChange={(e) => setNextDirections(e.target.value)}
+            rows={3}
+            maxLength={600}
+            placeholder="e.g. Head back through the Great Hall and take the oak staircase on your left up to the first floor. The Long Gallery is straight ahead."
+            className={`${inputCls} leading-relaxed`}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Shown as text on the tour. Kept short and clear works best.
+          </p>
+        </Section>
+      )}
 
       {/* Status messages */}
       {error && (

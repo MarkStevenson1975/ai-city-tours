@@ -172,6 +172,13 @@
     .narration-text.expanded{max-height:none;-webkit-mask-image:none;mask-image:none}
     .btn-expand-narration{font-size:.8rem;color:var(--color-accent);background:none;border:none;padding:4px 0 8px;cursor:pointer;font-weight:700;display:block}
     .narration-play-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+    /* Venue/event end-of-stop handover: operator directions to the next stop
+       plus a building-appropriate close. */
+    .handover-card{background:#fff;border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid var(--color-accent)}
+    .handover-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:6px}
+    .handover-text{font-size:1rem;line-height:1.6;margin-bottom:12px;white-space:pre-wrap}
+    .handover-close{font-size:.95rem;line-height:1.55;color:var(--color-text);opacity:.85}
+    .handover-card.final .handover-close{opacity:1;font-weight:600}
     .btn-narration-toggle{background:var(--color-primary);color:var(--color-text-light);padding:12px 24px;border-radius:50px;font-size:.95rem;display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:4px}
     .btn-narration-toggle.paused{background:transparent;border:1.5px solid var(--color-primary);color:var(--color-primary)}
     .detail-stop-img-wrap{width:100%;height:clamp(180px,32vh,340px);overflow:hidden;flex-shrink:0;position:relative;background:var(--color-primary);display:none}
@@ -578,6 +585,7 @@
         <button class="btn-expand-narration" id="btn-expand-narration" onclick="toggleNarrationExpand()">Read more ↓</button>
       </div>
       <div class="facts-section"><h3>Interesting Facts</h3><div id="detail-facts"></div></div>
+      <div id="detail-handover" class="handover-card" style="display:none"></div>
       <div id="detail-sponsor-card"></div>
       <div class="ask-harriet-stoplist-wrap">
         <button class="btn-ask-harriet-stoplist" onclick="openFindSomething()">&#128269; Ask Harriet to find something nearby</button>
@@ -1229,7 +1237,40 @@ function loadStopMedia(stop){
 }
 // Tap-to-advance for the stop media gallery (also works when swipe is fiddly).
 function stopMediaStep(dir){const track=document.getElementById('detail-media-track');if(!track)return;track.scrollBy({left:dir*track.clientWidth,behavior:'smooth'});}
-function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=stop.narration;const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';showScreen('detail');}
+// Venue and event tours are indoors or among stalls, where GPS and the street
+// map can't guide people. They get a different end-of-stop handover: the
+// operator's own written directions to the next stop, then a building-friendly
+// close. Older venue/event stops may still have the street closing baked into
+// their narration, so we strip it at render time for a clean handover.
+const BAKED_STREET_CLOSING="Take some time to look around and explore this stop. When you are ready, tap Log Visit in the top right corner of your screen to save your visit, then tap Tour in the top left corner to go back to your stop list and choose your next stop.";
+function isIndoorTour(){const k=(typeof CONFIG!=='undefined'&&CONFIG&&CONFIG.tourKind)||'town';return k==='venue'||k==='event';}
+function narrationForStop(stop){let t=(stop&&stop.narration)||'';if(isIndoorTour()){const i=t.indexOf(BAKED_STREET_CLOSING);if(i!==-1)t=t.slice(0,i).trim();}return t;}
+function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function renderStopHandover(idx){
+  const ho=document.getElementById('detail-handover');if(!ho)return;
+  if(!isIndoorTour()){ho.style.display='none';ho.innerHTML='';ho.classList.remove('final');return;}
+  const kind=(CONFIG&&CONFIG.tourKind)||'venue';
+  const stop=CONFIG.stops[idx];
+  const nextStop=CONFIG.stops[idx+1];
+  let html='';
+  if(nextStop){
+    ho.classList.remove('final');
+    const dir=((stop&&stop.nextDirections)||'').trim();
+    if(dir){
+      html+='<div class="handover-label">Getting to '+escHtml(nextStop.name)+'</div>';
+      html+='<p class="handover-text">'+escHtml(dir)+'</p>';
+    }
+    const close=kind==='event'
+      ? "When you're ready to wander on, tap Log visit to mark this spot, then tap Tour in the top left to choose where to head next."
+      : "When you're ready to move on, tap Log visit in the top right to mark this spot, then tap Tour in the top left to head back to your list.";
+    html+='<p class="handover-close">'+close+'</p>';
+  }else{
+    ho.classList.add('final');
+    html='<p class="handover-close">That\'s the last of your stops. Take your time here, and tap Log visit when you\'re ready to finish.</p>';
+  }
+  ho.innerHTML=html;ho.style.display='';
+}
+function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=narrationForStop(stop);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}document.getElementById('detail-nav-btn').textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';renderStopHandover(idx);showScreen('detail');}
 // Travel mode for this tour: 'walking', 'cycling' or 'driving'. Comes from the
 // published config (CONFIG.travelMode). Falls back to reading the slug so bike
 // or drive tours still behave correctly in preview, before a fresh publish
@@ -1493,7 +1534,7 @@ function toggleNarrationExpand(){const el=document.getElementById('detail-narrat
   if(!state.currentAudio||state.currentAudio.ended){
     const stop=CONFIG.stops[state.currentStopIndex];
     if(!stop)return;
-    playNarrationTrack(stop.narration,stop.name);
+    playNarrationTrack(narrationForStop(stop),stop.name);
     // Selection-path sponsor mention: when the user plays a stop's
     // narration, the sponsor callout follows. Same dedup as approach
     // and arrival paths via state.firedSponsors.

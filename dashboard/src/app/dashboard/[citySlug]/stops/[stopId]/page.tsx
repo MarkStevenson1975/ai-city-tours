@@ -43,6 +43,7 @@ export default async function StopEditPage({
         cityId={city.id}
         cityName={city.name}
         isEventTour={city.tour_kind === 'event'}
+        showNextDirections={city.tour_kind === 'venue' || city.tour_kind === 'event'}
       />
     </div>
   );

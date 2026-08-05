@@ -14,6 +14,9 @@ export interface StopInput {
   lng: number;
   hero_image_url: string;
   google_business_url: string;
+  /** Venue/event tours: operator-written directions from this stop to the next
+   *  one (indoors, where GPS and the map can't help). Optional. */
+  next_directions?: string;
 }
 
 interface UpdateStopInput extends StopInput {
@@ -62,6 +65,7 @@ export async function updateStop(input: UpdateStopInput) {
       lng: input.lng,
       hero_image_url: input.hero_image_url.trim() || null,
       google_business_url: input.google_business_url.trim() || null,
+      next_directions: input.next_directions?.trim() || null,
     })
     .eq('id', input.stopId);
 
@@ -180,6 +184,7 @@ export async function createStop(
       lng: input.lng,
       hero_image_url: input.hero_image_url.trim() || null,
       google_business_url: input.google_business_url.trim() || null,
+      next_directions: input.next_directions?.trim() || null,
     })
     .select('id')
     .single();

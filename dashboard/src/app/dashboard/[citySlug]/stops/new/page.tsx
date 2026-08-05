@@ -13,7 +13,7 @@ export default async function NewStopPage({
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, slug, name')
+    .select('id, slug, name, tour_kind')
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
@@ -82,6 +82,8 @@ export default async function NewStopPage({
         cityId={city.id}
         cityName={city.name}
         suggestedPosition={nextPosition}
+        isEventTour={city.tour_kind === 'event'}
+        showNextDirections={city.tour_kind === 'venue' || city.tour_kind === 'event'}
       />
     </div>
   );

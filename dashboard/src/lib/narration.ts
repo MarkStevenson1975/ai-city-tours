@@ -216,8 +216,11 @@ export async function generateNarration(
     const body = String(parsed.narration ?? '').trim();
     return {
       shortDescription: String(parsed.shortDescription ?? '').trim(),
-      // Always end every stop with the same correct Log Visit + next-stop close.
-      narration: body ? `${body}\n\n${STOP_CLOSING}` : body,
+      // Town stops end with the standard street closing (Log Visit + next stop).
+      // Venue/event stops do NOT: the tour renders a building-appropriate close
+      // and the operator's own directions to the next stop instead, so baking
+      // the street wording here would read wrongly and duplicate it.
+      narration: body ? (fromBrief ? body : `${body}\n\n${STOP_CLOSING}`) : body,
       facts: Array.isArray(parsed.facts)
         ? parsed.facts.slice(0, 3).map((f: unknown) => String(f).trim())
         : [],
