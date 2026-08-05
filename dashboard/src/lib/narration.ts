@@ -107,15 +107,88 @@ Return ONLY valid JSON, no markdown, in exactly this shape:
 {"shortDescription":"...","narration":"...","facts":["...","...","..."]}`;
 }
 
+// Brief-driven prompt for venue and event stops. These are specific spots
+// INSIDE the operator's own site (a walled garden, a long gallery, a memorial),
+// so there is no reliable public research and the whole point is to write from
+// what the operator knows first-hand. The operator's brief is the ONLY source:
+// the model may set the scene and add warmth but must never introduce a fact,
+// date, name or number that is not in the brief.
+export function buildBriefNarrationPrompt(
+  name: string,
+  area: string,
+  guideName: string,
+  brief: string
+): string {
+  return `You are ${guideName}, the walking-tour guide for StorieD. Write a tour stop for "${name}"${area ? ` at ${area}` : ''}.
+
+This stop is a specific spot inside a venue or event. The operator knows it first-hand and has written the brief below. It is your SINGLE SOURCE OF TRUTH.
+"""
+${brief}
+"""
+RULES ON SOURCES (no exceptions):
+- Write only from the brief. Do NOT add dates, names, numbers, materials or history that are not stated in it.
+- If the brief is short, keep the narration short and proportionate. Never pad with invented background.
+- You may rephrase, set the scene, and add warmth and rhythm, but never introduce a new fact.
+
+STORIED BRAND VOICE (five pillars):
+1. Knowledgeable, not academic. Use the facts from the brief in service of the story, never lecturing.
+2. Reveals the unexpected. Lead with the most surprising thing in the brief.
+3. Present and second person. The visitor is always "you", here, now, looking and noticing.
+4. Warm without sentiment. Warmth comes from specific detail, not hollow enthusiasm.
+5. Precise prose, not lists. Full sentences with rhythm: a long layered sentence, then a short one.
+
+HARD RULES (no exceptions):
+- Never use em dashes ("—"). Use a comma, colon, full stop or parentheses.
+- Do not use hyphens as dashes.
+- Banned words: ${BANNED.join(', ')}.
+- No exclamation marks. The tone is assured and calm.
+- The visitor is standing AT this spot and may be indoors. Describe what is in front of them here. Do not tell them to step outside or look at a street.
+- Do not open with the place name as the first word. Open with what the visitor sees or the hook from the brief.
+- British English.
+
+NARRATION STRUCTURE (200 to 450 words, adapt to how much the brief gives you; if it is thin, stay at the short end):
+1. Opening hook (1-2 sentences): what the visitor sees at this spot.
+2. What it is and why it matters, built entirely from the brief.
+3. A detail to notice, drawn from the brief.
+4. Closing (1-2 sentences): a lingering thought. Do NOT mention the app, any buttons, Log Visit, or the next stop. A standard closing is added automatically.
+
+SHORT DESCRIPTION: one or two factual sentences drawn from the brief, 140 characters or fewer, no banned words, no em dashes, no exclamation marks.
+
+FACTS: return 0 to 3 facts, and ONLY ones genuinely supported by the brief. If the brief does not contain enough to make a real fact, return fewer, even an empty array. Never invent a fact to fill the list.
+
+Return ONLY valid JSON, no markdown, in exactly this shape:
+{"shortDescription":"...","narration":"...","facts":["..."]}`;
+}
+
 // Calls Anthropic and parses the JSON draft. Returns null on any failure.
+// When opts.fromBrief is set (venue/event stops), the draft is written purely
+// from opts.brief with no external research; an empty brief returns a clear
+// placeholder telling the operator to add a few notes, rather than inventing.
 export async function generateNarration(
   apiKey: string,
   name: string,
   area: string,
-  guideName: string
+  guideName: string,
+  opts?: { fromBrief?: boolean; brief?: string }
 ): Promise<NarrationDraft | null> {
+  const fromBrief = opts?.fromBrief === true;
+  const brief = (opts?.brief ?? '').trim();
+
+  // Venue/event stop with no notes yet: don't research, don't invent. Hand back
+  // a stub that prompts the operator to add detail, then draft again.
+  if (fromBrief && !brief) {
+    return {
+      shortDescription: '',
+      narration: `Add a few notes about ${name} and ${guideName} will write this stop for you. Jot down what visitors should notice here, one or two facts, and any story worth telling, then draft this stop again.`,
+      facts: [],
+    };
+  }
+
   try {
-    const research = await fetchResearch(name, area);
+    const research = fromBrief ? '' : await fetchResearch(name, area);
+    const content = fromBrief
+      ? buildBriefNarrationPrompt(name, area, guideName, brief)
+      : buildNarrationPrompt(name, area, guideName, research);
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -126,7 +199,7 @@ export async function generateNarration(
       body: JSON.stringify({
         model: DRAFT_MODEL,
         max_tokens: 2500,
-        messages: [{ role: 'user', content: buildNarrationPrompt(name, area, guideName, research) }],
+        messages: [{ role: 'user', content }],
       }),
     });
     if (!r.ok) {

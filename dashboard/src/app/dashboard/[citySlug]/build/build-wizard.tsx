@@ -46,6 +46,10 @@ export function BuildWizard({
   const [radiusMiles, setRadiusMiles] = useState(venueMode ? 0.5 : 3);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selected, setSelected] = useState<Record<string, Suggestion>>({});
+  // Venue tours: a short operator brief per stop. This is the AI's ONLY source
+  // for these interior spots (a walled garden, a long gallery), so the draft is
+  // about the exact place, not the whole building. Keyed by place_id.
+  const [briefs, setBriefs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [progress, setProgress] = useState('');
@@ -151,7 +155,16 @@ export function BuildWizard({
         const res = await fetch('/api/build/draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ citySlug, name: p.name, area: defaultArea, guideName }),
+          body: JSON.stringify({
+            citySlug,
+            name: p.name,
+            area: defaultArea,
+            guideName,
+            // Venue stops are interior spots only the operator knows, so write
+            // from their brief rather than researching the whole building.
+            fromBrief: venueMode,
+            brief: venueMode ? (briefs[p.place_id] ?? '') : undefined,
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Draft failed');
@@ -311,6 +324,7 @@ export function BuildWizard({
         onConfirm={addMapPicks}
         disabled={drafting}
         pinsOnly={eventMode}
+        aerial={venueMode || eventMode}
       />
 
       {/* Guided landmark finder. Always recoverable: if the auto-search is still
@@ -443,7 +457,48 @@ export function BuildWizard({
 
       {error && <p className="text-red-700 text-sm">{error}</p>}
 
-      {selectedCount > 0 && (
+      {selectedCount > 0 && venueMode && (
+        <div>
+          <p className="text-sm font-bold mb-1">Your selected stops ({selectedCount})</p>
+          <p className="text-sm text-gray-600 mb-3">
+            These spots are inside your site, so only you know their story. Add a
+            few notes for each one, what visitors should notice, a fact or two,
+            any tale worth telling, and {guideName} writes it up for you. The more
+            you give, the better the stop. You can still edit every word after.
+          </p>
+          <div className="space-y-3">
+            {Object.values(selected).map((s) => (
+              <div
+                key={s.place_id}
+                className="bg-cream/60 border border-gray-200 rounded-lg p-3"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-sm font-bold">{s.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggle(s)}
+                    className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 text-xs shrink-0"
+                    aria-label={`Remove ${s.name}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <textarea
+                  value={briefs[s.place_id] ?? ''}
+                  onChange={(e) =>
+                    setBriefs((prev) => ({ ...prev, [s.place_id]: e.target.value }))
+                  }
+                  rows={3}
+                  placeholder={`What should visitors know about ${s.name}? e.g. built 1710, the plaster ceiling is the oldest in the county, look for the carved fox above the door.`}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedCount > 0 && !venueMode && (
         <div>
           <p className="text-sm font-bold mb-2">Your selected stops ({selectedCount})</p>
           <div className="flex flex-wrap gap-2">

@@ -38,6 +38,7 @@ export function MapPicker({
   onConfirm,
   disabled,
   pinsOnly = false,
+  aerial = false,
 }: {
   area: string;
   onConfirm: (picks: MapPick[]) => void;
@@ -45,6 +46,11 @@ export function MapPicker({
   /** Event tours: the map is the only way to add stops, so drop the "Option 1"
    *  framing and lead purely with dropping named pins. */
   pinsOnly?: boolean;
+  /** Venue AND event tours: open on the satellite (hybrid) view, zoomed in on
+   *  the building, so the operator can pinpoint spots inside their own site.
+   *  Kept separate from pinsOnly so venues get the aerial default while still
+   *  showing the "Option 1" framing and nearby-POI search. */
+  aerial?: boolean;
 }) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -65,7 +71,7 @@ export function MapPicker({
   // and courtyard instead of a flat grey polygon. Town tours default to the map
   // view. Either way a Map / Satellite toggle lets them switch.
   const [mapType, setMapType] = useState<'roadmap' | 'hybrid'>(
-    pinsOnly ? 'hybrid' : 'roadmap'
+    aerial ? 'hybrid' : 'roadmap'
   );
 
   function switchMapType(next: 'roadmap' | 'hybrid') {
@@ -126,7 +132,7 @@ export function MapPicker({
         const map = new g.maps.Map(mapRef.current, {
           center: { lat: 54.5, lng: -3 },
           zoom: 6,
-          mapTypeId: pinsOnly ? 'hybrid' : 'roadmap',
+          mapTypeId: aerial ? 'hybrid' : 'roadmap',
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
@@ -147,7 +153,7 @@ export function MapPicker({
                 map.setCenter(res[0].geometry.location);
                 // Venue tours open tight on the building so the operator can see
                 // the doorway, courtyard and paths; town tours stay wider.
-                map.setZoom(pinsOnly ? 18 : 15);
+                map.setZoom(aerial ? 18 : 15);
               }
             }
           );
@@ -221,7 +227,7 @@ export function MapPicker({
     return () => {
       cancelled = true;
     };
-  }, [area, pinsOnly]);
+  }, [area, aerial]);
 
   // Keep the map markers in sync with the current picks: drop a numbered pin for
   // each new selection, remove it if the operator deletes the chip.

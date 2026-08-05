@@ -35,11 +35,16 @@ export async function POST(req: NextRequest) {
   const name = String(body.name ?? '').trim();
   const area = String(body.area ?? '').trim();
   const guideName = String(body.guideName ?? 'Harriet').trim() || 'Harriet';
+  // Venue/event stops draft from the operator's own brief (no public research),
+  // so the narration is about the exact spot inside their site, not the whole
+  // building. Cap the brief so it can't blow up the prompt.
+  const fromBrief = body.fromBrief === true;
+  const brief = String(body.brief ?? '').trim().slice(0, 1500);
   if (!name) {
     return NextResponse.json({ error: 'Missing place name' }, { status: 400 });
   }
 
-  const draft = await generateNarration(apiKey, name, area, guideName);
+  const draft = await generateNarration(apiKey, name, area, guideName, { fromBrief, brief });
   if (!draft) {
     return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 502 });
   }
