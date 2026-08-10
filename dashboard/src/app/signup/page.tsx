@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { gaEvent } from '@/lib/ga';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -68,6 +69,8 @@ export default function SignupPage() {
       setError(error.message);
       return;
     }
+
+    gaEvent('account_created');
 
     // If email confirmation is off, a session is returned immediately and we
     // can go straight into building. If it is on, ask them to confirm first.

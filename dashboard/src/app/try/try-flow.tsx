@@ -6,6 +6,7 @@
 // energy when the tour lands so it feels special.
 import { useEffect, useState } from 'react';
 import { BuildingAnimation } from '@/app/dashboard/[citySlug]/build/building-animation';
+import { gaEvent } from '@/lib/ga';
 
 type Landmark = {
   placeId: string;
@@ -68,6 +69,7 @@ export function TryFlow({ initialArea, org }: Props) {
   // Record that this prospect opened their personalised link, so it shows on the
   // Kanban even if they never build a demo. Fire once, best effort.
   useEffect(() => {
+    gaEvent('demo_opened', { area: initialArea || undefined, org: org || undefined });
     if (!initialArea && !org) return;
     fetch('/api/try/open', {
       method: 'POST',

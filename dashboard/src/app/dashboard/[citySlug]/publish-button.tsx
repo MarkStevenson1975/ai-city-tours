@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { publishCity } from './actions';
 import { SubscribeModal } from './subscribe-modal';
 import { Confetti } from '../confetti';
+import { gaEvent } from '@/lib/ga';
 
 export function PublishButton({
   cityId,
@@ -28,6 +29,18 @@ export function PublishButton({
   // Every publish is worth a moment, not just the first.
   const [celebrate, setCelebrate] = useState(false);
 
+  // First publish happens via the Stripe checkout redirect (?checkout=success),
+  // which does not pass through handlePublish, so count it here too. Fires once.
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
+        gaEvent('tour_published', { slug: citySlug, via: 'checkout' });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [citySlug]);
+
   function startPublish() {
     // No active or trial subscription: send them to start one before publishing.
     if (!canPublish) {
@@ -46,6 +59,7 @@ export function PublishButton({
         setConfirming(false);
         setNotes('');
         setCelebrate(true);
+        gaEvent('tour_published', { slug: citySlug, via: 'button' });
         router.refresh();
       }
     });
