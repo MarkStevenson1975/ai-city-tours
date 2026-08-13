@@ -393,6 +393,10 @@
     /* dismissible save-progress card (after first stop logged) */
     #save-progress-card{position:fixed;left:12px;right:12px;bottom:16px;z-index:900;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.28);padding:14px 14px 12px;display:none;max-width:460px;margin:0 auto}
     #save-progress-card.show{display:block}
+    /* When the audio player bar is up, lift the save card clear of it so its
+       buttons are never hidden behind the bar. Pure CSS: the card is a later
+       sibling of the bar, so it reacts to the bar becoming visible. */
+    #audio-player-bar.visible ~ #save-progress-card{bottom:calc(84px + env(safe-area-inset-bottom, 0px))}
     .spc-close{position:absolute;top:6px;right:8px;background:transparent;border:none;color:#9a9a9a;font-size:1rem;cursor:pointer;line-height:1;padding:6px}
     .spc-title{font-family:var(--font-display);font-size:1.05rem;color:var(--color-primary);font-weight:600;margin-bottom:4px;padding-right:24px}
     .spc-body{font-size:.82rem;color:#666;line-height:1.45;margin-bottom:12px}
