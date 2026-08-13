@@ -58,10 +58,13 @@ function Sparkles() {
   );
 }
 
+type TownChoice = { label: string; placeId: string };
+
 export function TryFlow({ initialArea, org }: Props) {
-  const [step, setStep] = useState<'enter' | 'picking' | 'building' | 'done'>('enter');
+  const [step, setStep] = useState<'enter' | 'choosing' | 'picking' | 'building' | 'done'>('enter');
   const [area, setArea] = useState(initialArea);
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+  const [choices, setChoices] = useState<TownChoice[]>([]);
   const [result, setResult] = useState<BuildResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +93,33 @@ export function TryFlow({ initialArea, org }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ area: a }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? 'Something went wrong.');
+      // More than one town of that name: let them pick which is theirs.
+      if (Array.isArray(j.candidates) && j.candidates.length > 1) {
+        setChoices(j.candidates);
+        setStep('choosing');
+        return;
+      }
+      setLandmarks(j.landmarks ?? []);
+      setStep('picking');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function chooseTown(choice: TownChoice) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/try/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: area.trim(), placeId: choice.placeId }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? 'Something went wrong.');
@@ -170,6 +200,43 @@ export function TryFlow({ initialArea, org }: Props) {
               </button>
               {error && <p className="text-sm text-red-700 mt-3 text-center">{error}</p>}
             </form>
+          </div>
+        )}
+
+        {step === 'choosing' && (
+          <div className="max-w-md mx-auto">
+            <div className="text-center mb-6">
+              <button
+                type="button"
+                onClick={() => setStep('enter')}
+                className="text-xs text-gray-500 hover:text-primary mb-3"
+              >
+                ← Change town
+              </button>
+              <p className="text-xs uppercase tracking-widest text-accent font-bold mb-2">
+                Which one is yours?
+              </p>
+              <h1 className="font-display text-3xl font-semibold mb-2">
+                There is more than one {area.trim()}
+              </h1>
+              <p className="text-sm text-gray-600">
+                Pick the one you mean and we will look there.
+              </p>
+            </div>
+            {error && <p className="text-sm text-red-700 mb-4 text-center">{error}</p>}
+            <div className="space-y-3">
+              {choices.map((c) => (
+                <button
+                  key={c.placeId}
+                  type="button"
+                  onClick={() => chooseTown(c)}
+                  disabled={busy}
+                  className="w-full text-left bg-white rounded-xl px-5 py-4 shadow-sm border-2 border-transparent hover:border-primary transition disabled:opacity-50"
+                >
+                  <span className="font-display text-lg font-semibold">{c.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

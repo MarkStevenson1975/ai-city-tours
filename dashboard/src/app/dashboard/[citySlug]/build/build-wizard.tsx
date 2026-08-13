@@ -67,23 +67,33 @@ export function BuildWizard({
   // no map key it has nothing to hide behind, so open it by default.
   const hasMap = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
   const [showPostcode, setShowPostcode] = useState(!hasMap);
+  // When a town name matches more than one GB town, we offer these to pick from.
+  const [areaChoices, setAreaChoices] = useState<{ label: string; placeId: string }[]>([]);
 
-  async function findSites(areaOverride?: string) {
+  async function findSites(areaOverride?: string, placeId?: string) {
     setLoading(true);
     setError(null);
     setSuggestions([]);
+    if (!placeId) setAreaChoices([]);
     try {
       const res = await fetch('/api/places/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
-          areaOverride
-            ? { area: areaOverride, radiusMiles }
-            : { postcode, radiusMiles }
+          placeId
+            ? { area: areaOverride, placeId, radiusMiles }
+            : areaOverride
+              ? { area: areaOverride, radiusMiles }
+              : { postcode, radiusMiles }
         ),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not find sites');
+      // More than one town of that name: let the operator pick which is theirs.
+      if (Array.isArray(data.candidates) && data.candidates.length > 1) {
+        setAreaChoices(data.candidates);
+        return;
+      }
       setSuggestions(data.results || []);
       if (!data.results?.length) setError('No sites found. Try a wider radius.');
     } catch (e) {
@@ -337,10 +347,30 @@ export function BuildWizard({
         aerial={venueMode || eventMode}
       />
 
+      {/* More than one GB town of that name: pick which one is theirs. */}
+      {areaChoices.length > 0 && (
+        <div className="bg-cream/60 border border-accent rounded-lg p-4">
+          <p className="text-sm font-bold text-primary mb-1">There is more than one {defaultArea}</p>
+          <p className="text-sm text-gray-700 mb-3">Pick the one you mean and we will look there.</p>
+          <div className="flex flex-wrap gap-2">
+            {areaChoices.map((c) => (
+              <button
+                key={c.placeId}
+                type="button"
+                onClick={() => findSites(defaultArea, c.placeId)}
+                className="px-4 py-2 rounded-full bg-white border border-gray-300 text-sm font-bold hover:border-primary transition"
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Guided landmark finder. Always recoverable: if the auto-search is still
           running, show it; if it came back empty or errored, show why and a
           button to try again — so the operator is never stuck on a bare map. */}
-      {!venueMode && suggestions.length === 0 && (
+      {!venueMode && suggestions.length === 0 && areaChoices.length === 0 && (
         <div>
           {loading ? (
             <BuildingAnimation label={`Finding ${defaultArea}'s landmarks…`} />

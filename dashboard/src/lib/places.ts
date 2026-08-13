@@ -126,14 +126,74 @@ function metresBetween(aLat: number, aLng: number, bLat: number, bLng: number): 
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-// Resolve a town/area/postcode to coordinates.
+// A town/city the user might mean, for the "which one?" chooser.
+export type GeoCandidate = { label: string; placeId: string };
+
+// Resolve a town/area/postcode to coordinates. HARD-LOCKED to Great Britain via
+// the geocoder's country component, so an ambiguous name like "Wellington" can
+// never resolve to New Zealand. (A bare region hint was only a suggestion.)
 export async function geocode(query: string, apiKey: string) {
-  const params = new URLSearchParams({ query: `${query}, UK`, region: 'gb', key: apiKey });
-  const r = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?${params}`);
+  const params = new URLSearchParams({ address: query, components: 'country:GB', region: 'gb', key: apiKey });
+  const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`);
   const j = await r.json();
   const loc = j?.results?.[0]?.geometry?.location;
   if (loc) return { lat: loc.lat as number, lng: loc.lng as number, status: 'OK' as const };
   return { lat: null as number | null, lng: null as number | null, status: (j?.status as string) || 'UNKNOWN' };
+}
+
+// List the GB towns/cities that match a name, so the user can pick the right one
+// when there is more than one (Newport, Wellington, Richmond and so on). Uses
+// city autocomplete restricted to GB. Returns [] on any problem, and a single
+// entry when the name is unambiguous.
+export async function geocodeCandidates(query: string, apiKey: string): Promise<GeoCandidate[]> {
+  try {
+    const params = new URLSearchParams({ input: query, types: '(cities)', components: 'country:gb', key: apiKey });
+    const r = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`);
+    const j = await r.json();
+    const preds: unknown[] = Array.isArray(j.predictions) ? j.predictions : [];
+    const wanted = query.trim().toLowerCase();
+    const all: Array<{ label: string; placeId: string; main: string }> = [];
+    const seen = new Set<string>();
+    for (const raw of preds) {
+      const p = raw as Record<string, unknown>;
+      const placeId = String(p.place_id ?? '');
+      if (!placeId) continue;
+      const sf = (p.structured_formatting ?? {}) as { main_text?: string };
+      const main = String(sf.main_text ?? '').trim();
+      const label = String(p.description ?? '').replace(/,?\s*UK$/i, '').trim();
+      const key = label.toLowerCase();
+      if (!label || seen.has(key)) continue;
+      seen.add(key);
+      all.push({ label, placeId, main });
+      if (all.length >= 8) break;
+    }
+    // Only genuinely ambiguous when several towns share the SAME name (Wellington,
+    // Newport). Prefer the exact-name matches so a normal town (Hereford, and its
+    // county Herefordshire) is not offered as a false choice.
+    const exact = all.filter((c) => c.main.toLowerCase() === wanted);
+    const chosen = exact.length ? exact : all;
+    return chosen.slice(0, 6).map((c) => ({ label: c.label, placeId: c.placeId }));
+  } catch {
+    return [];
+  }
+}
+
+// Resolve a chosen place id (from the chooser) to coordinates. GB-locked names
+// are all we ever feed in, so this is just the second half of the lookup.
+export async function coordsForPlaceId(
+  placeId: string,
+  apiKey: string
+): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const params = new URLSearchParams({ place_id: placeId, key: apiKey });
+    const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`);
+    const j = await r.json();
+    const loc = j?.results?.[0]?.geometry?.location;
+    if (loc && typeof loc.lat === 'number') return { lat: loc.lat, lng: loc.lng };
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function parseNewPlace(raw: unknown): Raw | null {
@@ -290,12 +350,23 @@ function categoryOf(r: Raw): string {
 export async function discoverLandmarks(
   area: string,
   apiKey: string,
-  opts?: { radiusMetres?: number; max?: number }
+  opts?: { radiusMetres?: number; max?: number; lat?: number; lng?: number }
 ): Promise<{ center: { lat: number | null; lng: number | null; status: string }; results: Landmark[] }> {
-  const center = await geocode(area, apiKey);
-  if (center.lat === null || center.lng === null) return { center, results: [] };
-  const lat = center.lat;
-  const lng = center.lng;
+  // Use a pre-resolved centre if the caller already picked the exact town
+  // (from the "which one?" chooser); otherwise geocode the name, GB-locked.
+  let lat: number;
+  let lng: number;
+  let status = 'OK';
+  if (typeof opts?.lat === 'number' && typeof opts?.lng === 'number') {
+    lat = opts.lat;
+    lng = opts.lng;
+  } else {
+    const center = await geocode(area, apiKey);
+    if (center.lat === null || center.lng === null) return { center, results: [] };
+    lat = center.lat;
+    lng = center.lng;
+    status = center.status;
+  }
   const radius = opts?.radiusMetres ?? DEFAULT_RADIUS_M;
   const max = opts?.max ?? 12;
 
@@ -368,7 +439,7 @@ export async function discoverLandmarks(
     if (results.length >= max) break;
   }
 
-  return { center, results };
+  return { center: { lat, lng, status }, results };
 }
 
 // Fetch a place photo's bytes. Handles both the New API photo name

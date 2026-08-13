@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { trackOperator } from '@/lib/track-operator';
-import { discoverLandmarks } from '@/lib/places';
+import { discoverLandmarks, geocodeCandidates, coordsForPlaceId } from '@/lib/places';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const postcode = String(body.postcode ?? '').trim();
   const area = String(body.area ?? '').trim();
+  const placeId = body.placeId ? String(body.placeId) : '';
   const radiusMiles = Number(body.radiusMiles) > 0 ? Number(body.radiusMiles) : 3;
   const radiusMetres = Math.min(Math.round(radiusMiles * 1609), 50000);
 
@@ -39,7 +40,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { center, results } = await discoverLandmarks(where, apiKey, { radiusMetres });
+    // Disambiguate a town NAME the same way the demo does (a postcode is already
+    // specific, so it skips this). If more than one GB town matches, hand back
+    // the choices; once picked (placeId), or unambiguous, search that town.
+    let coords: { lat: number; lng: number } | null = null;
+    if (placeId) {
+      coords = await coordsForPlaceId(placeId, apiKey);
+    } else if (!postcode && area) {
+      const candidates = await geocodeCandidates(area, apiKey);
+      if (candidates.length > 1) {
+        return NextResponse.json({ candidates });
+      }
+      if (candidates.length === 1) coords = await coordsForPlaceId(candidates[0].placeId, apiKey);
+    }
+
+    const { center, results } = await discoverLandmarks(where, apiKey, {
+      radiusMetres,
+      ...(coords ?? {}),
+    });
 
     if (center.lat === null || center.lng === null) {
       const detail =
