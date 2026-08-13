@@ -66,7 +66,18 @@ const NON_VISITOR_TYPES = new Set<string>([
   'post_office', 'school', 'primary_school', 'secondary_school', 'university',
 ]);
 
-const MIN_REVIEWS = 5;
+// Small sites that legitimately have no reviews (a memorial, a sculpture, a
+// church) may appear without any. Everything else that claims to be a visitor
+// site (a museum, a gallery, an attraction) needs at least a little review proof,
+// which is what keeps a mis-tagged, no-review oddity like a "museum" called
+// "yordanos" out.
+const REVIEW_OPTIONAL_TYPES = new Set<string>([
+  'monument', 'sculpture', 'war_memorial', 'cultural_landmark',
+  'historical_landmark', 'historical_place', 'historic_site',
+  'church', 'place_of_worship', 'hindu_temple', 'mosque', 'synagogue', 'plaza',
+]);
+const MIN_REVIEWS = 5;        // unknown types need solid proof
+const MIN_REVIEWS_LIGHT = 3;  // known "should have reviews" visitor types
 
 const BUSINESS_NAME_RE =
   /\b(ltd|limited|plc|llp|inc|clinic|osteopath|chiropract|physio|dental|dentist|solicitor|accountant|estate agent|lettings|garage|motors|engineering|plumb|electrical|roofing|scaffold|joinery|takeaway|salon|barber|nails|tattoo|vets?|veterinary|pharmacy|opticians)\b/i;
@@ -240,17 +251,32 @@ async function legacyText(query: string, apiKey: string): Promise<Raw[]> {
   return out;
 }
 
-// Is this a genuine visitor site (not a shop, food or service)?
+// A name that is a single all-lowercase token (no spaces, no capital) is almost
+// always junk for a place, like "yordanos". Real landmark names are title-cased
+// or multi-word. Cheap catch, no elaborate parsing.
+function looksJunkName(name: string): boolean {
+  const n = name.trim();
+  if (n.length < 3) return true;
+  if (!/\s/.test(n) && !/[A-Z]/.test(n)) return true;
+  return false;
+}
+
+// Is this a genuine visitor site (not a shop, food, service or junk row)?
 function isVisitorSite(r: Raw): boolean {
-  if (!r.name || BUSINESS_NAME_RE.test(r.name)) return false;
+  if (!r.name || BUSINESS_NAME_RE.test(r.name) || looksJunkName(r.name)) return false;
   if (NON_VISITOR_TYPES.has(r.primary)) return false;
   if (r.types.some((t) => NON_VISITOR_TYPES.has(t))) return false;
+
+  const reviewOptional =
+    REVIEW_OPTIONAL_TYPES.has(r.primary) || r.types.some((t) => REVIEW_OPTIONAL_TYPES.has(t));
+  // Small sites (memorial, sculpture, church) can appear with no reviews.
+  if (reviewOptional) return true;
+
   const known = VISITOR_TYPES.has(r.primary) || r.types.some((t) => VISITOR_TYPES.has(t));
-  // Known visitor types are kept even with no reviews (a memorial, a sculpture).
-  // Anything else the text search returned needs a little social proof so a
-  // stray business without an obvious type does not slip through.
-  if (known) return true;
-  return r.reviews >= MIN_REVIEWS;
+  // A museum, gallery or attraction should have at least a little review proof,
+  // so a mis-tagged no-review row cannot masquerade as one. Anything with no
+  // recognised visitor type at all needs solid proof.
+  return r.reviews >= (known ? MIN_REVIEWS_LIGHT : MIN_REVIEWS);
 }
 
 function categoryOf(r: Raw): string {

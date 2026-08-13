@@ -193,6 +193,11 @@ export function TryFlow({ initialArea, org }: Props) {
                 Choose one and we will write and voice a real stop for it. The
                 rest of the town comes later.
               </p>
+              <p className="text-xs text-gray-500 mt-3 max-w-md mx-auto">
+                This is just a quick trial of what we find automatically in your
+                area. When you build your real tour you can always add your own
+                main points of interest by hand.
+              </p>
             </div>
             {error && <p className="text-sm text-red-700 mb-4 text-center">{error}</p>}
             <div className="grid sm:grid-cols-2 gap-3">
