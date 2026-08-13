@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveDraftStops, type DraftStop } from './actions';
 import { MapPicker, type MapPick } from './map-picker';
+
+// Hand-dropped map pins carry a synthetic "pin-..." id (the map picker makes
+// them for spots Google has no place for). Those are the ones we draft from the
+// operator's notes rather than web research.
+function isCustomPin(placeId: string): boolean {
+  return placeId.startsWith('pin-');
+}
 import { BuildingAnimation } from './building-animation';
 
 type Suggestion = {
@@ -152,6 +159,11 @@ export function BuildWizard({
       const p = picks[i];
       setProgress(`Drafting ${i + 1} of ${picks.length}: ${p.name}`);
       try {
+        // Write from the operator's own notes, not web research, whenever the
+        // place is one the internet won't know: any venue/event stop, and any
+        // hand-dropped custom pin on a town tour (a blue plaque, a sculpture, a
+        // mosaic). Google-sourced landmarks still research as before.
+        const useBrief = venueMode || isCustomPin(p.place_id);
         const res = await fetch('/api/build/draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -160,10 +172,8 @@ export function BuildWizard({
             name: p.name,
             area: defaultArea,
             guideName,
-            // Venue stops are interior spots only the operator knows, so write
-            // from their brief rather than researching the whole building.
-            fromBrief: venueMode,
-            brief: venueMode ? (briefs[p.place_id] ?? '') : undefined,
+            fromBrief: useBrief,
+            brief: useBrief ? (briefs[p.place_id] ?? '') : undefined,
           }),
         });
         const data = await res.json();
@@ -498,29 +508,78 @@ export function BuildWizard({
         </div>
       )}
 
-      {selectedCount > 0 && !venueMode && (
-        <div>
-          <p className="text-sm font-bold mb-2">Your selected stops ({selectedCount})</p>
-          <div className="flex flex-wrap gap-2">
-            {Object.values(selected).map((s) => (
-              <span
-                key={s.place_id}
-                className="inline-flex items-center gap-2 bg-cream border border-gray-200 rounded-full pl-3 pr-2 py-1 text-sm"
-              >
-                {s.name}
-                <button
-                  type="button"
-                  onClick={() => toggle(s)}
-                  className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 text-xs"
-                  aria-label={`Remove ${s.name}`}
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
+      {selectedCount > 0 && !venueMode && (() => {
+        const all = Object.values(selected);
+        const pins = all.filter((s) => isCustomPin(s.place_id));
+        const landmarks = all.filter((s) => !isCustomPin(s.place_id));
+        return (
+          <div className="space-y-4">
+            <p className="text-sm font-bold">Your selected stops ({selectedCount})</p>
+
+            {landmarks.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {landmarks.map((s) => (
+                  <span
+                    key={s.place_id}
+                    className="inline-flex items-center gap-2 bg-cream border border-gray-200 rounded-full pl-3 pr-2 py-1 text-sm"
+                  >
+                    {s.name}
+                    <button
+                      type="button"
+                      onClick={() => toggle(s)}
+                      className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 text-xs"
+                      aria-label={`Remove ${s.name}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {pins.length > 0 && (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">
+                  You dropped {pins.length === 1 ? 'a pin' : 'pins'} on {pins.length === 1 ? 'a spot' : 'spots'} Google
+                  does not list, like a sculpture, a blue plaque or a mosaic. Add a
+                  couple of notes for each and {guideName} writes it up from what you
+                  say, nothing invented. Leave it blank and you get a short placeholder
+                  to fill in later.
+                </p>
+                <div className="space-y-3">
+                  {pins.map((s) => (
+                    <div
+                      key={s.place_id}
+                      className="bg-cream/60 border border-gray-200 rounded-lg p-3"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-sm font-bold">{s.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggle(s)}
+                          className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 text-xs shrink-0"
+                          aria-label={`Remove ${s.name}`}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <textarea
+                        value={briefs[s.place_id] ?? ''}
+                        onChange={(e) =>
+                          setBriefs((prev) => ({ ...prev, [s.place_id]: e.target.value }))
+                        }
+                        rows={3}
+                        placeholder={`What should visitors know about ${s.name}? e.g. cast iron drinking fountain from 1887, given by a local mill owner, the inscription is still readable.`}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {drafting && <BuildingAnimation label={progress || 'Drafting your stops…'} />}
 

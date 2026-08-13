@@ -26,12 +26,24 @@ type Suggestion = {
 
 // ---- Tight filter (Places API New) -------------------------------------
 
-// Primary types we ASK Google for. Must all be valid New-API types, or the
-// request errors and we fall back. Kept conservative on purpose.
-const REQUEST_PRIMARY_TYPES = [
+// Primary types we ASK Google for. The CORE set is the proven, always-valid
+// list. The EXTRA set widens it to smaller points of interest (a sculpture, a
+// monument, a war memorial, a general cultural landmark) so a stop does not have
+// to be a building. If any EXTRA type is ever rejected by Google the whole
+// request 400s, so nearbyNew is called with CORE as a fallback before we drop to
+// the legacy search. That keeps the widening safe.
+const REQUEST_PRIMARY_TYPES_CORE = [
   'tourist_attraction', 'historical_landmark', 'museum', 'art_gallery',
   'park', 'national_park', 'church', 'hindu_temple', 'mosque', 'synagogue',
   'zoo', 'aquarium', 'amusement_park',
+];
+const REQUEST_PRIMARY_TYPES_EXTRA = [
+  'monument', 'sculpture', 'cultural_landmark', 'historical_place',
+  'plaza', 'war_memorial', 'visitor_center',
+];
+const REQUEST_PRIMARY_TYPES = [
+  ...REQUEST_PRIMARY_TYPES_CORE,
+  ...REQUEST_PRIMARY_TYPES_EXTRA,
 ];
 
 // Primary types we KEEP once results come back (a superset of the above, so
@@ -42,13 +54,18 @@ const ALLOW_PRIMARY = new Set<string>([
   'cultural_center', 'sculpture', 'garden', 'botanical_garden', 'plaza',
   'observation_deck', 'performing_arts_theater', 'planetarium',
   'wildlife_park', 'wildlife_refuge', 'hiking_area', 'marina',
+  'war_memorial', 'visitor_center',
 ]);
 
 // Places of worship and monuments may legitimately have very few reviews, so
 // they skip the reviews gate; everything else must clear MIN_REVIEWS.
+// Low-footprint sites legitimately have few or no reviews: a sculpture, a war
+// memorial, a market cross, a blue-plaque spot. They skip the reviews gate so
+// they are never dropped just for being small. Everything else must clear it.
 const EXEMPT_REVIEW_GATE = new Set<string>([
   'church', 'place_of_worship', 'hindu_temple', 'mosque', 'synagogue',
   'historical_landmark', 'monument', 'historical_place',
+  'sculpture', 'cultural_landmark', 'plaza', 'war_memorial',
 ]);
 const MIN_REVIEWS = 5;
 
@@ -76,13 +93,31 @@ const LABEL_FOR_PRIMARY: Record<string, string> = {
   zoo: 'Zoo',
   aquarium: 'Aquarium',
   amusement_park: 'Attraction',
+  sculpture: 'Sculpture',
+  cultural_landmark: 'Landmark',
+  plaza: 'Square',
+  war_memorial: 'Memorial',
+  visitor_center: 'Visitor centre',
+  cultural_center: 'Cultural centre',
+  garden_botanical: 'Garden',
 };
+
+// Categories that make a good lead: the town's principal heritage anchor. We
+// float the best-rated one of these to the front so a first draft opens on
+// something central and significant rather than a lone side-street church.
+const ANCHOR_CATEGORIES = new Set<string>([
+  'Historic site', 'Landmark', 'Monument', 'Museum', 'Memorial', 'Church',
+]);
+// How many of any one category we allow in a first draft, so four churches (or
+// four of anything) can never fill the list. Variety is the point.
+const MAX_PER_CATEGORY = 2;
 
 async function nearbyNew(
   lat: number,
   lng: number,
   radius: number,
-  apiKey: string
+  apiKey: string,
+  types: string[]
 ): Promise<Suggestion[]> {
   const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
     method: 'POST',
@@ -93,7 +128,7 @@ async function nearbyNew(
         'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.rating,places.userRatingCount,places.photos,places.businessStatus',
     },
     body: JSON.stringify({
-      includedPrimaryTypes: REQUEST_PRIMARY_TYPES,
+      includedPrimaryTypes: types,
       maxResultCount: 20,
       rankPreference: 'POPULARITY',
       locationRestriction: {
@@ -143,10 +178,31 @@ async function nearbyNew(
     });
   }
 
-  out.sort(
-    (a, b) => (b.rating ?? 0) - (a.rating ?? 0)
-  );
-  return out.slice(0, 12);
+  out.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+
+  // Float the principal anchor to the lead: the highest-rated significant,
+  // central site. Because the list is already rating-sorted, the first anchor is
+  // the best-rated one, so moving it to the front makes the draft open well
+  // instead of on whatever happened to rank first.
+  const anchorIdx = out.findIndex((s) => ANCHOR_CATEGORIES.has(s.category));
+  if (anchorIdx > 0) {
+    const [anchor] = out.splice(anchorIdx, 1);
+    out.unshift(anchor);
+  }
+
+  // Diversity cap: keep at most MAX_PER_CATEGORY of any one category, so the
+  // draft is varied by construction and churches cannot crowd everything else
+  // out. Order is preserved, so the anchor and the best of each kind survive.
+  const perCategory: Record<string, number> = {};
+  const varied: Suggestion[] = [];
+  for (const s of out) {
+    const n = perCategory[s.category] ?? 0;
+    if (n >= MAX_PER_CATEGORY) continue;
+    perCategory[s.category] = n + 1;
+    varied.push(s);
+  }
+
+  return varied.slice(0, 12);
 }
 
 // ---- Legacy fallback (blocklist) — only if the new API is unavailable ----
@@ -259,13 +315,30 @@ export async function POST(req: NextRequest) {
 
     // Tight path first; fall back to the old search only if the new API errors
     // (e.g. not yet enabled). An empty tight result is trusted as-is — a couple
-    // of genuine sites beats a list padded with businesses.
+    // of genuine sites beats a list padded with businesses. We try the widened
+    // type list first; if Google rejects any of the newer types the request
+    // 400s, so we retry with the proven core set before dropping to legacy.
     let results: Suggestion[];
     try {
-      results = await nearbyNew(center.lat, center.lng, radius, apiKey);
+      results = await nearbyNew(center.lat, center.lng, radius, apiKey, REQUEST_PRIMARY_TYPES);
     } catch (e) {
-      console.warn('Places API (New) unavailable, using legacy search:', e instanceof Error ? e.message : e);
-      results = await nearbyLegacy(center.lat, center.lng, radius, apiKey);
+      console.warn('Places (New) widened search failed, retrying core types:', e instanceof Error ? e.message : e);
+      try {
+        results = await nearbyNew(center.lat, center.lng, radius, apiKey, REQUEST_PRIMARY_TYPES_CORE);
+      } catch (e2) {
+        console.warn('Places API (New) unavailable, using legacy search:', e2 instanceof Error ? e2.message : e2);
+        results = await nearbyLegacy(center.lat, center.lng, radius, apiKey);
+      }
+    }
+
+    // Keep the draft in the tour's own town. If we know the town name, prefer
+    // results whose address names it, so a neighbouring town (Axminster's draft
+    // pulling in Bridport) drops out. We only apply this when it still leaves a
+    // usable set, so a sparse town is never left with nothing.
+    if (area) {
+      const town = area.toLowerCase();
+      const sameTown = results.filter((r) => r.address.toLowerCase().includes(town));
+      if (sameTown.length >= 3) results = sameTown;
     }
 
     if (results.length) {
