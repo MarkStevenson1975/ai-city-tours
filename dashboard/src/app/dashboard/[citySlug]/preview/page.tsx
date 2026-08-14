@@ -22,7 +22,7 @@ export default async function PreviewPage({
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, name, slug, guide_name, color_primary, previewed_at, published_at')
+    .select('id, name, slug, guide_name, guide_voice_id, color_primary, previewed_at, published_at')
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
@@ -81,6 +81,8 @@ export default async function PreviewPage({
           guideName={city.guide_name ?? 'Harriet'}
           accent={city.color_primary || '#3B6D11'}
           stops={previewStops}
+          citySlug={city.slug}
+          voiceId={city.guide_voice_id ?? null}
         />
       </div>
 

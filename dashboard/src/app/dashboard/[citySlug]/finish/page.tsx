@@ -29,7 +29,7 @@ export default async function FinishPage({
   const { data: city } = await supabase
     .from('cities')
     .select(
-      'id, slug, name, guide_name, color_primary, splash_image_url, previewed_at, published_at'
+      'id, slug, name, guide_name, guide_voice_id, color_primary, splash_image_url, previewed_at, published_at'
     )
     .eq('slug', citySlug)
     .single();
@@ -120,6 +120,8 @@ export default async function FinishPage({
                   guideName={city.guide_name ?? 'Harriet'}
                   accent={city.color_primary || '#1B4332'}
                   stops={previewStops}
+                  citySlug={city.slug}
+                  voiceId={city.guide_voice_id ?? null}
                   align="left"
                 />
                 <p className="text-xs text-gray-500 mt-3" style={{ maxWidth: 360 }}>

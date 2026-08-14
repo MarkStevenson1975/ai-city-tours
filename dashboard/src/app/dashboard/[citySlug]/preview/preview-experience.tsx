@@ -4,7 +4,7 @@
 // "Your Walk" stop list (the tour hub), and tapping a stop opens its detail
 // with a back-to-Tour button, just like the live experience. Visual and text
 // only for now (audio is added separately).
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type PreviewStop = {
   position: number;
@@ -20,12 +20,17 @@ export function PreviewExperience({
   guideName,
   accent,
   stops,
+  citySlug,
+  voiceId = null,
   align = 'center',
 }: {
   cityName: string;
   guideName: string;
   accent: string;
   stops: PreviewStop[];
+  citySlug: string;
+  /** The tour's ElevenLabs voice; falls back to the house voice server-side. */
+  voiceId?: string | null;
   /** 'left' on the reward screen, where it sits beside left-aligned copy. */
   align?: 'left' | 'center';
 }) {
@@ -33,6 +38,67 @@ export function PreviewExperience({
   const [view, setView] = useState<'walk' | number>('walk');
   const total = stops.length;
   const stop = typeof view === 'number' ? stops[view] : null;
+
+  // Draft narration: the operator hears ONE stop in the real voice (the first
+  // one they press play on). Any other stop shows the publish pop-up instead of
+  // a robotic voice, so the real voice stays the reason to publish.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [sampleIndex, setSampleIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [locked, setLocked] = useState(false);
+
+  // Stop the audio when they move to another screen.
+  useEffect(() => {
+    const a = audioRef.current;
+    return () => {
+      if (a) a.pause();
+    };
+  }, [view]);
+
+  async function handlePlay(i: number) {
+    const s = stops[i];
+    if (!s || !s.narration) return;
+    // A sample is already spent on a different stop: nudge to publish.
+    if (sampleIndex !== null && sampleIndex !== i) {
+      setLocked(true);
+      return;
+    }
+    // Replaying the sample: toggle pause.
+    if (audioRef.current && !audioRef.current.paused && sampleIndex === i) {
+      audioRef.current.pause();
+      setPlaying(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/draft-tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: citySlug, text: s.narration, voiceId }),
+      });
+      if (!res.ok) {
+        setLoading(false);
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      if (audioRef.current) audioRef.current.pause();
+      const a = new Audio(url);
+      audioRef.current = a;
+      a.onended = () => {
+        setPlaying(false);
+        URL.revokeObjectURL(url);
+      };
+      a.onpause = () => setPlaying(false);
+      a.onplay = () => setPlaying(true);
+      await a.play();
+      setSampleIndex(i);
+    } catch {
+      // Gentle no-op: the narration text stays on screen to read.
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div
@@ -126,10 +192,16 @@ export function PreviewExperience({
                   </div>
                   <button
                     type="button"
-                    className="text-sm font-bold rounded-full px-4 py-1.5 mb-2"
+                    onClick={() => handlePlay(view)}
+                    disabled={loading || !stop.narration}
+                    className="text-sm font-bold rounded-full px-4 py-1.5 mb-2 disabled:opacity-60"
                     style={{ background: accent, color: '#fff' }}
                   >
-                    ▶ Play narration
+                    {loading
+                      ? 'Loading…'
+                      : playing && sampleIndex === view
+                        ? '⏸ Pause'
+                        : '▶ Play narration'}
                   </button>
                   {stop.narration && (
                     <p className="text-sm text-gray-800 whitespace-pre-line">{stop.narration}</p>
@@ -172,9 +244,38 @@ export function PreviewExperience({
       </div>
 
       <p className="text-center text-xs text-gray-500 mt-4">
-        This is your draft, shown the way visitors walk it. Start your free month
-        to publish it and play the narration aloud.
+        This is your draft, shown the way visitors walk it. Press play on the stop
+        you most want to hear in {guideName}&apos;s real voice. Publish to unlock
+        full narration on every stop.
       </p>
+
+      {locked && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setLocked(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-lg font-semibold mb-2">Want to hear the rest?</p>
+            <p className="text-sm text-gray-600 mb-5">
+              Publishing brings every stop to life in full narration, and your
+              first month is on us.
+            </p>
+            <button
+              type="button"
+              onClick={() => setLocked(false)}
+              className="px-6 py-2 rounded-full text-white font-bold text-sm"
+              style={{ background: accent }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
