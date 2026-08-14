@@ -47,6 +47,7 @@ export function PreviewExperience({
   const [loading, setLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Stop the audio when they move to another screen.
   useEffect(() => {
@@ -71,6 +72,7 @@ export function PreviewExperience({
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/draft-tts', {
         method: 'POST',
@@ -78,7 +80,7 @@ export function PreviewExperience({
         body: JSON.stringify({ slug: citySlug, text: s.narration, voiceId }),
       });
       if (!res.ok) {
-        setLoading(false);
+        setError('That did not play just now. Please try again in a moment.');
         return;
       }
       const url = URL.createObjectURL(await res.blob());
@@ -203,6 +205,9 @@ export function PreviewExperience({
                         ? '⏸ Pause'
                         : '▶ Play narration'}
                   </button>
+                  {error && (
+                    <p className="text-xs text-red-600 mb-2">{error}</p>
+                  )}
                   {stop.narration && (
                     <p className="text-sm text-gray-800 whitespace-pre-line">{stop.narration}</p>
                   )}
