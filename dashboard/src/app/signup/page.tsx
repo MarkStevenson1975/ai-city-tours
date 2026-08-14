@@ -9,12 +9,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { gaEvent } from '@/lib/ga';
+import { createOperatorAccount } from './actions';
 
 export default function SignupPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [checkEmail, setCheckEmail] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,62 +48,35 @@ export default function SignupPage() {
       ? `/dashboard/claim?slug=${encodeURIComponent(claim)}`
       : '/dashboard/new';
 
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
+    // Create the account already confirmed (no email verification step), then
+    // sign straight in so they drop into building with no interruption.
+    const created = await createOperatorAccount({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-          organisation,
-          terms_accepted: true,
-          terms_accepted_at: new Date().toISOString(),
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(dest)}`,
-      },
+      fullName,
+      organisation,
     });
-
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
+    if (!created.ok) {
+      setError(created.error);
+      setLoading(false);
       return;
     }
 
     gaEvent('account_created');
 
-    // If email confirmation is off, a session is returned immediately and we
-    // can go straight into building. If it is on, ask them to confirm first.
-    if (data.session) {
-      router.push(dest);
-      router.refresh();
-    } else {
-      setCheckEmail(true);
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInError) {
+      setLoading(false);
+      setError('Your account is ready. Please sign in to continue.');
+      return;
     }
-  }
 
-  if (checkEmail) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-6 bg-primary text-cream">
-        <div className="w-full max-w-md bg-cream text-gray-900 rounded-2xl shadow-2xl p-10 text-center">
-          <p className="mb-4 font-display text-3xl leading-none">
-            <span className="text-primary font-semibold">Storie</span>
-            <span className="text-accent font-semibold">D</span>
-          </p>
-          <h1 className="text-3xl font-semibold mb-3">Check your email</h1>
-          <p className="text-sm text-gray-600 mb-4">
-            We have sent you a link to confirm your account. Click it and you
-            will drop straight into building your first tour.
-          </p>
-          <p className="text-sm text-gray-600">
-            The email comes from{' '}
-            <span className="font-bold">team@thesetupcrew.co.uk</span>. If it is
-            not in your inbox within a few minutes, please check your spam or
-            junk folder.
-          </p>
-        </div>
-      </main>
-    );
+    router.push(dest);
+    router.refresh();
   }
 
   return (
