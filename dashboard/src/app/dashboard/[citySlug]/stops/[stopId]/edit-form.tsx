@@ -566,7 +566,7 @@ export function StopEditForm({
       {showNextDirections && (
         <Section
           title="Directions to the next stop"
-          subtitle="Inside a building or across an event, GPS and the map can't guide people room to room, so write the way yourself. This shows at the end of this stop, as the visitor sets off for the next one. Leave it blank on your final stop."
+          subtitle="Inside a building or across an event, GPS and the map can't guide people room to room, so write the way yourself. This shows as text at the end of this stop, as the visitor sets off for the next one. Leave it blank on your final stop. Tip: this note is shown on screen but not read aloud, so if you would like the directions spoken too, weave them into the end of this stop's narration above (for example, 'when you are ready, turn to your right and look for the Ascension window')."
         >
           <textarea
             value={nextDirections}
