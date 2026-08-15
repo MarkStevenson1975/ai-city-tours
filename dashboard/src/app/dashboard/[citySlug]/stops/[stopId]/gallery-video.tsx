@@ -9,6 +9,7 @@ import {
   removeStopVideo,
   setStopVideoFirst,
 } from './actions';
+import { compressImage } from '@/lib/compress-image';
 
 const MAX_GALLERY = 4; // plus the hero = 5 images total
 
@@ -63,11 +64,12 @@ export function GalleryVideoManager({
     if (!file) return;
     setError(null);
     setBusy('gallery');
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('stopId', stopId);
-    fd.append('citySlug', citySlug);
     startTransition(async () => {
+      const compressed = await compressImage(file);
+      const fd = new FormData();
+      fd.append('file', compressed);
+      fd.append('stopId', stopId);
+      fd.append('citySlug', citySlug);
       const r = await uploadStopGalleryImage(fd);
       setBusy(null);
       if (!r.ok) setError(r.error);

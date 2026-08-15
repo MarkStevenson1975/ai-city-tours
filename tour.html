@@ -1190,7 +1190,7 @@ function loadStopMedia(stop){
     test.src=url;
   });
   const hasVideo=stop.videoUrl&&typeof stop.videoUrl==='string';
-  const makeImg=(u)=>{const slide=document.createElement('div');slide.className='detail-media-slide';const im=document.createElement('img');im.src=u;im.alt=stop.name||'';slide.appendChild(im);return slide;};
+  const makeImg=(u)=>{const slide=document.createElement('div');slide.className='detail-media-slide';const im=document.createElement('img');im.loading='lazy';im.decoding='async';im.src=u;im.alt=stop.name||'';slide.appendChild(im);return slide;};
   const makeVid=()=>{const slide=document.createElement('div');slide.className='detail-media-slide';const v=document.createElement('video');v.src=stop.videoUrl;v.playsInline=true;v.preload='metadata';v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');const badge=document.createElement('div');badge.className='detail-media-badge';
     if(stop.videoHasSound){
       // Event sound video: tap to play, with controls and audio. Never autoplays

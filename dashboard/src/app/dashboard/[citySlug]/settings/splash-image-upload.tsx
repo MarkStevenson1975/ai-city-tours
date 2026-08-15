@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { uploadSplashImage, removeSplashImage } from './actions';
+import { compressImage } from '@/lib/compress-image';
 
 interface Props {
   cityId: string;
@@ -20,11 +21,12 @@ export function SplashImageUpload({ cityId, citySlug, currentImageUrl }: Props) 
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('cityId', cityId);
-    formData.append('citySlug', citySlug);
     startTransition(async () => {
+      const compressed = await compressImage(file);
+      const formData = new FormData();
+      formData.append('file', compressed);
+      formData.append('cityId', cityId);
+      formData.append('citySlug', citySlug);
       const result = await uploadSplashImage(formData);
       if (!result.ok) setError(result.error);
       else router.refresh();

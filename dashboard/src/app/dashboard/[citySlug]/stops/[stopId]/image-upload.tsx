@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { uploadStopImage, removeStopImageOverride } from './actions';
+import { compressImage } from '@/lib/compress-image';
 
 interface Props {
   stopId: string;
@@ -33,12 +34,13 @@ export function ImageUpload({
     if (!file) return;
 
     setError(null);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('stopId', stopId);
-    formData.append('citySlug', citySlug);
 
     startTransition(async () => {
+      const compressed = await compressImage(file);
+      const formData = new FormData();
+      formData.append('file', compressed);
+      formData.append('stopId', stopId);
+      formData.append('citySlug', citySlug);
       const result = await uploadStopImage(formData);
       if (!result.ok) {
         setError(result.error);

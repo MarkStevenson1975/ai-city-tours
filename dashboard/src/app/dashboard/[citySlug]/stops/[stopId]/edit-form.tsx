@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { updateStop, createStop, deleteStop, uploadStopImage, type StopInput } from './actions';
 import { ImageUpload } from './image-upload';
 import { GalleryVideoManager } from './gallery-video';
+import { compressImage } from '@/lib/compress-image';
 
 interface Stop {
   id: string;
@@ -218,8 +219,9 @@ export function StopEditForm({
         }
         // If user staged an image, upload it now that we have a stopId
         if (stagedFile) {
+          const compressed = await compressImage(stagedFile);
           const fd = new FormData();
-          fd.append('file', stagedFile);
+          fd.append('file', compressed);
           fd.append('stopId', result.id);
           fd.append('citySlug', citySlug);
           const uploadResult = await uploadStopImage(fd);
