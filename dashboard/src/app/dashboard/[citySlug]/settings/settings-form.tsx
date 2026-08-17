@@ -31,6 +31,7 @@ interface City {
   travel_mode: string | null;
   tour_complete_message: string | null;
   tour_complete_suggestion: string | null;
+  tripadvisor_review_url: string | null;
   tc_sponsor_name: string | null;
   tc_sponsor_logo_url: string | null;
   tc_sponsor_url: string | null;
@@ -120,6 +121,7 @@ export function SettingsForm({ city }: { city: City }) {
   // Tour completion
   const [tourCompleteMessage, setTourCompleteMessage] = useState(city.tour_complete_message ?? '');
   const [tourCompleteSuggestion, setTourCompleteSuggestion] = useState(city.tour_complete_suggestion ?? '');
+  const [tripadvisorReviewUrl, setTripadvisorReviewUrl] = useState(city.tripadvisor_review_url ?? '');
 
   // Completion screen sponsor
   // (the logo is handled by the SponsorLogoUpload component, which saves on its own)
@@ -166,6 +168,7 @@ export function SettingsForm({ city }: { city: City }) {
         travel_mode: travelMode,
         tour_complete_message: tourCompleteMessage,
         tour_complete_suggestion: tourCompleteSuggestion,
+        tripadvisor_review_url: tripadvisorReviewUrl,
         tc_sponsor_name: tcSponsorName,
         tc_sponsor_url: tcSponsorUrl,
         tc_sponsor_tagline: tcSponsorTagline,
@@ -505,6 +508,19 @@ export function SettingsForm({ city }: { city: City }) {
               maxLength={400}
               placeholder={`Why not find somewhere to sit and reflect? Or ask ${guideName || 'your guide'} to help you find something nearby.`}
               className={inputCls}
+            />
+          </Field>
+
+          <Field
+            label="TripAdvisor review link"
+            hint="Optional. Paste your TripAdvisor review page URL and a 'Leave a review on TripAdvisor' button appears when a visitor finishes the tour. Leave blank to hide it."
+          >
+            <input
+              type="url"
+              value={tripadvisorReviewUrl}
+              onChange={(e) => setTripadvisorReviewUrl(e.target.value)}
+              placeholder="https://www.tripadvisor.co.uk/UserReviewEdit-..."
+              className={`${inputCls} font-mono text-sm`}
             />
           </Field>
         </div>

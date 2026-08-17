@@ -36,6 +36,8 @@ interface SaveSettingsInput {
   // Tour completion
   tour_complete_message: string;
   tour_complete_suggestion: string;
+  // TripAdvisor review link shown on the tour-complete screen (optional)
+  tripadvisor_review_url: string;
   // Completion screen sponsor
   // Note: tc_sponsor_logo_url is NOT saved here — it is managed separately by
   // the upload component (uploadTcSponsorLogo / removeTcSponsorLogo) so it is
@@ -124,6 +126,10 @@ export async function saveSettings(input: SaveSettingsInput) {
       // Tour completion
       tour_complete_message: input.tour_complete_message.trim() || null,
       tour_complete_suggestion: input.tour_complete_suggestion.trim() || null,
+      // Only store a real http(s) link, so a stray value can't render a broken button
+      tripadvisor_review_url: /^https?:\/\//i.test(input.tripadvisor_review_url.trim())
+        ? input.tripadvisor_review_url.trim()
+        : null,
       // Completion screen sponsor (tc_sponsor_logo_url handled by upload action)
       tc_sponsor_name: input.tc_sponsor_name.trim() || null,
       tc_sponsor_url: input.tc_sponsor_url.trim() || null,
