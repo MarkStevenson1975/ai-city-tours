@@ -607,7 +607,7 @@
       
 <button class="detail-hero-back" onclick="stopAudio();showScreen('stoplist')">← Tour</button>
       <span class="detail-compact-title" id="detail-stop-name">Stop Name</span>
-      <button class="btn-mark-complete" id="btn-mark-complete" onclick="markStopComplete()">Log visit</button>
+      <button class="btn-mark-complete already-done" id="btn-mark-complete" style="display:none" disabled aria-label="Visited">✓ Visited</button>
     </div>
     <div class="detail-stop-img-wrap" id="detail-stop-img-wrap">
       <div class="detail-media-track" id="detail-media-track"></div>
@@ -1299,7 +1299,7 @@ function stopMediaStep(dir){const track=document.getElementById('detail-media-tr
 // their narration, so we strip it at render time for a clean handover.
 const BAKED_STREET_CLOSING="Take some time to look around and explore this stop. When you are ready, tap Log Visit in the top right corner of your screen to save your visit, then tap Tour in the top left corner to go back to your stop list and choose your next stop.";
 function isIndoorTour(){const k=(typeof CONFIG!=='undefined'&&CONFIG&&CONFIG.tourKind)||'town';return k==='venue'||k==='event';}
-function narrationForStop(stop){let t=(stop&&stop.narration)||'';if(isIndoorTour()){const i=t.indexOf(BAKED_STREET_CLOSING);if(i!==-1)t=t.slice(0,i).trim();}return t;}
+function narrationForStop(stop){let t=(stop&&stop.narration)||'';const i=t.indexOf(BAKED_STREET_CLOSING);if(i!==-1)t=t.slice(0,i).trim();return t;}
 function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function renderStopHandover(idx){
   const ho=document.getElementById('detail-handover');if(!ho)return;
@@ -1316,12 +1316,12 @@ function renderStopHandover(idx){
       html+='<p class="handover-text">'+escHtml(dir)+'</p>';
     }
     const close=kind==='event'
-      ? "When you're ready to wander on, tap Log visit to mark this spot, then tap Tour in the top left to choose where to head next."
-      : "When you're ready to move on, tap Log visit in the top right to mark this spot, then tap Tour in the top left to head back to your list.";
+      ? "When you're ready to wander on, tap Next stop below to carry on, or Tour in the top left to choose where to head next."
+      : "When you're ready to move on, tap Next stop below to carry on, or Tour in the top left to head back to your list.";
     html+='<p class="handover-close">'+close+'</p>';
   }else{
     ho.classList.add('final');
-    html='<p class="handover-close">That\'s the last of your stops. Take your time here, and tap Log visit when you\'re ready to finish.</p>';
+    html='<p class="handover-close">That\'s the last of your stops. Take your time here. Your stamps save themselves as you go.</p>';
   }
   ho.innerHTML=html;ho.style.display='';
 }
@@ -1346,8 +1346,27 @@ function renderNextStop(idx){
   distEl.textContent=mins?(mins+' min '+(isCyclingTour()?'ride':'walk')+' away'):'This way';
   card.style.display='';
 }
-function goNextStop(){const card=document.getElementById('detail-nextstop');const t=card&&card.dataset.target;try{if(window.StoriedTrack)window.StoriedTrack.send('next_stop_click');}catch(e){}stopAudio();if(t==='finish'){showScreen('stamps');return;}const idx=parseInt(t,10);if(isNaN(idx))return;state.currentStopIndex=idx;if(isIndoorTour()){openStopDetail(idx);}else{initNavScreen(idx);}}
-function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;state.openedAnyStop=true;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=narrationForStop(stop);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}{const navBtn=document.getElementById('detail-nav-btn');if(navBtn){if(isIndoorTour()||state.visitedStops.has(stop.id)){navBtn.style.display='none';}else{navBtn.style.display='';navBtn.textContent='Navigate to this stop →';}}}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';renderNextStop(idx);renderStopHandover(idx);showScreen('detail');}
+function goNextStop(){const card=document.getElementById('detail-nextstop');const t=card&&card.dataset.target;try{if(window.StoriedTrack)window.StoriedTrack.send('next_stop_click');}catch(e){}markVisited(state.currentStopIndex,'advance');stopAudio();if(t==='finish'){showScreen('stamps');return;}const idx=parseInt(t,10);if(isNaN(idx))return;state.currentStopIndex=idx;if(isIndoorTour()){openStopDetail(idx);}else{initNavScreen(idx);}}
+// Step two: a single place that records a stop as visited, however it was
+// triggered (GPS arrival, playing the narration, or moving on to the next stop).
+// The customer no longer has to tap anything. It also checks for completion on
+// every visit, which is what makes tour_complete fire reliably now.
+function markVisited(idx,source){
+  const stop=CONFIG.stops[idx];if(!stop)return;
+  if(state.visitedStops.has(stop.id))return;
+  state.visitedStops.add(stop.id);
+  saveProgress();
+  try{if(window.StoriedTrack)window.StoriedTrack.send('stop_visited',{meta:{stopId:stop.id,source:source||''}});}catch(e){}
+  const mcBtn=document.getElementById('btn-mark-complete');
+  if(mcBtn&&state.currentStopIndex===idx){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');mcBtn.style.display='';}
+  const pct=(state.visitedStops.size/CONFIG.maxStops)*100;
+  const f=document.getElementById('stamp-progress-fill');if(f)f.style.width=pct+'%';
+  const l=document.getElementById('stamp-progress-label');if(l)l.textContent=`${state.visitedStops.size} of ${CONFIG.maxStops} stamps collected`;
+  if(source!=='arrival')showToast(`Stamp collected: ${stop.name}`);
+  maybeShowSavePrompt();
+  if(state.visitedStops.size>=CONFIG.maxStops&&!state.tourCompleted){setTimeout(showTourComplete,1200);}
+}
+function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;state.openedAnyStop=true;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=narrationForStop(stop);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');mcBtn.style.display='';}else{mcBtn.style.display='none';}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}{const navBtn=document.getElementById('detail-nav-btn');if(navBtn){if(isIndoorTour()||state.visitedStops.has(stop.id)){navBtn.style.display='none';}else{navBtn.style.display='';navBtn.textContent='Navigate to this stop →';}}}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';renderNextStop(idx);renderStopHandover(idx);showScreen('detail');}
 // Travel mode for this tour: 'walking', 'cycling' or 'driving'. Comes from the
 // published config (CONFIG.travelMode). Falls back to reading the slug so bike
 // or drive tours still behave correctly in preview, before a fresh publish
@@ -1514,8 +1533,7 @@ function manualArrival(){
 function triggerArrival(toIdx){
   state.arrivalFired=true;
   const stop=CONFIG.stops[toIdx];
-  state.visitedStops.add(stop.id);
-  saveProgress();
+  markVisited(toIdx,'arrival');
   showToast(`Visited - ${stop.name}`);
   playHarriet(`You've arrived at ${stop.name}. Wonderful - tap to find out more about where you're standing.`,'Arrival');
   document.getElementById('arrival-emoji').textContent=stop.emoji;
@@ -1639,7 +1657,7 @@ function toggleNarrationExpand(){const el=document.getElementById('detail-narrat
     state.currentAudio.pause();
     if(btn){btn.textContent='▶ Resume';btn.classList.add('paused');}
   }
-}async function playNarrationTrack(text,label){const btn=document.getElementById('btn-narration-toggle');if(!text||!text.trim()){if(btn){btn.textContent='▶ Play narration';btn.classList.remove('loading');btn.disabled=false;}showToast('No narration has been added for this stop yet.');return;}try{stopAudio();if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}
+}async function playNarrationTrack(text,label){const btn=document.getElementById('btn-narration-toggle');if(!text||!text.trim()){if(btn){btn.textContent='▶ Play narration';btn.classList.remove('loading');btn.disabled=false;}showToast('No narration has been added for this stop yet.');return;}try{stopAudio();if(state.currentScreen==='detail'){try{markVisited(state.currentStopIndex,'narration');}catch(_e){}}if(btn){btn.innerHTML='<span class="spinner"></span> Loading…';btn.classList.add('loading');btn.disabled=true;}
 // Create and unlock the Audio element NOW, synchronously within the user gesture.
 // iOS Safari blocks audio.play() called after an await — unlocking first fixes this.
 const audio=new Audio();audio.play().catch(()=>{});state.currentAudio=audio;
@@ -1650,7 +1668,7 @@ audio.src=url;audio.load();const playPromise=audio.play();if(playPromise!==undef
 function saveSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'hereford');try{localStorage.setItem(k,JSON.stringify([...state.skippedStops]));}catch(e){}}
 function loadSkippedStops(){const k='skipped-stops-'+(CONFIG.citySlug||'hereford');try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}}
 function skipStop(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id)){showScreen('stoplist');return;}state.visitedStops.add(stop.id);state.skippedStops.add(stop.id);saveProgress();saveSkippedStops();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display='none';if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,600);}showScreen('stoplist');}
-function markStopComplete(){const stop=CONFIG.stops[state.currentStopIndex];if(state.visitedStops.has(stop.id))return;state.visitedStops.add(stop.id);saveProgress();const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}showToast(`Visited: ${stop.name}`);if(state.visitedStops.size===CONFIG.maxStops){setTimeout(showTourComplete,1200);}else{playHarriet(`That's ${stop.name} logged. When you're ready, make your way to the next stop. Or to see the whole tour again, tap the Tour button in the top left corner of your screen to go back to your list of stops.`,'Complete');maybeShowSavePrompt();}}
+function markStopComplete(){markVisited(state.currentStopIndex,'manual');}
 function playFact(text){playHarriet(text,'Interesting Fact');}
 function showAudioBar(label,demo){document.getElementById('audio-label').textContent=label;document.getElementById('audio-player-bar').classList.add('visible');}
 function hideAudioBar(){document.getElementById('audio-player-bar').classList.remove('visible');document.getElementById('audio-progress-fill').style.width='0%';}
