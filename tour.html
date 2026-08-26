@@ -265,6 +265,17 @@
     .sponsor-card .sponsor-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
     .btn-sponsor-secondary{background:transparent;color:var(--color-text-light);border:1px solid rgba(255,255,255,.45)}
     .detail-nav-btn{position:fixed;bottom:16px;left:16px;right:16px;background:var(--color-accent);color:var(--color-primary);padding:12px 24px;border-radius:50px;font-size:.95rem;font-weight:700;text-align:center;box-shadow:var(--shadow-lg);z-index:100}
+    /* Step one: prominent "next stop" nudge at the foot of a stop, to fight one-and-done */
+    .nextstop-hero{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--color-accent);color:#1B4332;border:none;border-radius:var(--radius);padding:13px 15px;margin:2px 0 12px;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,.42);font-family:var(--font-body)}
+    .nextstop-hero .ns-arrow{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:#1B4332;color:var(--color-accent-light);display:flex;align-items:center;justify-content:center}
+    .nextstop-hero .ns-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;line-height:1.15}
+    .nextstop-hero .ns-label{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+    .nextstop-hero .ns-name{font-family:var(--font-display);font-size:1.18rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .nextstop-hero .ns-dist{font-size:.72rem;font-weight:700;opacity:.82}
+    .nextstop-hero .ns-go{flex:0 0 auto;font-size:1.35rem;font-weight:700;opacity:.9}
+    .nextstop-hero.finish{background:#1B4332;color:var(--color-accent-light)}
+    .nextstop-hero.finish .ns-arrow{background:var(--color-accent);color:#1B4332}
+    .nextstop-hero:focus-visible{outline:3px solid #1B4332;outline-offset:2px}
     #screen-nav{background:var(--color-primary);overflow:hidden;padding:0}
     .nav-card-area{position:absolute;inset:0;bottom:216px;overflow:hidden}
     .nav-map-iframe{width:100%;height:100%;border:none;display:block}
@@ -623,6 +634,11 @@
       <div class="ask-harriet-stoplist-wrap">
         <button class="btn-ask-harriet-stoplist" onclick="openFindSomething()">&#128269; Ask Harriet to find something nearby</button>
       </div>
+      <button type="button" class="nextstop-hero" id="detail-nextstop" style="display:none" onclick="goNextStop()">
+        <span class="ns-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="ns-txt"><span class="ns-label" id="ns-label">Next stop</span><span class="ns-name" id="ns-name"></span><span class="ns-dist" id="ns-dist"></span></span>
+        <span class="ns-go">&#8594;</span>
+      </button>
       <div class="skip-stop-wrap">
         <button class="btn-skip-stop" id="btn-skip-stop" onclick="skipStop()">Skip this stop</button>
       </div>
@@ -1309,7 +1325,29 @@ function renderStopHandover(idx){
   }
   ho.innerHTML=html;ho.style.display='';
 }
-function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;state.openedAnyStop=true;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=narrationForStop(stop);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}{const navBtn=document.getElementById('detail-nav-btn');if(navBtn){if(isIndoorTour()){navBtn.style.display='none';}else{navBtn.style.display='';navBtn.textContent=state.visitedStops.has(stop.id)?`Revisit ${stop.name} →`:'Navigate to this stop →';}}}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';renderStopHandover(idx);showScreen('detail');}
+// Step one: the prominent "next stop" card at the foot of a stop. Points at the
+// next unvisited stop in the tour's running order, with a rough walk time, so
+// carrying on is the obvious move instead of tapping Back. Fights one-and-done.
+function nextStopMinutes(ns){try{let d=null;if(state.userLat!=null&&ns&&ns.coordinates){d=haversine(state.userLat,state.userLng,ns.coordinates.lat,ns.coordinates.lng);}else{const cur=CONFIG.stops[state.currentStopIndex];if(cur&&cur.coordinates&&ns&&ns.coordinates)d=haversine(cur.coordinates.lat,cur.coordinates.lng,ns.coordinates.lat,ns.coordinates.lng);}if(d==null||!isFinite(d))return null;return Math.max(1,Math.round(d/navSpeedMpm()));}catch(e){return null;}}
+function renderNextStop(idx){
+  const card=document.getElementById('detail-nextstop');if(!card)return;
+  const nameEl=document.getElementById('ns-name');const distEl=document.getElementById('ns-dist');const lblEl=document.getElementById('ns-label');
+  let fwd=-1;for(let i=idx+1;i<CONFIG.stops.length;i++){if(!state.visitedStops.has(CONFIG.stops[i].id)){fwd=i;break;}}
+  if(fwd<0){
+    const anyLeft=CONFIG.stops.some(s=>!state.visitedStops.has(s.id));
+    if(!anyLeft){card.classList.add('finish');card.dataset.target='finish';lblEl.textContent='You’ve seen them all';nameEl.textContent='Finish the tour';distEl.textContent='';distEl.style.display='none';card.style.display='';return;}
+    fwd=nextInOrderIndex(idx);
+    if(fwd<0){card.style.display='none';return;}
+  }
+  const ns=CONFIG.stops[fwd];
+  card.classList.remove('finish');card.dataset.target=String(fwd);
+  lblEl.textContent='Next stop';nameEl.textContent=ns.name;
+  const mins=nextStopMinutes(ns);distEl.style.display='';
+  distEl.textContent=mins?(mins+' min '+(isCyclingTour()?'ride':'walk')+' away'):'This way';
+  card.style.display='';
+}
+function goNextStop(){const card=document.getElementById('detail-nextstop');const t=card&&card.dataset.target;try{if(window.StoriedTrack)window.StoriedTrack.send('next_stop_click');}catch(e){}stopAudio();if(t==='finish'){showScreen('stamps');return;}const idx=parseInt(t,10);if(isNaN(idx))return;state.currentStopIndex=idx;if(isIndoorTour()){openStopDetail(idx);}else{initNavScreen(idx);}}
+function openStopDetail(idx){stopAudio();const stop=CONFIG.stops[idx];state.currentStopIndex=idx;state.openedAnyStop=true;document.getElementById('detail-stop-badge').textContent=`Stop ${stop.id}`;loadStopMedia(stop);const ntBtn=document.getElementById('btn-narration-toggle');if(ntBtn){ntBtn.textContent='▶ Play narration';ntBtn.classList.remove('paused');ntBtn.disabled=false;}const narEl=document.getElementById('detail-narration');if(narEl)narEl.classList.remove('expanded');const expBtn=document.getElementById('btn-expand-narration');if(expBtn)expBtn.textContent='Read more ↓';document.getElementById('detail-stop-name').textContent=stop.name;document.getElementById('detail-narration').textContent=narrationForStop(stop);const mcBtn=document.getElementById('btn-mark-complete');if(mcBtn){if(state.visitedStops.has(stop.id)){mcBtn.textContent='✓ Visited';mcBtn.classList.add('already-done');}else{mcBtn.textContent="Log visit";mcBtn.classList.remove('already-done');}}document.getElementById('detail-facts').innerHTML=stop.facts.map(f=>`<div class="fact-card"><span class="fact-icon">💡</span><span class="fact-text">${f}</span></div>`).join('');const sponsorEl=document.getElementById('detail-sponsor-card');const nearSponsor=(CONFIG.sponsors||[]).find(s=>s.subscriptionStatus==='active'&&(s.stopNumber===stop.id||(s.stopNumber==null&&haversine(stop.coordinates.lat,stop.coordinates.lng,s.coordinates.lat,s.coordinates.lng)<300)));const sUrl=nearSponsor?(nearSponsor.ctaUrl||nearSponsor.googleBusinessUrl||''):'';sponsorEl.innerHTML=nearSponsor?`<div class="sponsor-card"><div class="sponsor-label">Local recommendation</div><div class="sponsor-name">${nearSponsor.emoji} ${nearSponsor.name}</div><div class="sponsor-tagline">${nearSponsor.tagline}</div><div class="sponsor-actions">${sUrl?`<button class="btn-sponsor-cta" data-act="web">Visit website ↗</button>`:''}<button class="btn-sponsor-cta${sUrl?' btn-sponsor-secondary':''}" data-act="dir">${nearSponsor.ctaLabel} →</button></div></div>`:'';if(nearSponsor){const _d=sponsorEl.querySelector('[data-act="dir"]');if(_d)_d.onclick=()=>navigateToSponsor(nearSponsor.coordinates.lat,nearSponsor.coordinates.lng,nearSponsor.name);const _w=sponsorEl.querySelector('[data-act="web"]');if(_w)_w.onclick=()=>window.open(sUrl,'_blank','noopener');enrichSponsorCard(sponsorEl,nearSponsor);}{const navBtn=document.getElementById('detail-nav-btn');if(navBtn){if(isIndoorTour()||state.visitedStops.has(stop.id)){navBtn.style.display='none';}else{navBtn.style.display='';navBtn.textContent='Navigate to this stop →';}}}const skipBtn=document.getElementById('btn-skip-stop');if(skipBtn)skipBtn.style.display=state.visitedStops.has(stop.id)?'none':'';renderNextStop(idx);renderStopHandover(idx);showScreen('detail');}
 // Travel mode for this tour: 'walking', 'cycling' or 'driving'. Comes from the
 // published config (CONFIG.travelMode). Falls back to reading the slug so bike
 // or drive tours still behave correctly in preview, before a fresh publish
