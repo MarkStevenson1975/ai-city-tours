@@ -628,17 +628,17 @@
         <p class="narration-text" id="detail-narration"></p>
         <button class="btn-expand-narration" id="btn-expand-narration" onclick="toggleNarrationExpand()">Read more ↓</button>
       </div>
+      <button type="button" class="nextstop-hero" id="detail-nextstop" style="display:none" onclick="goNextStop()">
+        <span class="ns-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="ns-txt"><span class="ns-label" id="ns-label">Next stop</span><span class="ns-name" id="ns-name"></span><span class="ns-dist" id="ns-dist"></span></span>
+        <span class="ns-go">&#8594;</span>
+      </button>
       <div class="facts-section"><h3>Interesting Facts</h3><div id="detail-facts"></div></div>
       <div id="detail-handover" class="handover-card" style="display:none"></div>
       <div id="detail-sponsor-card"></div>
       <div class="ask-harriet-stoplist-wrap">
         <button class="btn-ask-harriet-stoplist" onclick="openFindSomething()">&#128269; Ask Harriet to find something nearby</button>
       </div>
-      <button type="button" class="nextstop-hero" id="detail-nextstop" style="display:none" onclick="goNextStop()">
-        <span class="ns-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span class="ns-txt"><span class="ns-label" id="ns-label">Next stop</span><span class="ns-name" id="ns-name"></span><span class="ns-dist" id="ns-dist"></span></span>
-        <span class="ns-go">&#8594;</span>
-      </button>
       <div class="skip-stop-wrap">
         <button class="btn-skip-stop" id="btn-skip-stop" onclick="skipStop()">Skip this stop</button>
       </div>
