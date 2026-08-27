@@ -1351,7 +1351,7 @@ function renderNextStop(idx){
     const anyLeft=CONFIG.stops.some(s=>!state.visitedStops.has(s.id));
     if(!anyLeft){card.classList.add('finish');card.dataset.target='finish';lblEl.textContent='You’ve seen them all';nameEl.textContent='Finish the tour';distEl.textContent='';distEl.style.display='none';card.style.display='';return;}
     fwd=nextInOrderIndex(idx);
-    if(fwd<0){card.style.display='none';return;}
+    if(fwd<0){card.classList.add('finish');card.dataset.target='finish';lblEl.textContent='You’ve reached the last one';nameEl.textContent='Finish the tour';distEl.textContent='';distEl.style.display='none';card.style.display='';return;}
   }
   const ns=CONFIG.stops[fwd];
   card.classList.remove('finish');card.dataset.target=String(fwd);
@@ -1605,7 +1605,7 @@ let notifTimeout=null;
 // any already done, until the whole tour is complete. Returns -1 when every stop
 // is done. So a visitor who begins at stop 3 goes 3,4,..to the end, then loops
 // to 1,2 for anything still not done.
-function nextInOrderIndex(anchor){const n=CONFIG.stops.length;for(let k=1;k<=n;k++){const i=((anchor%n)+k)%n;if(!state.visitedStops.has(CONFIG.stops[i].id))return i;}return -1;}
+function nextInOrderIndex(anchor){const n=CONFIG.stops.length;for(let k=1;k<=n;k++){const i=((anchor%n)+k)%n;if(i===anchor)continue;/* never point back at the stop you're on */if(!state.visitedStops.has(CONFIG.stops[i].id))return i;}return -1;}
 // Which stop to nudge the visitor towards next when a stop's audio ends. Outdoor
 // GPS tours follow the running order (with wrap), matching the top card. Venue
 // and event tours keep their simple route order (unchanged).
