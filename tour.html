@@ -1504,7 +1504,9 @@ function maybeFireSponsorForStop(toIdx,source){
   showNotification('sponsor',sponsor.name,callout,12000,'',sponsor.ctaLabel||'Take me there',`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`,(sponsor.ctaUrl||sponsor.googleBusinessUrl||''));
   return sponsor;
 }
-function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}state.navSteps=[];state.navRouteReady=false;state.navRouteLoading=false;showScreen('stoplist');}
+function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}state.navSteps=[];state.navRouteReady=false;state.navRouteLoading=false;// Return to the stop you were navigating to (its detail), not the whole list,
+// so exiting the map lands you on the next stop it directed you towards.
+const _i=state.currentStopIndex;if(typeof _i==='number'&&CONFIG.stops&&CONFIG.stops[_i]){openStopDetail(_i);}else{showScreen('stoplist');}}
 function openInGoogleMaps(){const stop=CONFIG.stops[state.currentStopIndex];if(!stop)return;const{lat,lng}=stop.coordinates;window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${googleTravelMode()}`,'_blank');}
 function isAudioPlaying(){return state.currentAudio&&!state.currentAudio.ended&&!state.currentAudio.paused;}
 function tryPlayFact(fact){if(isAudioPlaying()){state.pendingFact=fact;return false;}showNotification('fact',null,fact.text,10000);/* Facts are text-only (shown on the card) to save voice credits — no TTS. */return true;}
