@@ -1,0 +1,111 @@
+{
+  "city": "Mappa Mundi",
+  "citySlug": "mappa-hunt",
+  "postcodeArea": "HR1",
+  "guideName": "Richard",
+  "guideVoiceId": "kVBPcEMsUF1nsAO1oNWw",
+  "maxStops": 6,
+  "colorPrimary": "#1B4332",
+  "colorBackground": "#F5F0E8",
+  "colorAccent": "#C9A84C",
+  "operatorName": "Hereford Cathedral",
+  "operatorAttributionText": "Brought to you by Hereford Cathedral",
+  "splashIntro": "Hello there. Yes, you. Come a little closer, I will not bite. My name is Richard, and a very long time ago, about seven hundred years ago, I drew a map. Not just any map. The biggest map of the whole world, and it is still here today, inside Hereford Cathedral, just behind you.\n\nAround the edges of my map, I drew some very strange creatures. Monsters. A man with ears as big as bedsheets. A bull that fires something very rude indeed. A man with one giant foot. Every one of them is real, because I drew them myself.\n\nAnd here is my problem. They have escaped. Every single monster has climbed off my map and run away to hide around the Cathedral and its Close. Naughty things.\n\nThat is where you come in. I need a brave monster hunter, and you look just right. Your job is to find all six. Look at the picture on your screen so you know what each monster looks like. Then keep your eyes wide open, because they like to hide in windows, in doorways, and sometimes right down low on the ground.\n\nWhen you find a monster, get nice and close, and the Caught it button will wake up. Tap it, and I will pop that monster straight back onto my map. Find all six and you will be a proper monster hunter. Ready? The first one has the enormous ears.",
+  "tourCompleteNarration": "You did it. Every single monster, found and back on my map where it belongs. I knew you were the right hunter the moment I saw you.\n\nNow for the best part. Step inside and find the real map, the Mappa Mundi. It is enormous, it is seven hundred years old, and I drew every line of it myself. Get up close and look around the edges. You will find them all there, drawn in their proper places. The big ears, the fiery bull, the screaming plant, the lazy foot, the watchful dragon and the slithery serpent. Every monster you caught today.\n\nSo the next time somebody tells you a map is boring, you can tell them that you once chased its monsters all around Hereford Cathedral and put every single one of them back. Thank you, brave hunter. Richard of Haldingham, mapmaker, says farewell.",
+  "tourCompleteMessage": "Every monster is back on the map. Now step inside and find them all on the real one.",
+  "tourCompleteSuggestion": "Go through the cloisters into the Mappa Mundi exhibition and find all six monsters on the giant 700 year old map.",
+  "stops": [
+    {
+      "id": 1,
+      "name": "Cathedral Green",
+      "emoji": "👂",
+      "shortDescription": "Find the monster with ears like bedsheets",
+      "coordinates": { "lat": 52.0536, "lng": -2.7158 },
+      "heroImageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/24/Hereford_Mappa_Mundi_-_detail_-_Panotti.jpg",
+      "narration": "Here you are on Cathedral Green, the wide grassy space in front of the Cathedral's great west front. People have been crossing this green to visit my map for seven hundred years, and every one of them has been listened to. Because the monster hiding here has the best ears in the world.\n\nHe is called the Panotii. Look at your screen. That picture is my own drawing of him, straight from the map. His ears are as big as bedsheets. At night he wraps himself up in them like a cosy blanket, and with ears that big he can hear every whisper on the green.\n\nHe is hiding somewhere very close to you right now. Have a good look around. Check the great doors of the west front. Look up high, and look down low. Can you spot those giant ears poking out?\n\nWalk right up to where you think he is, and when you are close enough, tap Caught it. Back onto the map he goes. Off you pop, hunter.",
+      "facts": [
+        "The Panotii, drawn with ears large enough to sleep inside, appear on the real Mappa Mundi at the edge of the known world.",
+        "The Cathedral's west end fell down on Easter Monday in 1786, and the front you see today was rebuilt over the century that followed."
+      ],
+      "monster": "Panotii"
+    },
+    {
+      "id": 2,
+      "name": "Broad Street",
+      "emoji": "🐂",
+      "shortDescription": "Find the bull that fires its own poo",
+      "coordinates": { "lat": 52.0543, "lng": -2.7158 },
+      "heroImageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Bonnacon.jpg",
+      "narration": "You are standing on Broad Street, the grandest street in Hereford, looking back at the Cathedral across the green. Long ago, farmers drove their cattle through streets just like this one on market days, and Hereford is famous for its handsome white-faced cattle. So our next monster fits right in, because he is a bit like a bull.\n\nHe is called the Bonnacon. Look at the picture on your screen. He has a furry mane and curly horns. Now here is the funny part, and it is a little bit rude. When something chases the Bonnacon, he fires his own poo out of his bottom, splat, all over them. And the poo is so hot it burns. So whatever you do, do not chase this one. Just find him.\n\nLook along the street and back towards the green. Peek at the windows and the doorways, and check down low near the ground. Can you see the Bonnacon hiding?\n\nWalk up nice and close, then tap Caught it. And try not to stand behind him.",
+      "facts": [
+        "Medieval bestiaries describe the Bonnacon defending itself by firing burning dung as it flees, said to cover three acres of ground.",
+        "Hereford cattle, with their distinctive white faces, are one of the most widely exported breeds in the world."
+      ],
+      "monster": "Bonnacon"
+    },
+    {
+      "id": 3,
+      "name": "Church Street corner",
+      "emoji": "🌱",
+      "shortDescription": "Find the screaming plant with a grumpy face",
+      "coordinates": { "lat": 52.0545, "lng": -2.7145 },
+      "heroImageUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Mandragora_Tacuinum_Sanitatis.jpg?width=640",
+      "narration": "This narrow little lane is Church Street, one of the oldest lanes in Hereford, and it leads straight down to the Cathedral Close. It is full of small shops and window boxes, which makes it the perfect hiding place for our next monster. Because this one is not an animal at all. It is a plant.\n\nIt is called the Mandrake, and it grows in the ground shaped like a tiny person, with little arms, little legs and a grumpy little face. Look at your screen and you will see him.\n\nHere is the strange part. If you pull a Mandrake out of the ground, it screams, so loudly that it could knock you off your feet. So we will not pull him. We will just find him.\n\nLook all around the corner where the lane meets the Close. Try the windows, try the doorways, and look down low near the ground where a little root might hide. Can you spot his leafy head?\n\nGet close, tap Caught it, and on we go.",
+      "facts": [
+        "Medieval herbals drew the mandrake root as a tiny human figure, and warned that its scream when pulled from the ground could flatten the person pulling.",
+        "Church Street is one of Hereford's oldest lanes, linking the market square at High Town to the Cathedral Close."
+      ],
+      "monster": "Mandrake"
+    },
+    {
+      "id": 4,
+      "name": "Castle Street",
+      "emoji": "🦶",
+      "shortDescription": "Find the sleepy monster with one giant foot",
+      "coordinates": { "lat": 52.0538, "lng": -2.7135 },
+      "heroImageUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Nuremberg_chronicles_-_Strange_People_-_Umbrella_Foot_(XIIr).jpg?width=640",
+      "narration": "Well done, you have found Castle Street, the quiet old street at the east end of the Cathedral. It is named after Hereford Castle, which once stood just along the way and was one of the biggest castles in England. The castle is long gone, and nowadays this is one of the sleepiest corners of the city. Which is exactly why our next monster picked it.\n\nHe is the lazy one. He is called the Sciapod, and he has just one leg and one enormous foot. Look at your screen. He cannot really walk, so he lies on his back all day and holds his giant foot up in the air to use as a sunshade. Imagine being your very own umbrella.\n\nHe is hiding somewhere close by, probably having a nap. Look in the windows and the doorways of the old houses, and check down low near the ground. Can you find that great big foot?\n\nTiptoe up close and tap Caught it. He will not even wake up.",
+      "facts": [
+        "The Sciapod is shown on the Mappa Mundi as a man lying on his back, using his single huge foot as a sunshade.",
+        "Hereford Castle was once one of the largest castles in England, but was dismantled over the centuries until almost nothing remained."
+      ],
+      "monster": "Sciapod"
+    },
+    {
+      "id": 5,
+      "name": "The Lady Arbour",
+      "emoji": "🐉",
+      "shortDescription": "Find the dragon guarding the map",
+      "coordinates": { "lat": 52.0531, "lng": -2.7155 },
+      "heroImageUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Friedrich-Johann-Justin-Bertuch_Mythical-Creature-Dragon_1806.jpg?width=640",
+      "narration": "This peaceful garden beside the cloisters is called the Lady Arbour. It is one of the quietest spots in all of Hereford, and our next monster chose it very carefully. Because every dragon needs something precious to guard.\n\nLook at your screen. There he is, the Dragon. Some dragons guard castles, and some guard gold. This one appointed himself guardian of the most precious thing in Hereford: my map. He has been on duty for seven hundred years, sitting near these walls, puffing out proud little clouds of smoke whenever anyone comes too close.\n\nHe is hiding somewhere in or around the garden. Be kind, he takes his job very seriously. Look along the walls, check the doorways and the shadowy corners, and look down low near the ground. Can you spot the watchful dragon?\n\nWalk up slowly, tap Caught it, and tell him he has done a very good job.",
+      "facts": [
+        "Medieval mapmakers drew dragons and serpents at the far edges of their maps, in the places no traveller had ever returned from.",
+        "The Lady Arbour garden sits beside the Cathedral's cloisters, where clergy have walked for more than five hundred years."
+      ],
+      "monster": "Dragon"
+    },
+    {
+      "id": 6,
+      "name": "College Cloisters",
+      "emoji": "🐍",
+      "shortDescription": "Find the serpent at the door of the map",
+      "coordinates": { "lat": 52.0533, "lng": -2.7147 },
+      "heroImageUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/A_serpent._Woodcut_after_C._Gessner._Wellcome_V0021194.jpg?width=640",
+      "narration": "Here is your very last monster, and the trickiest one of all. You have reached the College Cloisters, and behind these old stone walls waits the real Mappa Mundi itself.\n\nThe monster here is the Sea Serpent. Look at your screen. He is long and slithery, like a giant snake, with shiny eyes that glow like lanterns. He slithered all the way up from the River Wye at the bottom of the hill, because he wants to be the very first monster back on the map.\n\nHe is hiding somewhere near the cloisters. Have a really good look. Check along the walls, check the doorways and the archways, and look right down low near the ground. Can you find him?\n\nWhen you spot the Sea Serpent, get close and tap Caught it. That is all six. You clever thing. Now step inside, and I will meet you at the map.",
+      "facts": [
+        "Medieval mapmakers filled the oceans of maps like the Mappa Mundi with sea serpents and monsters reported home by sailors.",
+        "The Mappa Mundi has lived at Hereford Cathedral for more than seven hundred years, and you reach it today through these cloisters."
+      ],
+      "monster": "Sea Serpent"
+    }
+  ],
+  "locationFacts": [
+    { "id": "mm1", "text": "The Hereford Mappa Mundi is the largest medieval map of the world to survive, drawn on a single sheet of calf-skin vellum around the year 1300." },
+    { "id": "mm2", "text": "The map places Jerusalem at the very centre of the world, with east, not north, at the top." },
+    { "id": "mm3", "text": "Hereford appears on the Mappa Mundi itself, a tiny drawing on the River Wye, in the bottom left corner of the map." },
+    { "id": "mm4", "text": "People have worshipped on the site of Hereford Cathedral for around 1,300 years, longer than the map has existed." }
+  ],
+  "sponsors": [],
+  "events": []
+}
