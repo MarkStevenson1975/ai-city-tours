@@ -86,6 +86,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Text too long (max 5000 chars)' });
   }
 
+  // Pronunciation fixes: the screen keeps the real spelling, the voice reads
+  // a phonetic respelling. Applied BEFORE the cache path is computed, so any
+  // clip previously synthesised with the wrong pronunciation regenerates once
+  // (new hash) and the fixed audio is what gets cached permanently.
+  const PRONUNCIATIONS = [
+    [/\bNene\b/g, 'Neen'], // River Nene rhymes with seen, not henny
+  ];
+  let spokenText = text;
+  for (const [pattern, replacement] of PRONUNCIATIONS) {
+    spokenText = spokenText.replace(pattern, replacement);
+  }
+
   // Default to the Harriet voice when a tour has no custom voice set.
   const DEFAULT_VOICE_ID = process.env.DEFAULT_VOICE_ID || 'NTqGiNK8P02i66yY2GOH';
   let voiceId = (req.query.voiceId || '').toString();
@@ -101,7 +113,7 @@ export default async function handler(req, res) {
   // 1. Permanent storage cache. If we've made this exact clip before, serve the
   //    stored MP3 and never touch ElevenLabs. This runs before the rate limiter
   //    so cached plays are never throttled.
-  const path = cachePath(voiceId, text);
+  const path = cachePath(voiceId, spokenText);
   const cached = await storageGet(path);
   if (cached) {
     res.setHeader('Content-Type', 'audio/mpeg');
@@ -141,7 +153,7 @@ export default async function handler(req, res) {
           Accept: 'audio/mpeg',
         },
         body: JSON.stringify({
-          text,
+          text: spokenText,
           model_id: 'eleven_turbo_v2',
           voice_settings: { stability: 0.5, similarity_boost: 0.75 },
         }),
