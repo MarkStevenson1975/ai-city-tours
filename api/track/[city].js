@@ -14,6 +14,7 @@ const ALLOWED_EVENTS = new Set([
   'stop_viewed',
   'stop_logged',
   'narration_played',
+  'narration_ended',
   'fact_played',
   'find_nearby',
   'sponsor_shown',
