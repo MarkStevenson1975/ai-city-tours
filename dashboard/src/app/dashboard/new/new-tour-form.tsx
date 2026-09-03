@@ -51,10 +51,9 @@ export function NewTourForm({ error }: { error?: string }) {
 
       <div>
         <p className="text-sm font-bold mb-2">What kind of tour is it?</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {pill('town', 'A town or area', 'High street, trail, whole town')}
           {pill('venue', 'A single venue', 'Stately home, hotel, attraction')}
-          {pill('event', 'An event', 'Festival, market, open day', 'Beta')}
         </div>
       </div>
 
