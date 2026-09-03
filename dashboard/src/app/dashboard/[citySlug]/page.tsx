@@ -11,6 +11,7 @@ import { SeeItLiveButton } from './subscribe-modal';
 import { PLAN_STOP_LIMIT, PLAN_TOUR_LIMIT, PLAN_LABEL, STANDBY_PRICE_PENCE, nextTier, type Tier } from '@/lib/plans';
 import { TourActions } from './tour-actions';
 import { PauseButton, PausedPanel } from './pause-controls';
+import { VenuePinMap } from './venue-pin-map';
 
 export default async function CityOverview({
   params,
@@ -53,7 +54,7 @@ export default async function CityOverview({
       supabase
         .from('stops')
         .select(
-          'id, position, name, short_description, hero_image_url, hero_image_override_url, updated_at'
+          'id, position, name, short_description, hero_image_url, hero_image_override_url, updated_at, lat, lng'
         )
         .eq('city_id', city.id)
         .order('position'),
@@ -257,6 +258,29 @@ export default async function CityOverview({
         </div>
         <StopsReorder citySlug={citySlug} initialStops={stops ?? []} stopLimit={stopLimit} />
       </section>
+
+      {/* Venue tours: reposition each stop's pin on the building itself. */}
+      {city.tour_kind === 'venue' && (
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-1">Stop positions on the map</h2>
+          <p className="text-sm text-gray-600 mb-4 max-w-xl">
+            Your stops sit inside one building, so drag each numbered pin to the
+            exact spot. Changes save automatically. Publish to push them to the live tour.
+          </p>
+          <VenuePinMap
+            citySlug={citySlug}
+            stops={(stops ?? [])
+              .filter((s) => s.lat != null && s.lng != null)
+              .map((s) => ({
+                id: s.id as string,
+                position: s.position as number,
+                name: s.name as string,
+                lat: s.lat as number,
+                lng: s.lng as number,
+              }))}
+          />
+        </section>
+      )}
 
       <section id="manage-tour" className="mb-12 border-t border-gray-200 pt-8 scroll-mt-6">
         <h2 className="text-2xl font-semibold mb-1">Manage tour</h2>
