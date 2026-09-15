@@ -1,6 +1,23 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { VisitorDateFilter } from './visitor-date-filter';
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Accept only a valid YYYY-MM-DD string, else null. */
+function cleanDate(v: string | undefined): string | null {
+  if (!v || !ISO_DATE.test(v)) return null;
+  const d = new Date(v + 'T00:00:00Z');
+  return Number.isNaN(d.getTime()) ? null : v;
+}
+
+function formatRange(from: string, to: string): string {
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+  const f = new Date(from + 'T00:00:00Z').toLocaleDateString('en-GB', opts);
+  const t = new Date(to + 'T00:00:00Z').toLocaleDateString('en-GB', opts);
+  return `${f} to ${t}`;
+}
 
 type StopStat = { stop_name: string; visit_count: number };
 
@@ -40,11 +57,25 @@ type KpiResult = {
 
 export default async function CityVisitorsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ citySlug: string }>;
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const { citySlug } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
+
+  // A range only applies when BOTH ends are valid dates; otherwise all-time.
+  let fromDate = cleanDate(sp.from);
+  let toDate = cleanDate(sp.to);
+  if (!fromDate || !toDate) {
+    fromDate = null;
+    toDate = null;
+  } else if (fromDate > toDate) {
+    [fromDate, toDate] = [toDate, fromDate];
+  }
+  const rangeActive = Boolean(fromDate && toDate);
 
   const {
     data: { user },
@@ -60,6 +91,8 @@ export default async function CityVisitorsPage({
 
   const { data: kpiRows, error } = await supabase.rpc('city_visitor_kpis', {
     p_city_slug: citySlug,
+    p_from: fromDate,
+    p_to: toDate,
   });
 
   const kpi: KpiResult | null =
@@ -69,6 +102,8 @@ export default async function CityVisitorsPage({
 
   const { data: breakdownRows } = await supabase.rpc('city_stop_breakdown', {
     p_city_slug: citySlug,
+    p_from: fromDate,
+    p_to: toDate,
   });
   const stopBreakdown: StopBreakdownRow[] = breakdownRows ?? [];
   const maxReached = stopBreakdown.reduce(
@@ -108,6 +143,14 @@ export default async function CityVisitorsPage({
         </p>
       </header>
 
+      <VisitorDateFilter from={fromDate} to={toDate} />
+
+      {rangeActive && fromDate && toDate && (
+        <p className="text-sm text-gray-600 mb-6">
+          Showing visitors for <strong>{formatRange(fromDate, toDate)}</strong>.
+        </p>
+      )}
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded p-4 text-sm mb-6">
           Could not load KPI data: {error.message}
@@ -117,11 +160,12 @@ export default async function CityVisitorsPage({
       {!hasData && !error && (
         <div className="bg-white rounded-xl p-10 text-center shadow-sm mb-8">
           <p className="font-display text-2xl text-gray-400 mb-2">
-            No visitor data yet
+            {rangeActive ? 'No visitor data for these dates' : 'No visitor data yet'}
           </p>
           <p className="text-sm text-gray-500">
-            KPIs will appear here once tourists start signing up and logging
-            stops on the {city.name} tour.
+            {rangeActive
+              ? 'Try a wider date range, or clear the filter to see all time.'
+              : `KPIs will appear here once tourists start signing up and logging stops on the ${city.name} tour.`}
           </p>
         </div>
       )}
@@ -130,7 +174,7 @@ export default async function CityVisitorsPage({
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             <KpiCard
-              label="Total visitors"
+              label={rangeActive ? 'Visitors in range' : 'Total visitors'}
               value={kpi.combined_visitors}
               hint="Registered + guests"
             />
@@ -145,18 +189,25 @@ export default async function CityVisitorsPage({
               hint="Used the tour without signing in"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-10">
-            <KpiCard
-              label="Visitors last 7 days"
-              value={kpi.visits_last_7_days}
-              hint="Registered + guests active"
-            />
-            <KpiCard
-              label="Visitors last 30 days"
-              value={kpi.visits_last_30_days}
-              hint="Registered + guests active"
-            />
-          </div>
+          {rangeActive ? (
+            <p className="text-xs text-gray-400 mb-10 -mt-1">
+              Guest visitors are counted exactly within the dates. Registered
+              visitors are counted if they were active during the selected dates.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 mb-10">
+              <KpiCard
+                label="Visitors last 7 days"
+                value={kpi.visits_last_7_days}
+                hint="Registered + guests active"
+              />
+              <KpiCard
+                label="Visitors last 30 days"
+                value={kpi.visits_last_30_days}
+                hint="Registered + guests active"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-xl p-6 shadow-sm">
@@ -189,10 +240,10 @@ export default async function CityVisitorsPage({
 
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <h2 className="text-xs uppercase tracking-widest font-bold text-gray-500 mb-1">
-                Most visited stops · last 30 days
+                Most visited stops · {rangeActive ? 'selected dates' : 'last 30 days'}
               </h2>
               <p className="text-xs text-gray-400 mb-4">
-                Top 5 stops by visits reached over the past 30 days, guests
+                Top 5 stops by visits reached over {rangeActive ? 'the selected dates' : 'the past 30 days'}, guests
                 included.
               </p>
               {!kpi.most_visited_stops || kpi.most_visited_stops.length === 0 ? (
