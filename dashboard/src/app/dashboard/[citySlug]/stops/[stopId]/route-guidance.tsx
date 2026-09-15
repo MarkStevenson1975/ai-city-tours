@@ -61,6 +61,15 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
   const [routeInfo, setRouteInfo] = useState<string>('');
   const valueRef = useRef(value);
   valueRef.current = value;
+  // Each route request gets a sequence number; only the latest may draw. This
+  // stops a slow earlier answer landing after a faster later one and leaving
+  // a second, stale line on the map.
+  const routeSeq = useRef(0);
+
+  function clearRouteLine() {
+    if (routeLine.current) routeLine.current.setMap(null);
+    routeLine.current = null;
+  }
 
   // Draw the route through the current via-points, exactly as the player would.
   const drawRoute = useCallback(async (pts: ViaPoint[]) => {
@@ -71,15 +80,20 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
     const chain = [from, ...pts, { lat: next.lat, lng: next.lng }];
     const coords = chain.map((p) => `${p.lng},${p.lat}`).join(';');
     const profile = osrmProfile(travelMode);
+    const seq = ++routeSeq.current;
+    // Clear the previous line straight away so there is never a moment with
+    // two lines on the map, whatever order the answers arrive in.
+    clearRouteLine();
     try {
       setRouteInfo('Drawing route…');
       const res = await fetch(
         `https://routing.openstreetmap.de/routed-${profile}/route/v1/${profile}/${coords}?overview=full&geometries=geojson`
       );
       const data = await res.json();
+      if (seq !== routeSeq.current) return; // a newer request has superseded this one
       if (!data.routes || !data.routes.length) throw new Error('no route');
       const path = data.routes[0].geometry.coordinates.map((c: number[]) => ({ lat: c[1], lng: c[0] }));
-      if (routeLine.current) routeLine.current.setMap(null);
+      clearRouteLine();
       routeLine.current = new g.maps.Polyline({
         path,
         map,
@@ -90,8 +104,8 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
       const km = data.routes[0].distance / 1000;
       setRouteInfo(`Route as the walker will see it: ${km.toFixed(1)} km`);
     } catch {
-      if (routeLine.current) routeLine.current.setMap(null);
-      routeLine.current = null;
+      if (seq !== routeSeq.current) return;
+      clearRouteLine();
       setRouteInfo('Could not draw the route just now. Your points are still saved when you save the stop.');
     }
   }, [from, next, travelMode]);
@@ -222,7 +236,8 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
       {!ready && <p className="text-xs text-gray-500 mt-2">Loading map…</p>}
       <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
         <p className="text-xs text-gray-600">
-          {routeInfo || 'Tap the map to add a point. Drag a point to move it, tap it to remove.'}
+          {routeInfo || 'Tap the map to add a point. Drag a point to move it, tap it to remove.'}{' '}
+          {value.length > 0 && 'If the line doubles back on itself, drag that point a little closer to the path you mean.'}
         </p>
         <span className="text-xs font-bold text-gray-500">
           {value.length} of {MAX_VIA_POINTS} points
