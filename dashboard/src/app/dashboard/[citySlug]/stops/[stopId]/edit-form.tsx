@@ -6,6 +6,7 @@ import { updateStop, createStop, deleteStop, uploadStopImage, type StopInput } f
 import { ImageUpload } from './image-upload';
 import { GalleryVideoManager } from './gallery-video';
 import { compressImage } from '@/lib/compress-image';
+import { RouteGuidanceMap, type ViaPoint } from './route-guidance';
 
 interface Stop {
   id: string;
@@ -24,6 +25,7 @@ interface Stop {
   video_first: boolean | null;
   video_has_sound: boolean | null;
   next_directions: string | null;
+  via_points: ViaPoint[] | null;
 }
 
 interface Props {
@@ -40,6 +42,11 @@ interface Props {
   /** Venue and event tours (indoor/among stalls) show a "Directions to the next
    *  stop" field, because GPS and the street map can't guide room to room. */
   showNextDirections?: boolean;
+  /** The stop that follows this one in the walk (by position), for shaping the
+   *  route between the two. Null on the final stop. */
+  nextStop?: { name: string; position: number; lat: number; lng: number } | null;
+  /** Tour travel mode (walking/cycling/driving) so the route preview matches. */
+  travelMode?: string;
 }
 
 export function StopEditForm({
@@ -50,6 +57,8 @@ export function StopEditForm({
   suggestedPosition,
   isEventTour = false,
   showNextDirections = false,
+  nextStop = null,
+  travelMode = 'walking',
 }: Props) {
   const router = useRouter();
   const isNew = !stop;
@@ -137,6 +146,15 @@ export function StopEditForm({
     stop?.google_business_url ?? ''
   );
   const [nextDirections, setNextDirections] = useState(stop?.next_directions ?? '');
+  const [viaPoints, setViaPoints] = useState<ViaPoint[]>(
+    Array.isArray(stop?.via_points) ? stop!.via_points! : []
+  );
+  // Route guidance is an advanced, optional section. It opens itself only when
+  // there is already something in it, or on indoor tours where the written
+  // directions are the main way people find the next stop.
+  const [routeOpen, setRouteOpen] = useState(
+    showNextDirections || viaPoints.length > 0 || Boolean(stop?.next_directions)
+  );
   // Staged image for new stops — uploaded after the stop row is created
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [stagedPreview, setStagedPreview] = useState<string | null>(null);
@@ -187,6 +205,7 @@ export function StopEditForm({
       hero_image_url: heroImageUrl,
       google_business_url: googleBusinessUrl,
       next_directions: nextDirections,
+      via_points: viaPoints,
     };
   }
 
@@ -562,25 +581,80 @@ export function StopEditForm({
         </button>
       </Section>
 
-      {/* Directions to the next stop (venue/event only) */}
-      {showNextDirections && (
-        <Section
-          title="Directions to the next stop"
-          subtitle="Inside a building or across an event, GPS and the map can't guide people room to room, so write the way yourself. This shows as text at the end of this stop, as the visitor sets off for the next one. Leave it blank on your final stop. Tip: this note is shown on screen but not read aloud, so if you would like the directions spoken too, weave them into the end of this stop's narration above (for example, 'when you are ready, turn to your right and look for the Ascension window')."
+      {/* Route guidance (optional, collapsed by default on outdoor tours) */}
+      <section className="border border-gray-200 rounded-xl overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setRouteOpen((o) => !o)}
+          aria-expanded={routeOpen}
+          className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-cream/60 transition"
         >
-          <textarea
-            value={nextDirections}
-            onChange={(e) => setNextDirections(e.target.value)}
-            rows={3}
-            maxLength={600}
-            placeholder="e.g. Head back through the Great Hall and take the oak staircase on your left up to the first floor. The Long Gallery is straight ahead."
-            className={`${inputCls} leading-relaxed`}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Shown as text on the tour. Kept short and clear works best.
-          </p>
-        </Section>
-      )}
+          <span>
+            <span className="text-xl font-semibold block">
+              Route guidance <span className="text-sm font-normal text-gray-500">(optional)</span>
+            </span>
+            <span className="text-sm text-gray-600 block mt-0.5">
+              {showNextDirections
+                ? 'Write the way to the next stop. Indoors, GPS and the map cannot guide people room to room.'
+                : 'Only needed if the map sends walkers the wrong way to the next stop, for example along a road instead of a footpath, towpath or coast path.'}
+            </span>
+          </span>
+          <span className="flex items-center gap-2 flex-shrink-0">
+            {(viaPoints.length > 0 || nextDirections.trim()) && (
+              <span className="text-[11px] font-bold text-primary bg-accent/30 px-2 py-0.5 rounded-full">
+                Route set
+              </span>
+            )}
+            <span className="text-gray-400 text-lg" aria-hidden>
+              {routeOpen ? '–' : '+'}
+            </span>
+          </span>
+        </button>
+
+        {routeOpen && (
+          <div className="px-5 pb-6 pt-2 space-y-6 border-t border-gray-100">
+            {!showNextDirections && (
+              <div>
+                <h3 className="text-base font-bold mb-1">Shape the route on the map</h3>
+                <p className="text-xs text-gray-500 mb-3">
+                  A is this stop, B is the next one. Tap the map to drop up to five points along the
+                  path you want walkers to take (a gate, a footbridge, the far corner of a field).
+                  The gold line shows the route the tour will draw. Nothing here is spoken.
+                </p>
+                <RouteGuidanceMap
+                  from={lat && lng && !Number.isNaN(parseFloat(lat)) && !Number.isNaN(parseFloat(lng))
+                    ? { lat: parseFloat(lat), lng: parseFloat(lng) }
+                    : null}
+                  next={nextStop}
+                  travelMode={travelMode}
+                  value={viaPoints}
+                  onChange={setViaPoints}
+                />
+              </div>
+            )}
+
+            <div>
+              <h3 className="text-base font-bold mb-1">Written directions to the next stop</h3>
+              <p className="text-xs text-gray-500 mb-2">
+                {showNextDirections
+                  ? "Shown as text at the end of this stop as the visitor sets off. Leave it blank on your final stop. This note is not read aloud; if you would like it spoken, weave it into the end of this stop's narration (for example, 'when you are ready, turn to your right and look for the Ascension window')."
+                  : "Shown as text at the end of this stop. Use it for the one or two turns the map cannot explain ('go through the gap in the far hedge, then keep the sea on your left'). Not read aloud, so it costs nothing in voice credits."}
+              </p>
+              <textarea
+                value={nextDirections}
+                onChange={(e) => setNextDirections(e.target.value)}
+                rows={3}
+                maxLength={600}
+                placeholder={showNextDirections
+                  ? 'e.g. Head back through the Great Hall and take the oak staircase on your left up to the first floor. The Long Gallery is straight ahead.'
+                  : 'e.g. Turn right through the gate just before the bridge, skirt the lake, then go left through the gateway into the fields.'}
+                className={`${inputCls} leading-relaxed`}
+              />
+              <p className="text-xs text-gray-500 mt-1">Kept short and clear works best.</p>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Status messages */}
       {error && (

@@ -20,7 +20,7 @@ export default function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { city, origin, dest, mode } = req.query;
+  const { city, origin, dest, mode, waypoints } = req.query;
 
   if (!city || !/^[a-z0-9-]{1,40}$/.test(city)) {
     return res.status(400).send('Invalid city slug');
@@ -36,6 +36,11 @@ export default function handler(req, res) {
   if (origin && !COORD_RE.test(origin)) {
     return res.status(400).send('Invalid origin — expected lat,lng');
   }
+  // Optional via-points (Route guidance): "lat,lng|lat,lng", max 5. Anything
+  // malformed is dropped rather than failing the whole map.
+  const viaList = typeof waypoints === 'string'
+    ? waypoints.split('|').map((w) => w.trim()).filter((w) => COORD_RE.test(w)).slice(0, 5)
+    : [];
 
   // The embed URL is loaded in the visitor's browser, so it needs a key that is
   // restricted by HTTP referrer (to the tour domains), NOT the server key used
@@ -55,6 +60,7 @@ export default function handler(req, res) {
       `?key=${apiKey}` +
       `&origin=${encodeURIComponent(origin)}` +
       `&destination=${encodeURIComponent(dest)}` +
+      (viaList.length ? `&waypoints=${encodeURIComponent(viaList.join('|'))}` : '') +
       `&mode=${travelMode}`;
   } else {
     // Fallback: place mode centred on destination

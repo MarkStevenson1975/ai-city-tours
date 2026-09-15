@@ -54,7 +54,7 @@ export default async function CityOverview({
       supabase
         .from('stops')
         .select(
-          'id, position, name, short_description, hero_image_url, hero_image_override_url, updated_at, lat, lng'
+          'id, position, name, short_description, hero_image_url, hero_image_override_url, updated_at, lat, lng, via_points, next_directions'
         )
         .eq('city_id', city.id)
         .order('position'),

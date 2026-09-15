@@ -13,7 +13,7 @@ export default async function NewStopPage({
 
   const { data: city } = await supabase
     .from('cities')
-    .select('id, slug, name, tour_kind')
+    .select('id, slug, name, tour_kind, travel_mode')
     .eq('slug', citySlug)
     .single();
   if (!city) notFound();
@@ -24,8 +24,9 @@ export default async function NewStopPage({
   // (UNIQUE violation) or, worse, goes past 50 (check constraint).
   const { data: existingStops } = await supabase
     .from('stops')
-    .select('position')
-    .eq('city_id', city.id);
+    .select('position, name, lat, lng')
+    .eq('city_id', city.id)
+    .order('position');
 
   const taken = new Set((existingStops ?? []).map((s) => s.position));
   let nextPosition: number | null = null;
@@ -35,6 +36,17 @@ export default async function NewStopPage({
       break;
     }
   }
+
+  // The stop that will follow the new one (first existing stop past the
+  // suggested position), so Route guidance can shape the leg between them.
+  const nextRow = nextPosition === null
+    ? null
+    : (existingStops ?? []).find(
+        (s) => s.position > nextPosition && typeof s.lat === 'number' && typeof s.lng === 'number'
+      ) ?? null;
+  const nextStop = nextRow
+    ? { name: nextRow.name, position: nextRow.position, lat: nextRow.lat as number, lng: nextRow.lng as number }
+    : null;
 
   if (nextPosition === null) {
     return (
@@ -84,6 +96,8 @@ export default async function NewStopPage({
         suggestedPosition={nextPosition}
         isEventTour={city.tour_kind === 'event'}
         showNextDirections={city.tour_kind === 'venue' || city.tour_kind === 'event'}
+        nextStop={nextStop}
+        travelMode={city.travel_mode ?? 'walking'}
       />
     </div>
   );

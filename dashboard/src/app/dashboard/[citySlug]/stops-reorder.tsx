@@ -15,6 +15,8 @@ export type StopRow = {
   short_description: string | null;
   hero_image_url: string | null;
   hero_image_override_url: string | null;
+  via_points?: unknown[] | null;
+  next_directions?: string | null;
 };
 
 export function StopsReorder({
@@ -127,6 +129,14 @@ export function StopsReorder({
                 <p className="text-sm text-gray-500 truncate">
                   {stop.short_description}
                 </p>
+              )}
+              {((Array.isArray(stop.via_points) && stop.via_points.length > 0) || stop.next_directions) && (
+                <span
+                  className="inline-block text-[10px] font-bold text-primary bg-accent/30 px-2 py-0.5 rounded-full mt-1"
+                  title="Route guidance is set for the walk to the next stop"
+                >
+                  Route set
+                </span>
               )}
             </div>
             <div className="flex items-center gap-1">

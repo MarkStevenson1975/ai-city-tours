@@ -1368,7 +1368,18 @@ function narrationForStop(stop){let t=(stop&&stop.narration)||'';const i=t.index
 function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function renderStopHandover(idx){
   const ho=document.getElementById('detail-handover');if(!ho)return;
-  if(!isIndoorTour()){ho.style.display='none';ho.innerHTML='';ho.classList.remove('final');return;}
+  if(!isIndoorTour()){
+    // Outdoor tours: the map does the guiding, so this card only appears when
+    // the operator has written directions for a leg the map cannot explain.
+    // Text only, never spoken.
+    ho.classList.remove('final');
+    const st=CONFIG.stops[idx];const nx=CONFIG.stops[idx+1];
+    const d=((st&&st.nextDirections)||'').trim();
+    if(!nx||!d){ho.style.display='none';ho.innerHTML='';return;}
+    ho.innerHTML='<div class="handover-label">On the way to '+escHtml(nx.name)+'</div><p class="handover-text">'+escHtml(d)+'</p>';
+    ho.style.display='';
+    return;
+  }
   const kind=(CONFIG&&CONFIG.tourKind)||'venue';
   const stop=CONFIG.stops[idx];
   const nextStop=CONFIG.stops[idx+1];
@@ -1445,6 +1456,29 @@ function osrmProfile(){const m=tourTravelMode();return m==='cycling'?'bike':(m==
 // Rough travel speed in metres per minute, for the estimated-time readout.
 function navSpeedMpm(){const m=tourTravelMode();return m==='cycling'?250:(m==='driving'?500:75);}
 function openNavToCurrentStop(){initNavScreen(state.currentStopIndex);}
+// Route guidance. An operator can set up to five via-points on a stop that
+// shape the walk from THAT stop to the next one (towpath, coast path, field
+// gate) so the route follows the published path rather than the shortest
+// line. When navigating TO stop toIdx we therefore read the PREVIOUS stop's
+// points. Any point the walker is already past (nearest one within 60 m, and
+// everything before it) is dropped so a mid-leg reroute never sends them back.
+function viaPointsForLeg(toIdx,fromLat,fromLng){
+  try{
+    if(isIndoorTour()||toIdx<=0)return [];
+    const prev=CONFIG.stops[toIdx-1];
+    let pts=(prev&&Array.isArray(prev.viaPoints)?prev.viaPoints:[]).filter(p=>p&&isFinite(p.lat)&&isFinite(p.lng)).slice(0,5);
+    if(!pts.length)return [];
+    // Only use them if the walker is plausibly on this leg (within 1.5 km of
+    // the previous stop or any of its points); otherwise plain routing.
+    const near=[prev.coordinates,...pts].some(p=>haversine(fromLat,fromLng,p.lat,p.lng)<1500);
+    if(!near)return [];
+    let best=-1,bestD=Infinity;
+    pts.forEach((p,i)=>{const d=haversine(fromLat,fromLng,p.lat,p.lng);if(d<bestD){bestD=d;best=i;}});
+    if(best>=0&&bestD<60)pts=pts.slice(best+1);
+    return pts;
+  }catch(e){return [];}
+}
+function viaQuery(pts){return pts.length?'&waypoints='+encodeURIComponent(pts.map(p=>p.lat+','+p.lng).join('|')):'';}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
 function initNavScreen(toIdx){
   showScreen('nav');
@@ -1490,7 +1524,8 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
   // driving). Bike tours follow cycle-friendly ways; walking tours stay on
   // foot. No via-points: sponsors are narrated at arrival.
   try{
-    const coords=`${fromLng},${fromLat};${toLng},${toLat}`;
+    const via=viaPointsForLeg(state.currentStopIndex,fromLat,fromLng);
+    const coords=[[fromLng,fromLat],...via.map(p=>[p.lng,p.lat]),[toLng,toLat]].map(c=>c.join(',')).join(';');
     const profile=osrmProfile();
     const url=`https://routing.openstreetmap.de/routed-${profile}/route/v1/${profile}/${coords}?overview=full&geometries=geojson&steps=true`;
     const res=await fetch(url);
@@ -1498,7 +1533,7 @@ async function fetchAndDrawRoute(fromLat,fromLng,toLat,toLng){
     if(!data.routes||!data.routes.length)throw new Error('No route');
     const route=data.routes[0];
     state.osrmPath=route.geometry.coordinates.map(c=>[c[1],c[0]]);
-    state.osrmSteps=route.legs[0].steps;
+    state.osrmSteps=(route.legs||[]).flatMap(l=>l.steps||[]);
     state.currentStepIdx=0;
     if(state.routeLayer)state.map.removeLayer(state.routeLayer);
     state.routeLayer=L.polyline(state.osrmPath,{color:'#1B4332',weight:4,opacity:.8,dashArray:'8, 6'}).addTo(state.map);
@@ -1525,12 +1560,12 @@ function onGPSUpdate(lat,lng,toIdx){
     state.mapLoaded=true;
     document.getElementById('nav-turn-main').textContent='Getting your route…';
     const iframe=document.getElementById('nav-map-iframe');
-    if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}&mode=${googleTravelMode()}`;}
+    if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}&mode=${googleTravelMode()}`+viaQuery(viaPointsForLeg(toIdx,lat,lng));}
     const loadingDiv=document.getElementById('nav-map-loading');
     if(loadingDiv)loadingDiv.classList.add('hidden');
   }
   // Fetch the route once, then let Harriet speak each turn as the visitor moves.
-  if(!state.navRouteReady&&!state.navRouteLoading){state.navRouteLoading=true;loadNavRoute(lat,lng,dest.lat,dest.lng);}
+  if(!state.navRouteReady&&!state.navRouteLoading){state.navRouteLoading=true;loadNavRoute(lat,lng,dest.lat,dest.lng,toIdx);}
   updateSpokenNav(lat,lng);
   // Approach: fire sponsor once when entering the wider radius around the
   // destination stop, before arrival itself. Catches users walking into a
@@ -1558,7 +1593,7 @@ function maybeFireSponsorForStop(toIdx,source){
 function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}state.navSteps=[];state.navRouteReady=false;state.navRouteLoading=false;// Return to the stop you were navigating to (its detail), not the whole list,
 // so exiting the map lands you on the next stop it directed you towards.
 const _i=state.currentStopIndex;if(typeof _i==='number'&&CONFIG.stops&&CONFIG.stops[_i]){openStopDetail(_i);}else{showScreen('stoplist');}}
-function openInGoogleMaps(){const stop=CONFIG.stops[state.currentStopIndex];if(!stop)return;const{lat,lng}=stop.coordinates;window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${googleTravelMode()}`,'_blank');}
+function openInGoogleMaps(){const stop=CONFIG.stops[state.currentStopIndex];if(!stop)return;const{lat,lng}=stop.coordinates;const via=(state.userLat!=null)?viaPointsForLeg(state.currentStopIndex,state.userLat,state.userLng):[];window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${googleTravelMode()}`+viaQuery(via),'_blank');}
 function isAudioPlaying(){return state.currentAudio&&!state.currentAudio.ended&&!state.currentAudio.paused;}
 function tryPlayFact(fact){if(isAudioPlaying()){state.pendingFact=fact;return false;}showNotification('fact',null,fact.text,10000);/* Facts are text-only (shown on the card) to save voice credits — no TTS. */return true;}
 function flushPendingFact(){if(!state.pendingFact)return;const f=state.pendingFact;state.pendingFact=null;setTimeout(()=>{if(!isAudioPlaying())tryPlayFact(f);else state.pendingFact=f;},800);}
@@ -1883,15 +1918,21 @@ function maneuverText(type,modifier){if(type==='arrive')return'You have arrived'
 function navStepInstruction(st){return st.name?`${maneuverText(st.type,st.modifier)} onto ${st.name}`:maneuverText(st.type,st.modifier);}
 function navPreannounceM(){const m=tourTravelMode();return m==='driving'?120:(m==='cycling'?50:30);}
 function navReachedM(){return tourTravelMode()==='driving'?30:12;}
-async function loadNavRoute(fromLat,fromLng,toLat,toLng){
+async function loadNavRoute(fromLat,fromLng,toLat,toLng,toIdx){
   try{
-    const coords=`${fromLng},${fromLat};${toLng},${toLat}`;
+    const via=viaPointsForLeg(toIdx==null?state.currentStopIndex:toIdx,fromLat,fromLng);
+    const coords=[[fromLng,fromLat],...via.map(p=>[p.lng,p.lat]),[toLng,toLat]].map(c=>c.join(',')).join(';');
     const profile=osrmProfile();
     const url=`https://routing.openstreetmap.de/routed-${profile}/route/v1/${profile}/${coords}?overview=false&steps=true`;
     const res=await fetch(url);
     const data=await res.json();
     if(!data.routes||!data.routes.length)throw new Error('no route');
-    const steps=((data.routes[0].legs||[])[0]||{}).steps||[];
+    // With via-points OSRM returns one leg per hop. Stitch them into a single
+    // list of turns, dropping the arrive/depart pair at each via-point so the
+    // walker never sees "You have arrived" halfway along a field.
+    const legs=data.routes[0].legs||[];
+    const steps=[];
+    legs.forEach((leg,li)=>{(leg.steps||[]).forEach(st=>{const t=st.maneuver&&st.maneuver.type;if(li>0&&t==='depart')return;if(li<legs.length-1&&t==='arrive')return;steps.push(st);});});
     state.navSteps=steps.map(s=>({lat:s.maneuver.location[1],lng:s.maneuver.location[0],type:s.maneuver.type,modifier:s.maneuver.modifier,name:s.name,announced:false}));
     // First announce target is the first real turn after departure.
     const i=state.navSteps.findIndex((s,idx)=>idx>0&&s.type!=='depart'&&s.type!=='arrive');
