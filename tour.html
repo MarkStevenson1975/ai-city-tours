@@ -513,6 +513,36 @@
     .btn-tc-create{background:transparent;border:1.5px solid var(--color-accent);color:var(--color-accent);padding:14px 28px;border-radius:50px;font-size:.9rem;font-weight:700;width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
     .btn-tc-create:hover{background:rgba(201,168,76,.12)}
 
+    /* ----------------------------------------------------------------------
+       Desktop only: present the tour as a phone, not a stretched full-width
+       page. On a real phone (viewport under 700px) NOTHING below applies, so
+       the visitor experience is completely unchanged. On a wider screen we
+       shrink <body> into a phone-shaped, centred, rounded panel on a dark
+       backdrop. The transform on <body> makes it the containing block for the
+       fixed overlays (audio bar, modals, toasts, the cookie banner), so they
+       all sit inside the phone frame instead of spanning the whole window.
+       ---------------------------------------------------------------------- */
+    @media (min-width: 700px) {
+      html {
+        background: #14201a;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      body {
+        position: relative;
+        width: 412px;
+        height: min(100vh, 880px);
+        margin: 0 auto;
+        border-radius: 44px;
+        overflow: hidden;
+        transform: translateZ(0);
+        box-shadow: 0 0 0 11px #0c0c0e, 0 0 0 13px #26262a,
+                    0 30px 80px rgba(0, 0, 0, 0.55);
+      }
+    }
+
   </style>
 </head>
 <body>
