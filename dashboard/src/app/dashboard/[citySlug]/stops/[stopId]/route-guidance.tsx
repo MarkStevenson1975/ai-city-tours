@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
-export const MAX_VIA_POINTS = 5;
+export const MAX_VIA_POINTS = 12;
 
 export type ViaPoint = { lat: number; lng: number };
 
@@ -32,6 +32,15 @@ function loadMaps(key: string): Promise<void> {
     document.head.appendChild(s);
   });
   return mapsPromise;
+}
+
+function distM(a: ViaPoint, b: ViaPoint): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
 }
 
 function osrmProfile(travelMode: string): string {
@@ -59,6 +68,11 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [routeInfo, setRouteInfo] = useState<string>('');
+  // No router line until the operator has placed a point, unless they ask to
+  // see what the map would do on its own.
+  const [showDefault, setShowDefault] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const intentLine = useRef<any>(null);
   const valueRef = useRef(value);
   valueRef.current = value;
   // Each route request gets a sequence number; only the latest may draw. This
@@ -71,12 +85,37 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
     routeLine.current = null;
   }
 
+  // The operator's own line: straight dashes from A through each point to B.
+  // This is what they drew; the solid line is what the router makes of it.
+  const drawIntent = useCallback((pts: ViaPoint[]) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const g = (window as any).google;
+    const map = mapObj.current;
+    if (!g || !map) return;
+    if (intentLine.current) intentLine.current.setMap(null);
+    intentLine.current = null;
+    if (!from || !next || pts.length === 0) return;
+    intentLine.current = new g.maps.Polyline({
+      path: [from, ...pts, { lat: next.lat, lng: next.lng }],
+      map,
+      strokeOpacity: 0,
+      icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, strokeColor: '#ffffff', scale: 2.5 }, offset: '0', repeat: '10px' }],
+      zIndex: 2,
+    });
+  }, [from, next]);
+
   // Draw the route through the current via-points, exactly as the player would.
   const drawRoute = useCallback(async (pts: ViaPoint[]) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const g = (window as any).google;
     const map = mapObj.current;
     if (!g || !map || !from || !next) return;
+    if (pts.length === 0 && !showDefault) {
+      routeSeq.current++;
+      clearRouteLine();
+      setRouteInfo('');
+      return;
+    }
     const chain = [from, ...pts, { lat: next.lat, lng: next.lng }];
     const coords = chain.map((p) => `${p.lng},${p.lat}`).join(';');
     const profile = osrmProfile(travelMode);
@@ -102,13 +141,31 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
         strokeWeight: 5,
       });
       const km = data.routes[0].distance / 1000;
-      setRouteInfo(`Route as the walker will see it: ${km.toFixed(1)} km`);
+      // The router snaps every point onto the nearest path it knows. Move the
+      // pins to those snapped spots so the operator can see where the route
+      // really passes, and nudge any pin that landed off the path they meant.
+      const snapped: ViaPoint[] = (data.waypoints || [])
+        .slice(1, 1 + pts.length)
+        .map((w: { location: number[] }) => ({ lat: w.location[1], lng: w.location[0] }));
+      let moved = 0;
+      const adjusted = pts.map((p, i) => {
+        const sp = snapped[i];
+        if (!sp) return p;
+        const d = distM(p, sp);
+        if (d > 2) moved = Math.max(moved, d);
+        return d > 2 ? sp : p;
+      });
+      if (moved > 2) onChange(adjusted);
+      setRouteInfo(
+        `Route as the walker will see it: ${km.toFixed(1)} km.` +
+          (moved > 25 ? ` A point was moved ${Math.round(moved)} m onto the nearest path the map knows. If that is the wrong path, drag it onto the one you mean.` : '')
+      );
     } catch {
       if (seq !== routeSeq.current) return;
       clearRouteLine();
       setRouteInfo('Could not draw the route just now. Your points are still saved when you save the stop.');
     }
-  }, [from, next, travelMode]);
+  }, [from, next, travelMode, showDefault, onChange]);
 
   const syncMarkers = useCallback((pts: ViaPoint[]) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -204,8 +261,9 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
   useEffect(() => {
     if (!ready) return;
     syncMarkers(value);
+    drawIntent(value);
     drawRoute(value);
-  }, [ready, value, syncMarkers, drawRoute]);
+  }, [ready, value, syncMarkers, drawIntent, drawRoute]);
 
   if (!MAPS_KEY) return null;
   if (!from) {
@@ -236,8 +294,16 @@ export function RouteGuidanceMap({ from, next, travelMode, value, onChange }: Pr
       {!ready && <p className="text-xs text-gray-500 mt-2">Loading map…</p>}
       <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
         <p className="text-xs text-gray-600">
-          {routeInfo || 'Tap the map to add a point. Drag a point to move it, tap it to remove.'}{' '}
-          {value.length > 0 && 'If the line doubles back on itself, drag that point a little closer to the path you mean.'}
+          {value.length === 0 && !showDefault && (
+            <>
+              Tap the map along the path you want walkers to take, in order from A to B. Nothing is drawn until you do.{' '}
+              <button type="button" onClick={() => setShowDefault(true)} className="underline text-primary">
+                Show me the route the map would use on its own
+              </button>
+            </>
+          )}
+          {(value.length > 0 || showDefault) && (routeInfo || 'Drawing route…')}
+          {value.length > 0 && ' White dashes are your points joined up; the solid gold line is the route the walker\'s phone will draw through them. Tap a point to remove it.'}
         </p>
         <span className="text-xs font-bold text-gray-500">
           {value.length} of {MAX_VIA_POINTS} points

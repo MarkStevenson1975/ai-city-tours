@@ -1466,7 +1466,7 @@ function viaPointsForLeg(toIdx,fromLat,fromLng){
   try{
     if(isIndoorTour()||toIdx<=0)return [];
     const prev=CONFIG.stops[toIdx-1];
-    let pts=(prev&&Array.isArray(prev.viaPoints)?prev.viaPoints:[]).filter(p=>p&&isFinite(p.lat)&&isFinite(p.lng)).slice(0,5);
+    let pts=(prev&&Array.isArray(prev.viaPoints)?prev.viaPoints:[]).filter(p=>p&&isFinite(p.lat)&&isFinite(p.lng)).slice(0,12);
     if(!pts.length)return [];
     // Only use them if the walker is plausibly on this leg (within 1.5 km of
     // the previous stop or any of its points); otherwise plain routing.
@@ -1478,7 +1478,10 @@ function viaPointsForLeg(toIdx,fromLat,fromLng){
     return pts;
   }catch(e){return [];}
 }
-function viaQuery(pts){return pts.length?'&waypoints='+encodeURIComponent(pts.map(p=>p.lat+','+p.lng).join('|')):'';}
+// Google accepts fewer via-points than the router; keep every corner for the
+// text turns, thin evenly to 9 for the Google map and link.
+function thinVia(pts,max){if(pts.length<=max)return pts;const out=[];for(let i=0;i<max;i++){out.push(pts[Math.round(i*(pts.length-1)/(max-1))]);}return out;}
+function viaQuery(pts){pts=thinVia(pts,9);return pts.length?'&waypoints='+encodeURIComponent(pts.map(p=>p.lat+','+p.lng).join('|')):'';}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
 function initNavScreen(toIdx){
   showScreen('nav');

@@ -17,17 +17,17 @@ export interface StopInput {
   /** Venue/event tours: operator-written directions from this stop to the next
    *  one (indoors, where GPS and the map can't help). Optional. */
   next_directions?: string;
-  /** Optional ordered via-points (max 5) on the way to the next stop, so the
+  /** Optional ordered via-points (max 12) on the way to the next stop, so the
    *  route follows a published path rather than the shortest line. */
   via_points?: { lat: number; lng: number }[];
 }
 
-/** Keep only well-formed points, capped at 5; null when there are none. */
+/** Keep only well-formed points, capped at 12; null when there are none. */
 function cleanViaPoints(pts?: { lat: number; lng: number }[]) {
   if (!Array.isArray(pts)) return null;
   const clean = pts
     .filter((p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lng))
-    .slice(0, 5)
+    .slice(0, 12)
     .map((p) => ({ lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)) }));
   return clean.length ? clean : null;
 }

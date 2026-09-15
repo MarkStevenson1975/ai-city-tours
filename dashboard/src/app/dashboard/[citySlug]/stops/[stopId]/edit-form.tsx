@@ -617,9 +617,10 @@ export function StopEditForm({
               <div>
                 <h3 className="text-base font-bold mb-1">Shape the route on the map</h3>
                 <p className="text-xs text-gray-500 mb-3">
-                  A is this stop, B is the next one. Tap the map to drop up to five points along the
-                  path you want walkers to take (a gate, a footbridge, the far corner of a field).
-                  The gold line shows the route the tour will draw. Nothing here is spoken.
+                  A is this stop, B is the next one. Tap the map along the path you want walkers to
+                  take, in order, up to twelve points (a gate, a footbridge, the far corner of a
+                  field). The more corners you mark, the more closely the walker&apos;s map follows
+                  you. Nothing here is spoken.
                 </p>
                 <RouteGuidanceMap
                   from={lat && lng && !Number.isNaN(parseFloat(lat)) && !Number.isNaN(parseFloat(lng))

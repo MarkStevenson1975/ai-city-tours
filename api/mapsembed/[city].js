@@ -36,10 +36,10 @@ export default function handler(req, res) {
   if (origin && !COORD_RE.test(origin)) {
     return res.status(400).send('Invalid origin — expected lat,lng');
   }
-  // Optional via-points (Route guidance): "lat,lng|lat,lng", max 5. Anything
+  // Optional via-points (Route guidance): "lat,lng|lat,lng", max 9. Anything
   // malformed is dropped rather than failing the whole map.
   const viaList = typeof waypoints === 'string'
-    ? waypoints.split('|').map((w) => w.trim()).filter((w) => COORD_RE.test(w)).slice(0, 5)
+    ? waypoints.split('|').map((w) => w.trim()).filter((w) => COORD_RE.test(w)).slice(0, 9)
     : [];
 
   // The embed URL is loaded in the visitor's browser, so it needs a key that is
