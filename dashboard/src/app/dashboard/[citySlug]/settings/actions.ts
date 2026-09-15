@@ -19,6 +19,8 @@ interface SaveSettingsInput {
   color_accent: string;
   color_background: string;
   color_highlight: string;
+  font_heading: string;
+  font_body: string;
   // Event scheduling (only present for event tours)
   event?: {
     month: number;
@@ -50,6 +52,18 @@ interface SaveSettingsInput {
 const VALID_TYPES = ['bid', 'tourist_board', 'council', 'dmo', 'other'];
 const VALID_TRAVEL_MODES = ['walking', 'cycling', 'driving'];
 
+// Curated font allow-lists. Must match HEADING_FONTS / BODY_FONTS in
+// settings-form.tsx and the SD_FONTS map in tour.html. Anything else falls back
+// to the default so a stray value can never load an arbitrary web font.
+const VALID_HEADING_FONTS = [
+  'Cormorant Garamond', 'Playfair Display', 'Fraunces', 'Marcellus', 'Cinzel',
+  'Libre Baskerville', 'Poppins', 'Montserrat', 'DM Serif Display', 'Oswald',
+];
+const VALID_BODY_FONTS = [
+  'Lato', 'Inter', 'Source Sans 3', 'Work Sans', 'Open Sans', 'Nunito Sans',
+  'Mulish', 'Lora',
+];
+
 /** Allow only #RRGGBB or empty string. Returns null if invalid. */
 function sanitizeHex(input: string, fallback: string | null = null): string | null {
   const trimmed = (input || '').trim();
@@ -74,6 +88,14 @@ export async function saveSettings(input: SaveSettingsInput) {
   const colorAccent = sanitizeHex(input.color_accent, '#C9A84C');
   const colorBackground = sanitizeHex(input.color_background, '#F5F0E8');
   const colorHighlight = sanitizeHex(input.color_highlight, '#40916C');
+
+  // Fonts: only accept a value from the curated list, else fall back to default
+  const fontHeading = VALID_HEADING_FONTS.includes(input.font_heading)
+    ? input.font_heading
+    : 'Cormorant Garamond';
+  const fontBody = VALID_BODY_FONTS.includes(input.font_body)
+    ? input.font_body
+    : 'Lato';
 
   // City name is required (we already require it via NOT NULL on the column)
   const cityName = input.city_name.trim();
@@ -118,6 +140,8 @@ export async function saveSettings(input: SaveSettingsInput) {
       color_accent: colorAccent,
       color_background: colorBackground,
       color_highlight: colorHighlight,
+      font_heading: fontHeading,
+      font_body: fontBody,
       // Guide
       guide_name: input.guide_name.trim() || 'Guide',
       guide_voice_id: input.guide_voice_id.trim() || null,

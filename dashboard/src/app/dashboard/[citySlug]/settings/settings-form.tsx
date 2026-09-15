@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveSettings } from './actions';
 import { SponsorLogoUpload } from './sponsor-logo-upload';
@@ -19,6 +19,8 @@ interface City {
   color_accent: string | null;
   color_background: string | null;
   color_highlight: string | null;
+  font_heading: string | null;
+  font_body: string | null;
   tour_kind: string | null;
   event_month: number | null;
   event_day_from: number | null;
@@ -57,6 +59,36 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+// Curated font lists. Headings can carry personality; body fonts are chosen for
+// legibility at small sizes on a phone outdoors. Keep these in sync with the
+// SD_FONTS map in tour.html — a value not in that map falls back to the default.
+// Each entry carries a CSS stack purely for the on-screen preview here.
+const HEADING_FONTS: { value: string; label: string; group: string; stack: string }[] = [
+  { value: 'Cormorant Garamond', label: 'Cormorant Garamond (default)', group: 'Classic and heritage', stack: '"Cormorant Garamond", Georgia, serif' },
+  { value: 'Playfair Display', label: 'Playfair Display', group: 'Classic and heritage', stack: '"Playfair Display", Georgia, serif' },
+  { value: 'Fraunces', label: 'Fraunces', group: 'Classic and heritage', stack: '"Fraunces", Georgia, serif' },
+  { value: 'Marcellus', label: 'Marcellus', group: 'Classic and heritage', stack: '"Marcellus", Georgia, serif' },
+  { value: 'Cinzel', label: 'Cinzel (capitals only)', group: 'Classic and heritage', stack: '"Cinzel", Georgia, serif' },
+  { value: 'Libre Baskerville', label: 'Libre Baskerville', group: 'Classic and heritage', stack: '"Libre Baskerville", Georgia, serif' },
+  { value: 'Poppins', label: 'Poppins', group: 'Modern and clean', stack: '"Poppins", system-ui, sans-serif' },
+  { value: 'Montserrat', label: 'Montserrat', group: 'Modern and clean', stack: '"Montserrat", system-ui, sans-serif' },
+  { value: 'DM Serif Display', label: 'DM Serif Display', group: 'Modern and clean', stack: '"DM Serif Display", Georgia, serif' },
+  { value: 'Oswald', label: 'Oswald', group: 'Modern and clean', stack: '"Oswald", system-ui, sans-serif' },
+];
+
+const BODY_FONTS: { value: string; label: string; stack: string }[] = [
+  { value: 'Lato', label: 'Lato (default)', stack: '"Lato", system-ui, sans-serif' },
+  { value: 'Inter', label: 'Inter', stack: '"Inter", system-ui, sans-serif' },
+  { value: 'Source Sans 3', label: 'Source Sans 3', stack: '"Source Sans 3", system-ui, sans-serif' },
+  { value: 'Work Sans', label: 'Work Sans', stack: '"Work Sans", system-ui, sans-serif' },
+  { value: 'Open Sans', label: 'Open Sans', stack: '"Open Sans", system-ui, sans-serif' },
+  { value: 'Nunito Sans', label: 'Nunito Sans', stack: '"Nunito Sans", system-ui, sans-serif' },
+  { value: 'Mulish', label: 'Mulish', stack: '"Mulish", system-ui, sans-serif' },
+  { value: 'Lora', label: 'Lora (serif, use for a bookish feel)', stack: '"Lora", Georgia, serif' },
+];
+
+const HEADING_GROUPS = ['Classic and heritage', 'Modern and clean'];
+
 export function SettingsForm({ city }: { city: City }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -91,6 +123,10 @@ export function SettingsForm({ city }: { city: City }) {
   const [colorHighlight, setColorHighlight] = useState(
     city.color_highlight ?? '#40916C'
   );
+  const [fontHeading, setFontHeading] = useState(
+    city.font_heading ?? 'Cormorant Garamond'
+  );
+  const [fontBody, setFontBody] = useState(city.font_body ?? 'Lato');
 
   // Event tours carry a date and an optional auto-schedule (countdown + ended
   // screen). These fields only apply, and only render, when tour_kind is event.
@@ -149,6 +185,8 @@ export function SettingsForm({ city }: { city: City }) {
         color_accent: colorAccent,
         color_background: colorBackground,
         color_highlight: colorHighlight,
+        font_heading: fontHeading,
+        font_body: fontBody,
         // Only send event scheduling for event tours, so a town/venue tour is
         // never given stray event dates.
         ...(isEventTour
@@ -317,6 +355,48 @@ export function SettingsForm({ city }: { city: City }) {
               guideName={guideName || 'Guide'}
               cityName={cityName || 'City'}
             />
+          </div>
+
+          <div className="border-t border-gray-200 pt-6">
+            <p className="block text-sm font-bold mb-1">Tour fonts</p>
+            <p className="text-xs text-gray-500 mb-3">
+              The heading font can carry personality. The body font is the one
+              visitors actually read, so it stays on a tight, legible list.
+              Leave both as the defaults for the classic Storied look.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Heading font" hint="Titles, the city name and the guide name. Suits short lines best.">
+                <select
+                  value={fontHeading}
+                  onChange={(e) => setFontHeading(e.target.value)}
+                  className={inputCls}
+                >
+                  {HEADING_GROUPS.map((grp) => (
+                    <optgroup key={grp} label={grp}>
+                      {HEADING_FONTS.filter((f) => f.group === grp).map((f) => (
+                        <option key={f.value} value={f.value}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Body font" hint="The reading text across the whole tour. All options are legible on a phone.">
+                <select
+                  value={fontBody}
+                  onChange={(e) => setFontBody(e.target.value)}
+                  className={inputCls}
+                >
+                  {BODY_FONTS.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <FontPreview heading={fontHeading} body={fontBody} cityName={cityName || 'City'} />
           </div>
         </div>
       </Section>
@@ -755,6 +835,55 @@ function BrandPreview({
           Live preview of splash, completed tick and events colours
         </p>
       </div>
+    </div>
+  );
+}
+
+/** Loads a Google Fonts family (for the preview only) once per family name. */
+function ensurePreviewFont(family: string) {
+  if (typeof document === 'undefined') return;
+  const id = 'sd-font-preview-' + family.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  const spec = family.replace(/ /g, '+') + ':wght@400;600;700';
+  link.href = `https://fonts.googleapis.com/css2?family=${spec}&display=swap`;
+  document.head.appendChild(link);
+}
+
+function FontPreview({
+  heading,
+  body,
+  cityName,
+}: {
+  heading: string;
+  body: string;
+  cityName: string;
+}) {
+  useEffect(() => {
+    ensurePreviewFont(heading);
+    ensurePreviewFont(body);
+  }, [heading, body]);
+
+  const headingStack =
+    HEADING_FONTS.find((f) => f.value === heading)?.stack ??
+    '"Cormorant Garamond", Georgia, serif';
+  const bodyStack =
+    BODY_FONTS.find((f) => f.value === body)?.stack ?? '"Lato", system-ui, sans-serif';
+
+  return (
+    <div className="mt-5 rounded-xl border border-gray-200 bg-white p-6">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold mb-3">
+        Font preview
+      </p>
+      <h3 className="text-3xl mb-1" style={{ fontFamily: headingStack, fontWeight: 600 }}>
+        {cityName}
+      </h3>
+      <p className="text-base leading-relaxed text-gray-700" style={{ fontFamily: bodyStack }}>
+        Welcome. Over the next hour or so I will walk you through the streets and
+        stories that make this place what it is. Take your time, and let us begin.
+      </p>
     </div>
   );
 }
