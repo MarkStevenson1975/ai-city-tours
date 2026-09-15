@@ -85,7 +85,8 @@
     button{font-family:var(--font-body);cursor:pointer;border:none;outline:none}
     img{display:block;max-width:100%}
     #app{position:fixed;inset:0;overflow:hidden}
-    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--color-bg);opacity:0;pointer-events:none;transition:opacity var(--transition);overflow:hidden}
+    #sd-statusbar{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--color-statusbar,#ffffff);z-index:2147483590;pointer-events:none}
+    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--color-bg);opacity:0;pointer-events:none;transition:opacity var(--transition);overflow:hidden;padding-top:env(safe-area-inset-top,0px)}
     .screen.active{opacity:1;pointer-events:all}
     .harriet-bar{background:var(--color-primary);color:var(--color-text-light);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
     .harriet-bar .guide-name{font-family:var(--font-display);font-size:1.1rem;font-weight:500;opacity:.9}
@@ -547,6 +548,12 @@
   </style>
 </head>
 <body>
+<!-- White band filling the phone's top safe area (the notch/status-bar strip),
+     so the coloured header never bleeds up into it. It is real page pixels, so
+     it works on iOS where the theme-color meta is ignored under
+     viewport-fit=cover. Height is 0 on devices with no inset, so browsers and
+     desktop are unaffected. Colour defaults to white. -->
+<div id="sd-statusbar" aria-hidden="true"></div>
 <!-- Branded cover shown from the very first paint, hiding the shell's default
      content until the correct tour has loaded and rendered. Cleared by
      hideLoading() on init/holding/error, with a safety timeout so it can never
