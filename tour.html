@@ -302,6 +302,9 @@
     #screen-nav{background:var(--color-primary);overflow:hidden;padding:0}
     .nav-card-area{position:absolute;inset:0;bottom:216px;overflow:hidden}
     .nav-map-iframe{width:100%;height:100%;border:none;display:block}
+    .nav-line-map{position:absolute;inset:0;display:none;z-index:1}
+    .nav-line-map.on{display:block}
+    .nav-user-dot{width:18px;height:18px;background:#2979FF;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 6px rgba(41,121,255,.25)}
     .nav-map-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--color-primary);color:rgba(255,255,255,.7);font-size:.9rem;pointer-events:none;transition:opacity .3s}
     .nav-map-loading.hidden{opacity:0}
     .nav-top-bar{position:absolute;top:0;left:0;right:0;z-index:500;background:linear-gradient(to bottom,var(--color-primary) 60%,transparent);padding:12px 16px 32px;display:flex;align-items:center;justify-content:space-between}
@@ -709,6 +712,7 @@
       </div>
       <iframe class="nav-map-iframe" id="nav-map-iframe" src="about:blank"
               allow="geolocation" allowfullscreen title="Map to destination"></iframe>
+      <div class="nav-line-map" id="nav-line-map" aria-label="Route drawn by the tour operator"></div>
     </div>
     <div class="nav-top-bar">
       <div class="nav-guide">
@@ -1466,7 +1470,7 @@ function viaPointsForLeg(toIdx,fromLat,fromLng){
   try{
     if(isIndoorTour()||toIdx<=0)return [];
     const prev=CONFIG.stops[toIdx-1];
-    let pts=(prev&&Array.isArray(prev.viaPoints)?prev.viaPoints:[]).filter(p=>p&&isFinite(p.lat)&&isFinite(p.lng)).slice(0,12);
+    let pts=(prev&&Array.isArray(prev.viaPoints)?prev.viaPoints:[]).filter(p=>p&&isFinite(p.lat)&&isFinite(p.lng)).slice(0,30);
     if(!pts.length)return [];
     // Only use them if the walker is plausibly on this leg (within 1.5 km of
     // the previous stop or any of its points); otherwise plain routing.
@@ -1481,6 +1485,42 @@ function viaPointsForLeg(toIdx,fromLat,fromLng){
 // Google accepts fewer via-points than the router; keep every corner for the
 // text turns, thin evenly to 9 for the Google map and link.
 function thinVia(pts,max){if(pts.length<=max)return pts;const out=[];for(let i=0;i<max;i++){out.push(pts[Math.round(i*(pts.length-1)/(max-1))]);}return out;}
+// Drawn route: the operator's own line from the previous stop to this one.
+// Unlike the Google/OSRM path, this is shown exactly as drawn (no routing).
+function drawnRouteForLeg(toIdx){
+  try{
+    if(isIndoorTour()||toIdx<=0)return null;
+    const prev=CONFIG.stops[toIdx-1];
+    const pts=(prev&&Array.isArray(prev.viaPoints)?prev.viaPoints:[]).filter(p=>p&&isFinite(p.lat)&&isFinite(p.lng)).slice(0,30);
+    if(!pts.length)return null;
+    const dest=CONFIG.stops[toIdx].coordinates;
+    return [[prev.coordinates.lat,prev.coordinates.lng],...pts.map(p=>[p.lat,p.lng]),[dest.lat,dest.lng]];
+  }catch(e){return null;}
+}
+function showLineMap(toIdx,userLat,userLng){
+  const el=document.getElementById('nav-line-map');const iframe=document.getElementById('nav-map-iframe');
+  if(!el)return false;
+  const path=drawnRouteForLeg(toIdx);if(!path)return false;
+  el.classList.add('on');if(iframe){iframe.style.display='none';iframe.src='about:blank';}
+  if(!state.lineMap){
+    state.lineMap=L.map(el,{zoomControl:false,attributionControl:true});
+    try{state.lineMap.attributionControl.setPrefix(false);}catch(e){}
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2ar7_1_c840d9a0d0f74e8abc8b04bc',{maxZoom:19,subdomains:'abcd',attribution:'&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(state.lineMap);
+    state.lineLayers=L.layerGroup().addTo(state.lineMap);
+  }
+  state.lineLayers.clearLayers();
+  const accent=(getComputedStyle(document.documentElement).getPropertyValue('--color-accent')||'#C9A84C').trim()||'#C9A84C';
+  L.polyline(path,{color:'#fff',weight:9,opacity:.9}).addTo(state.lineLayers);
+  L.polyline(path,{color:accent,weight:5,opacity:1}).addTo(state.lineLayers);
+  const dest=CONFIG.stops[toIdx];
+  L.marker(path[path.length-1],{icon:L.divIcon({className:'',html:'<div class="map-marker-current"></div>',iconSize:[32,32],iconAnchor:[16,16]})}).addTo(state.lineLayers).bindPopup('<b>'+escHtml(dest.name)+'</b>');
+  state.lineUserMarker=L.marker([userLat,userLng],{icon:L.divIcon({className:'',html:'<div class="nav-user-dot"></div>',iconSize:[18,18],iconAnchor:[9,9]}),zIndexOffset:1000}).addTo(state.lineLayers);
+  const b=L.latLngBounds(path);b.extend([userLat,userLng]);
+  setTimeout(()=>{try{state.lineMap.invalidateSize();state.lineMap.fitBounds(b,{padding:[40,40],maxZoom:18});}catch(e){}},50);
+  return true;
+}
+function updateLineMapUser(lat,lng){if(state.lineUserMarker){try{state.lineUserMarker.setLatLng([lat,lng]);}catch(e){}}}
+function hideLineMap(){const el=document.getElementById('nav-line-map');if(el)el.classList.remove('on');const iframe=document.getElementById('nav-map-iframe');if(iframe)iframe.style.display='';state.lineUserMarker=null;if(state.lineLayers)state.lineLayers.clearLayers();}
 function viaQuery(pts){pts=thinVia(pts,9);return pts.length?'&waypoints='+encodeURIComponent(pts.map(p=>p.lat+','+p.lng).join('|')):'';}
 function navigateToNextStop(){const nextIdx=CONFIG.stops.findIndex(s=>!state.visitedStops.has(s.id));if(nextIdx===-1){showScreen('stamps');return;}state.currentStopIndex=nextIdx;initNavScreen(nextIdx);}
 function initNavScreen(toIdx){
@@ -1494,7 +1534,8 @@ function initNavScreen(toIdx){
   document.getElementById('nav-turn-main').textContent='Getting your location…';
   // Reset map + spoken route — both load on first GPS fix
   state.mapLoaded=false;
-  state.navSteps=[];state.navTargetIdx=0;state.navRouteReady=false;state.navRouteLoading=false;
+  state.navSteps=[];state.navTargetIdx=0;state.navRouteReady=false;state.navRouteLoading=false;state.lineMapActive=false;
+  hideLineMap();
   const iframe=document.getElementById('nav-map-iframe');
   if(iframe)iframe.src='about:blank';
   const loadingDiv=document.getElementById('nav-map-loading');
@@ -1562,13 +1603,22 @@ function onGPSUpdate(lat,lng,toIdx){
   if(!state.mapLoaded){
     state.mapLoaded=true;
     document.getElementById('nav-turn-main').textContent='Getting your route…';
-    const iframe=document.getElementById('nav-map-iframe');
-    if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}&mode=${googleTravelMode()}`+viaQuery(viaPointsForLeg(toIdx,lat,lng));}
+    // If the operator drew this leg, show their line with the walker on it
+    // and skip the router entirely. Otherwise the Google map as before.
+    if(showLineMap(toIdx,lat,lng)){
+      state.lineMapActive=true;state.navRouteLoading=true;
+      document.getElementById('nav-turn-main').textContent='Follow the gold line to '+CONFIG.stops[toIdx].name;
+    }else{
+      state.lineMapActive=false;
+      const iframe=document.getElementById('nav-map-iframe');
+      if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}&mode=${googleTravelMode()}`+viaQuery(viaPointsForLeg(toIdx,lat,lng));}
+    }
     const loadingDiv=document.getElementById('nav-map-loading');
     if(loadingDiv)loadingDiv.classList.add('hidden');
   }
-  // Fetch the route once, then let Harriet speak each turn as the visitor moves.
-  if(!state.navRouteReady&&!state.navRouteLoading){state.navRouteLoading=true;loadNavRoute(lat,lng,dest.lat,dest.lng,toIdx);}
+  if(state.lineMapActive)updateLineMapUser(lat,lng);
+  // Fetch the route once, then show each turn as the visitor moves (not on drawn legs).
+  if(!state.lineMapActive&&!state.navRouteReady&&!state.navRouteLoading){state.navRouteLoading=true;loadNavRoute(lat,lng,dest.lat,dest.lng,toIdx);}
   updateSpokenNav(lat,lng);
   // Approach: fire sponsor once when entering the wider radius around the
   // destination stop, before arrival itself. Catches users walking into a
@@ -1593,7 +1643,7 @@ function maybeFireSponsorForStop(toIdx,source){
   showNotification('sponsor',sponsor.name,callout,12000,'',sponsor.ctaLabel||'Take me there',`nav:${sponsor.coordinates.lat}:${sponsor.coordinates.lng}:${sponsor.name}`,(sponsor.ctaUrl||sponsor.googleBusinessUrl||''));
   return sponsor;
 }
-function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}state.navSteps=[];state.navRouteReady=false;state.navRouteLoading=false;// Return to the stop you were navigating to (its detail), not the whole list,
+function stopNavigation(){if(state.watchId){navigator.geolocation.clearWatch(state.watchId);state.watchId=null;}state.navSteps=[];state.navRouteReady=false;state.navRouteLoading=false;state.lineMapActive=false;hideLineMap();// Return to the stop you were navigating to (its detail), not the whole list,
 // so exiting the map lands you on the next stop it directed you towards.
 const _i=state.currentStopIndex;if(typeof _i==='number'&&CONFIG.stops&&CONFIG.stops[_i]){openStopDetail(_i);}else{showScreen('stoplist');}}
 function openInGoogleMaps(){const stop=CONFIG.stops[state.currentStopIndex];if(!stop)return;const{lat,lng}=stop.coordinates;const via=(state.userLat!=null)?viaPointsForLeg(state.currentStopIndex,state.userLat,state.userLng):[];window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${googleTravelMode()}`+viaQuery(via),'_blank');}
@@ -1984,7 +2034,7 @@ function addUserDotToStoplistMap(lat,lng){if(!state.stoplistMap)return;if(state.
 function startStoplistGPS(){if(!navigator.geolocation)return;if(state.stoplistWatchId){navigator.geolocation.clearWatch(state.stoplistWatchId);state.stoplistWatchId=null;}// Immediate fix so distances appear straight away
 navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;addUserDotToStoplistMap(state.userLat,state.userLng);refreshStoplistLive();},()=>{},{enableHighAccuracy:true,timeout:8000,maximumAge:30000});// Keep updating while on the stoplist so distances stay live
 state.stoplistWatchId=navigator.geolocation.watchPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;if(state.currentScreen==='stoplist'){addUserDotToStoplistMap(state.userLat,state.userLng);refreshStoplistLive();}},()=>{},{enableHighAccuracy:true,maximumAge:10000,timeout:15000});}
-function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.arrivalFired=false;state.lastFactTime=Date.now();state.mapLoaded=false;document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';const iframe=document.getElementById('nav-map-iframe');if(iframe)iframe.src='about:blank';const loadingDiv=document.getElementById('nav-map-loading');if(loadingDiv)loadingDiv.classList.remove('hidden');const loadMap=(fromLat,fromLng)=>{state.mapLoaded=true;document.getElementById('nav-turn-main').textContent='Follow the map to '+name;const iframeEl=document.getElementById('nav-map-iframe');if(iframeEl)iframeEl.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${fromLat},${fromLng}&dest=${lat},${lng}&mode=${googleTravelMode()}`;const loadEl=document.getElementById('nav-map-loading');if(loadEl)loadEl.classList.add('hidden');};if(state.userLat){loadMap(state.userLat,state.userLng);startGPSTracking_sponsor(lat,lng);}else if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;loadMap(state.userLat,state.userLng);startGPSTracking_sponsor(lat,lng);},()=>{const fb=CONFIG.stops&&CONFIG.stops[0]?CONFIG.stops[0].coordinates:{lat:52.056,lng:-2.716};loadMap(fb.lat,fb.lng);},{enableHighAccuracy:true,timeout:8000});}else{const fb=CONFIG.stops&&CONFIG.stops[0]?CONFIG.stops[0].coordinates:{lat:52.056,lng:-2.716};loadMap(fb.lat,fb.lng);}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){if(applyEventSchedule()){hideLoading();return;}applyBrand();applyFonts();applyGuideName();seedFiredFactsFromStorage();loadSkippedStops().forEach(id=>state.skippedStops.add(id));applyCityFactButtonLabel();applyAreaLabels();applySplashIntro();document.getElementById('splash-city-name').textContent=CONFIG.city;{const _n=(CONFIG.stops&&CONFIG.stops.length)?CONFIG.stops.length:(CONFIG.maxStops||0);const _sub=document.getElementById('btn-start-sub');if(_sub)_sub.textContent=_n?`${_n} stop${_n===1?'':'s'} to discover, at your own pace`:'';}const _authCity=document.getElementById('auth-city-name');if(_authCity)_authCity.textContent=CONFIG.city;showScreen('splash');armSplashIntro();initSupabase();renderStamps();renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();renderReviewButton();try{window.addEventListener('pagehide',function(){endNarrTrack('left');});}catch(e){}hideLoading();}
+function navigateToSponsor(lat,lng,name){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));showScreen('nav');state.lineMapActive=false;hideLineMap();state.arrivalFired=false;state.lastFactTime=Date.now();state.mapLoaded=false;document.getElementById('nav-destination-label').textContent=name;document.getElementById('nav-turn-main').textContent='Getting route to '+name+'…';const iframe=document.getElementById('nav-map-iframe');if(iframe)iframe.src='about:blank';const loadingDiv=document.getElementById('nav-map-loading');if(loadingDiv)loadingDiv.classList.remove('hidden');const loadMap=(fromLat,fromLng)=>{state.mapLoaded=true;document.getElementById('nav-turn-main').textContent='Follow the map to '+name;const iframeEl=document.getElementById('nav-map-iframe');if(iframeEl)iframeEl.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${fromLat},${fromLng}&dest=${lat},${lng}&mode=${googleTravelMode()}`;const loadEl=document.getElementById('nav-map-loading');if(loadEl)loadEl.classList.add('hidden');};if(state.userLat){loadMap(state.userLat,state.userLng);startGPSTracking_sponsor(lat,lng);}else if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{state.userLat=pos.coords.latitude;state.userLng=pos.coords.longitude;loadMap(state.userLat,state.userLng);startGPSTracking_sponsor(lat,lng);},()=>{const fb=CONFIG.stops&&CONFIG.stops[0]?CONFIG.stops[0].coordinates:{lat:52.056,lng:-2.716};loadMap(fb.lat,fb.lng);},{enableHighAccuracy:true,timeout:8000});}else{const fb=CONFIG.stops&&CONFIG.stops[0]?CONFIG.stops[0].coordinates:{lat:52.056,lng:-2.716};loadMap(fb.lat,fb.lng);}}function startGPSTracking_sponsor(toLat,toLng){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng}=pos.coords;state.userLat=lat;state.userLng=lng;const dist=haversine(lat,lng,toLat,toLng);updateNavStats(dist,dist);if(dist<25){showToast('You have arrived at your destination!');if(state.watchId)navigator.geolocation.clearWatch(state.watchId);}},err=>console.warn(err),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});}function init(){if(applyEventSchedule()){hideLoading();return;}applyBrand();applyFonts();applyGuideName();seedFiredFactsFromStorage();loadSkippedStops().forEach(id=>state.skippedStops.add(id));applyCityFactButtonLabel();applyAreaLabels();applySplashIntro();document.getElementById('splash-city-name').textContent=CONFIG.city;{const _n=(CONFIG.stops&&CONFIG.stops.length)?CONFIG.stops.length:(CONFIG.maxStops||0);const _sub=document.getElementById('btn-start-sub');if(_sub)_sub.textContent=_n?`${_n} stop${_n===1?'':'s'} to discover, at your own pace`:'';}const _authCity=document.getElementById('auth-city-name');if(_authCity)_authCity.textContent=CONFIG.city;showScreen('splash');armSplashIntro();initSupabase();renderStamps();renderOperatorCredit();fetchWeather().then(w=>{state.weatherData=w;buildWeatherBanner(w);});showEventBanner();renderReviewButton();try{window.addEventListener('pagehide',function(){endNarrTrack('left');});}catch(e){}hideLoading();}
 // Show the "Leave a review on TripAdvisor" button on the completion screen only
 // when the operator has set a real link. Opens their listing in a new tab.
 function renderReviewButton(){const rb=document.getElementById('btn-tc-review');if(!rb)return;const ta=((CONFIG&&CONFIG.tripadvisorReviewUrl)||'').trim();if(/^https?:\/\//i.test(ta)){rb.href=ta;rb.style.display='';rb.onclick=function(){try{if(window.StoriedTrack)window.StoriedTrack.send('review_click');}catch(e){}};}else{rb.style.display='none';}}

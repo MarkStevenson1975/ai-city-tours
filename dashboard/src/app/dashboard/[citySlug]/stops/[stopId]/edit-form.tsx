@@ -596,7 +596,7 @@ export function StopEditForm({
             <span className="text-sm text-gray-600 block mt-0.5">
               {showNextDirections
                 ? 'Write the way to the next stop. Indoors, GPS and the map cannot guide people room to room.'
-                : 'Only needed if the map sends walkers the wrong way to the next stop, for example along a road instead of a footpath, towpath or coast path.'}
+                : 'Draw the exact path walkers should take to the next stop. Only needed where the map would otherwise send them the wrong way, for example along a road instead of a footpath, towpath or coast path.'}
             </span>
           </span>
           <span className="flex items-center gap-2 flex-shrink-0">
@@ -618,9 +618,10 @@ export function StopEditForm({
                 <h3 className="text-base font-bold mb-1">Shape the route on the map</h3>
                 <p className="text-xs text-gray-500 mb-3">
                   A is this stop, B is the next one. Tap the map along the path you want walkers to
-                  take, in order, up to twelve points (a gate, a footbridge, the far corner of a
-                  field). The more corners you mark, the more closely the walker&apos;s map follows
-                  you. Nothing here is spoken.
+                  take, in order, and a gold line joins your points. That exact line is what walkers
+                  see on their map when they tap Take me there, with their own position on it, so
+                  follow the real path (a gate, a footbridge, the bend in a towpath). Nothing here is
+                  spoken.
                 </p>
                 <RouteGuidanceMap
                   from={lat && lng && !Number.isNaN(parseFloat(lat)) && !Number.isNaN(parseFloat(lng))
