@@ -735,7 +735,7 @@
         <div class="nav-stat"><div class="nav-stat-val" id="nav-eta">–</div><div class="nav-stat-lbl">mins away</div></div>
       </div>
       <button class="btn-im-here" id="btn-im-here" onclick="manualArrival()">📍 I've arrived</button>
-      <button class="btn-open-gmaps" onclick="openInGoogleMaps()">Open in Google Maps →</button>
+      <button class="btn-open-gmaps" id="btn-open-gmaps" onclick="openInGoogleMaps()">Open in Google Maps →</button>
     </div>
   </div>
   <div id="screen-stamps" class="screen">
@@ -1536,6 +1536,7 @@ function initNavScreen(toIdx){
   state.mapLoaded=false;
   state.navSteps=[];state.navTargetIdx=0;state.navRouteReady=false;state.navRouteLoading=false;state.lineMapActive=false;
   hideLineMap();
+  {const gb=document.getElementById('btn-open-gmaps');if(gb)gb.style.display='';}
   const iframe=document.getElementById('nav-map-iframe');
   if(iframe)iframe.src='about:blank';
   const loadingDiv=document.getElementById('nav-map-loading');
@@ -1607,9 +1608,11 @@ function onGPSUpdate(lat,lng,toIdx){
     // and skip the router entirely. Otherwise the Google map as before.
     if(showLineMap(toIdx,lat,lng)){
       state.lineMapActive=true;state.navRouteLoading=true;
+      {const gb=document.getElementById('btn-open-gmaps');if(gb)gb.style.display='none';}
       document.getElementById('nav-turn-main').textContent='Follow the gold line to '+CONFIG.stops[toIdx].name;
     }else{
       state.lineMapActive=false;
+      {const gb=document.getElementById('btn-open-gmaps');if(gb)gb.style.display='';}
       const iframe=document.getElementById('nav-map-iframe');
       if(iframe){iframe.src=`/api/mapsembed/${CONFIG.citySlug||'hereford'}?origin=${lat},${lng}&dest=${dest.lat},${dest.lng}&mode=${googleTravelMode()}`+viaQuery(viaPointsForLeg(toIdx,lat,lng));}
     }
