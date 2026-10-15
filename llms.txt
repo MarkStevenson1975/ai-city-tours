@@ -1,0 +1,11 @@
+# StorieD tours
+
+> This site hosts walking tours published with StorieD. Each tour is a fully narrated, self-guided walking tour that opens in the phone browser from a QR code. Free to walk, no app, no account.
+
+## Example tours
+- [Hereford](https://tours.storiedtours.co.uk/hereford)
+- [Hammersmith](https://tours.storiedtours.co.uk/hammersmith)
+
+## About StorieD
+- What StorieD is, pricing and guides: https://storiedtours.co.uk/llms.txt
+- Website: https://storiedtours.co.uk
