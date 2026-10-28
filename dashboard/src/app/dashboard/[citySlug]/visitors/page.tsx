@@ -127,9 +127,9 @@ export default async function CityVisitorsPage({
     <div className="max-w-4xl">
       <Link
         href={`/dashboard/${citySlug}`}
-        className="text-sm text-gray-500 hover:text-primary transition"
+        className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-600 shadow-sm hover:border-primary hover:text-primary transition"
       >
-        ← {city.name}
+        ← Back to {city.name}
       </Link>
 
       <header className="mt-4 mb-10">
