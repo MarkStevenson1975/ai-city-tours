@@ -74,7 +74,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              placeholder="••••••••"
+              placeholder="Enter password"
               autoComplete="current-password"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
