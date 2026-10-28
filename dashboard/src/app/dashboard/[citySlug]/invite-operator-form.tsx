@@ -15,6 +15,18 @@ export function InviteOperatorForm({ citySlug }: { citySlug: string }) {
       try {
         await inviteOperator(formData);
       } catch (err) {
+        // Next.js implements redirect() by throwing a special NEXT_REDIRECT
+        // error. That means the invite succeeded and we must let the redirect
+        // proceed, not show it as a failure.
+        if (
+          err &&
+          typeof err === 'object' &&
+          'digest' in err &&
+          typeof (err as { digest?: unknown }).digest === 'string' &&
+          (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+        ) {
+          throw err;
+        }
         setError(err instanceof Error ? err.message : 'Something went wrong.');
       }
     });
