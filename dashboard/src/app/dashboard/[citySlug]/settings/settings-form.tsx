@@ -55,21 +55,15 @@ const TRAVEL_MODE_OPTIONS = [
   { value: 'driving', label: 'Driving tour' },
 ];
 
-// The narration voices an operator can choose. Each bundles the guide's name
-// and its ElevenLabs voice ID, so picking one sets both. Add more entries here
-// to offer more voices. The voice IDs must exist in the app's ElevenLabs account.
-const GUIDE_VOICES = [
+// Guide voices come from the central catalogue (the guide_voices table, managed
+// in admin Settings) and are passed in as a prop. This is only a fallback for
+// the rare case the catalogue cannot be read.
+type GuideVoice = { name: string; voiceId: string; label: string };
+const FALLBACK_VOICES: GuideVoice[] = [
   {
-    key: 'harriet',
     name: 'Harriet',
     voiceId: 'NTqGiNK8P02i66yY2GOH',
     label: 'Harriet (warm English female voice)',
-  },
-  {
-    key: 'rhys',
-    name: 'Rhys',
-    voiceId: 'wUkGqD7qevNIshEdEC5s',
-    label: 'Rhys (Welsh male voice)',
   },
 ];
 
@@ -108,7 +102,7 @@ const BODY_FONTS: { value: string; label: string; stack: string }[] = [
 
 const HEADING_GROUPS = ['Classic and heritage', 'Modern and clean'];
 
-export function SettingsForm({ city, isAdmin = false }: { city: City; isAdmin?: boolean }) {
+export function SettingsForm({ city, voices }: { city: City; voices: GuideVoice[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -183,14 +177,7 @@ export function SettingsForm({ city, isAdmin = false }: { city: City; isAdmin?: 
   // Guide
   const [guideName, setGuideName] = useState(city.guide_name ?? '');
   const [guideVoiceId, setGuideVoiceId] = useState(city.guide_voice_id ?? '');
-  // A stored voice ID that is not one of the presets is a custom ElevenLabs
-  // voice entered by an admin. Operators see it locked; admins can edit it.
-  const [voiceMode, setVoiceMode] = useState<'preset' | 'custom'>(
-    city.guide_voice_id &&
-      !GUIDE_VOICES.some((v) => v.voiceId === city.guide_voice_id)
-      ? 'custom'
-      : 'preset'
-  );
+  const voiceList = voices.length ? voices : FALLBACK_VOICES;
   const [voiceTest, setVoiceTest] = useState<{
     status: 'idle' | 'loading' | 'error';
     msg?: string;
@@ -625,91 +612,44 @@ export function SettingsForm({ city, isAdmin = false }: { city: City; isAdmin?: 
         <div className="bg-white rounded-xl p-8 shadow-sm space-y-6">
           <Field
             label="Guide voice"
-            hint="Who narrates the tour. Harriet is the warm English voice. Rhys is a Welsh male voice, better suited to Welsh towns, place names and tone. Changing this needs a Publish to reach the live tour."
+            hint="Who narrates the tour. Pick from the voices set up by your administrator, and use Test voice to hear one before you choose. Changing this needs a Publish to reach the live tour."
           >
             <select
-              value={
-                voiceMode === 'custom'
-                  ? 'custom'
-                  : GUIDE_VOICES.find((v) => v.voiceId === guideVoiceId)?.key ?? 'harriet'
-              }
-              disabled={voiceMode === 'custom' && !isAdmin}
+              value={guideVoiceId || voiceList[0]?.voiceId || ''}
               onChange={(e) => {
-                if (e.target.value === 'custom') {
-                  setVoiceMode('custom');
-                  return;
-                }
-                const preset = GUIDE_VOICES.find((v) => v.key === e.target.value);
-                if (preset) {
-                  setVoiceMode('preset');
-                  setGuideName(preset.name);
-                  setGuideVoiceId(preset.voiceId);
-                }
+                const v = voiceList.find((x) => x.voiceId === e.target.value);
+                setGuideVoiceId(e.target.value);
+                if (v) setGuideName(v.name);
               }}
               className={inputCls}
             >
-              {GUIDE_VOICES.map((v) => (
-                <option key={v.key} value={v.key}>
+              {voiceList.map((v) => (
+                <option key={v.voiceId} value={v.voiceId}>
                   {v.label}
                 </option>
               ))}
-              {isAdmin && (
-                <option value="custom">Custom voice (enter ElevenLabs Voice ID)</option>
-              )}
-              {!isAdmin && voiceMode === 'custom' && (
-                <option value="custom">Custom voice (set by an administrator)</option>
-              )}
-            </select>
-          </Field>
-
-          {isAdmin && voiceMode === 'custom' && (
-            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 space-y-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-accent">
-                Admin only
-              </p>
-              <Field
-                label="ElevenLabs Voice ID"
-                hint="Paste the Voice ID from ElevenLabs. It must already exist in StorieD's ElevenLabs account to work. Changing this needs a Publish to reach the live tour."
-              >
-                <input
-                  type="text"
-                  value={guideVoiceId}
-                  onChange={(e) => setGuideVoiceId(e.target.value.trim())}
-                  placeholder="e.g. NTqGiNK8P02i66yY2GOH"
-                  className={inputCls}
-                />
-              </Field>
-              <div>
-                <button
-                  type="button"
-                  onClick={testVoice}
-                  disabled={voiceTest.status === 'loading' || !guideVoiceId.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-primary px-4 py-1.5 text-sm font-bold text-primary hover:bg-primary hover:text-cream transition disabled:opacity-50"
-                >
-                  {voiceTest.status === 'loading' ? 'Playing sample…' : '▶ Test voice'}
-                </button>
-                {voiceTest.status === 'error' && (
-                  <p className="text-xs text-red-600 mt-2">{voiceTest.msg}</p>
+              {guideVoiceId &&
+                !voiceList.some((v) => v.voiceId === guideVoiceId) && (
+                  <option value={guideVoiceId}>Current voice (not in catalogue)</option>
                 )}
-                <p className="text-xs text-gray-500 mt-2">
-                  Plays a short sample using the entered Voice ID, so you can
-                  check it before you publish.
-                </p>
-              </div>
-              <Field
-                label="Guide name"
-                hint="The name shown on screen and spoken for this voice."
+            </select>
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={testVoice}
+                disabled={voiceTest.status === 'loading' || !guideVoiceId}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary px-4 py-1.5 text-sm font-bold text-primary hover:bg-primary hover:text-cream transition disabled:opacity-50"
               >
-                <input
-                  type="text"
-                  value={guideName}
-                  onChange={(e) => setGuideName(e.target.value)}
-                  placeholder="e.g. Harriet"
-                  className={inputCls}
-                />
-              </Field>
+                {voiceTest.status === 'loading' ? 'Playing sample…' : '▶ Test voice'}
+              </button>
+              {voiceTest.status === 'error' && (
+                <p className="text-xs text-red-600 mt-2">{voiceTest.msg}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-2">
+                Plays a short sample of the selected voice.
+              </p>
             </div>
-          )}
+          </Field>
 
           <div className="border-t border-gray-200 pt-6">
             <p className="block text-sm font-bold mb-1">Pronunciations</p>

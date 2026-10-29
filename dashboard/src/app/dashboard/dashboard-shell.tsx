@@ -57,6 +57,9 @@ export function DashboardShell({ role, userEmail, children }: Props) {
             <Link href="/dashboard/admin/cities/new" className={link}>
               + Add area
             </Link>
+            <Link href="/dashboard/admin/settings" className={link}>
+              Settings
+            </Link>
 
             <p className="px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-cream/50 font-bold">
               Visitors

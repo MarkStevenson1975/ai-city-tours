@@ -27,6 +27,19 @@ export default async function SettingsPage({
     : { data: null };
   const isAdmin = profile?.role === 'admin';
 
+  // Central guide-voice catalogue (managed in admin Settings). Operators pick
+  // from this shared list; it is the same across every tour.
+  const { data: voicesData } = await supabase
+    .from('guide_voices')
+    .select('name, voice_id, description')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+  const voices = (voicesData ?? []).map((v) => ({
+    name: v.name,
+    voiceId: v.voice_id,
+    label: v.description ? `${v.name} (${v.description})` : v.name,
+  }));
+
   return (
     <div className="max-w-3xl">
       <Link
@@ -78,7 +91,7 @@ export default async function SettingsPage({
       </section>
 
       <section className="mb-12">
-        <SettingsForm city={city} isAdmin={isAdmin} />
+        <SettingsForm city={city} voices={voices} />
       </section>
 
       {isAdmin && (
