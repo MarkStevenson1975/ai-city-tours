@@ -191,6 +191,52 @@ export function SettingsForm({ city, isAdmin = false }: { city: City; isAdmin?: 
       ? 'custom'
       : 'preset'
   );
+  const [voiceTest, setVoiceTest] = useState<{
+    status: 'idle' | 'loading' | 'error';
+    msg?: string;
+  }>({ status: 'idle' });
+
+  async function testVoice() {
+    const id = guideVoiceId.trim();
+    if (!id) {
+      setVoiceTest({ status: 'error', msg: 'Enter a Voice ID first.' });
+      return;
+    }
+    setVoiceTest({ status: 'loading' });
+    try {
+      const res = await fetch('/api/voice-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voiceId: id }),
+      });
+      if (!res.ok) {
+        let msg = 'Could not play a sample. Please try again.';
+        try {
+          const j = await res.json();
+          if (j?.error === 'voice_not_found')
+            msg = "That Voice ID was not found in StorieD's ElevenLabs account.";
+          else if (j?.error === 'bad_voice_id')
+            msg = 'That does not look like a valid Voice ID.';
+          else if (j?.error === 'not_configured')
+            msg = 'No ElevenLabs key is configured on the server.';
+        } catch {
+          /* non-JSON error body */
+        }
+        setVoiceTest({ status: 'error', msg });
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+      setVoiceTest({ status: 'idle' });
+    } catch {
+      setVoiceTest({
+        status: 'error',
+        msg: 'Could not play a sample. Please try again.',
+      });
+    }
+  }
 
   // Tour format
   const [travelMode, setTravelMode] = useState(city.travel_mode ?? 'walking');
@@ -633,6 +679,23 @@ export function SettingsForm({ city, isAdmin = false }: { city: City; isAdmin?: 
                   className={inputCls}
                 />
               </Field>
+              <div>
+                <button
+                  type="button"
+                  onClick={testVoice}
+                  disabled={voiceTest.status === 'loading' || !guideVoiceId.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-primary px-4 py-1.5 text-sm font-bold text-primary hover:bg-primary hover:text-cream transition disabled:opacity-50"
+                >
+                  {voiceTest.status === 'loading' ? 'Playing sample…' : '▶ Test voice'}
+                </button>
+                {voiceTest.status === 'error' && (
+                  <p className="text-xs text-red-600 mt-2">{voiceTest.msg}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Plays a short sample using the entered Voice ID, so you can
+                  check it before you publish.
+                </p>
+              </div>
               <Field
                 label="Guide name"
                 hint="The name shown on screen and spoken for this voice."
