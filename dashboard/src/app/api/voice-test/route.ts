@@ -1,18 +1,30 @@
 // POST /api/voice-test  { voiceId: string }
 //
-// Streams a short ElevenLabs sample for the given voice ID so someone can hear
-// a voice before choosing it. Not cached: this is a one-off check, not tour
-// audio. Admins can test any ID (so they can try one before adding it to the
-// catalogue); operators can only test voices that are in the catalogue, so this
+// Plays a short sample of a voice so someone can hear it before choosing it.
+// Synthesis is delegated to the live tour TTS endpoint (the same approach as
+// /api/draft-tts), which holds the working ElevenLabs keys and the shared
+// cache. Calling ElevenLabs directly from here would use a different key that
+// does not own the catalogue voices.
+//
+// Admins can test any ID (to try one before adding it to the catalogue);
+// operators can only test voices that are already in the catalogue, so this
 // can't be used to burn ElevenLabs credit on arbitrary IDs.
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+
+export const runtime = 'nodejs';
 
 const SAMPLE_TEXT =
   'Hello, and welcome to the tour. I will be your guide today as we explore the town together.';
 
 // ElevenLabs voice IDs are short alphanumeric strings.
 const VOICE_ID_RE = /^[A-Za-z0-9]{10,40}$/;
+
+// The live tour TTS service holds the working keys and cache. 'hereford' is
+// only used to select the per-city ElevenLabs key that owns these voices.
+const TOURS_BASE =
+  process.env.TOURS_TTS_BASE || 'https://tours.storiedtours.co.uk';
+const TTS_CITY = process.env.VOICE_TEST_CITY || 'hereford';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -54,44 +66,32 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const apiKey =
-    process.env.ELEVENLABS_API_KEY || process.env.ELEVENLABS_KEY_HEREFORD;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'not_configured' }, { status: 503 });
-  }
-
   try {
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-          Accept: 'audio/mpeg',
-        },
-        body: JSON.stringify({
-          text: SAMPLE_TEXT,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-        }),
-      }
-    );
+    const u =
+      `${TOURS_BASE}/api/tts/${TTS_CITY}` +
+      `?text=${encodeURIComponent(SAMPLE_TEXT)}&voiceId=${encodeURIComponent(voiceId)}`;
+    const up = await fetch(u);
 
-    if (!res.ok) {
-      const detail = await res.text().catch(() => '');
-      console.warn('voice-test ElevenLabs failed', res.status, detail.slice(0, 200));
-      // A 400/404/422 from ElevenLabs almost always means the voice ID is not
-      // in this account. Surface that as a clear, user-facing reason.
-      const notFound =
-        res.status === 400 || res.status === 404 || res.status === 422;
+    if (!up.ok) {
+      const detail = await up.text().catch(() => '');
+      console.warn('voice-test upstream error', up.status, detail.slice(0, 200));
+      // The tours endpoint passes ElevenLabs' status through. A 400/404/422
+      // almost always means the voice ID is not in the account.
+      const notFound = up.status === 400 || up.status === 404 || up.status === 422;
+      const notConfigured = up.status === 503;
       return NextResponse.json(
-        { error: notFound ? 'voice_not_found' : 'tts_failed' },
-        { status: notFound ? 400 : 502 }
+        {
+          error: notConfigured
+            ? 'not_configured'
+            : notFound
+            ? 'voice_not_found'
+            : 'tts_failed',
+        },
+        { status: notConfigured ? 503 : notFound ? 400 : 502 }
       );
     }
 
-    const audio = Buffer.from(await res.arrayBuffer());
+    const audio = Buffer.from(await up.arrayBuffer());
     return new NextResponse(audio, {
       status: 200,
       headers: {
