@@ -108,7 +108,7 @@ const BODY_FONTS: { value: string; label: string; stack: string }[] = [
 
 const HEADING_GROUPS = ['Classic and heritage', 'Modern and clean'];
 
-export function SettingsForm({ city }: { city: City }) {
+export function SettingsForm({ city, isAdmin = false }: { city: City; isAdmin?: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -183,6 +183,14 @@ export function SettingsForm({ city }: { city: City }) {
   // Guide
   const [guideName, setGuideName] = useState(city.guide_name ?? '');
   const [guideVoiceId, setGuideVoiceId] = useState(city.guide_voice_id ?? '');
+  // A stored voice ID that is not one of the presets is a custom ElevenLabs
+  // voice entered by an admin. Operators see it locked; admins can edit it.
+  const [voiceMode, setVoiceMode] = useState<'preset' | 'custom'>(
+    city.guide_voice_id &&
+      !GUIDE_VOICES.some((v) => v.voiceId === city.guide_voice_id)
+      ? 'custom'
+      : 'preset'
+  );
 
   // Tour format
   const [travelMode, setTravelMode] = useState(city.travel_mode ?? 'walking');
@@ -574,10 +582,20 @@ export function SettingsForm({ city }: { city: City }) {
             hint="Who narrates the tour. Harriet is the warm English voice. Rhys is a Welsh male voice, better suited to Welsh towns, place names and tone. Changing this needs a Publish to reach the live tour."
           >
             <select
-              value={GUIDE_VOICES.find((v) => v.voiceId === guideVoiceId)?.key ?? 'harriet'}
+              value={
+                voiceMode === 'custom'
+                  ? 'custom'
+                  : GUIDE_VOICES.find((v) => v.voiceId === guideVoiceId)?.key ?? 'harriet'
+              }
+              disabled={voiceMode === 'custom' && !isAdmin}
               onChange={(e) => {
+                if (e.target.value === 'custom') {
+                  setVoiceMode('custom');
+                  return;
+                }
                 const preset = GUIDE_VOICES.find((v) => v.key === e.target.value);
                 if (preset) {
+                  setVoiceMode('preset');
                   setGuideName(preset.name);
                   setGuideVoiceId(preset.voiceId);
                 }
@@ -589,8 +607,46 @@ export function SettingsForm({ city }: { city: City }) {
                   {v.label}
                 </option>
               ))}
+              {isAdmin && (
+                <option value="custom">Custom voice (enter ElevenLabs Voice ID)</option>
+              )}
+              {!isAdmin && voiceMode === 'custom' && (
+                <option value="custom">Custom voice (set by an administrator)</option>
+              )}
             </select>
           </Field>
+
+          {isAdmin && voiceMode === 'custom' && (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 space-y-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-accent">
+                Admin only
+              </p>
+              <Field
+                label="ElevenLabs Voice ID"
+                hint="Paste the Voice ID from ElevenLabs. It must already exist in StorieD's ElevenLabs account to work. Changing this needs a Publish to reach the live tour."
+              >
+                <input
+                  type="text"
+                  value={guideVoiceId}
+                  onChange={(e) => setGuideVoiceId(e.target.value.trim())}
+                  placeholder="e.g. NTqGiNK8P02i66yY2GOH"
+                  className={inputCls}
+                />
+              </Field>
+              <Field
+                label="Guide name"
+                hint="The name shown on screen and spoken for this voice."
+              >
+                <input
+                  type="text"
+                  value={guideName}
+                  onChange={(e) => setGuideName(e.target.value)}
+                  placeholder="e.g. Harriet"
+                  className={inputCls}
+                />
+              </Field>
+            </div>
+          )}
 
           <div className="border-t border-gray-200 pt-6">
             <p className="block text-sm font-bold mb-1">Pronunciations</p>

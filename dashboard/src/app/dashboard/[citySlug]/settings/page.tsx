@@ -78,7 +78,7 @@ export default async function SettingsPage({
       </section>
 
       <section className="mb-12">
-        <SettingsForm city={city} />
+        <SettingsForm city={city} isAdmin={isAdmin} />
       </section>
 
       {isAdmin && (
