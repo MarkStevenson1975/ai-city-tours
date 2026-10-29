@@ -21,6 +21,7 @@ interface City {
   color_highlight: string | null;
   font_heading: string | null;
   font_body: string | null;
+  pronunciations: { from: string; to: string }[] | null;
   tour_kind: string | null;
   event_month: number | null;
   event_day_from: number | null;
@@ -145,6 +146,20 @@ export function SettingsForm({ city }: { city: City }) {
     city.font_heading ?? 'Cormorant Garamond'
   );
   const [fontBody, setFontBody] = useState(city.font_body ?? 'Lato');
+  const [pronunciations, setPronunciations] = useState<{ from: string; to: string }[]>(
+    () =>
+      Array.isArray(city.pronunciations)
+        ? city.pronunciations.map((p) => ({
+            from: String(p?.from ?? ''),
+            to: String(p?.to ?? ''),
+          }))
+        : []
+  );
+  const addPron = () => setPronunciations([...pronunciations, { from: '', to: '' }]);
+  const updatePron = (i: number, field: 'from' | 'to', val: string) =>
+    setPronunciations(pronunciations.map((r, idx) => (idx === i ? { ...r, [field]: val } : r)));
+  const removePron = (i: number) =>
+    setPronunciations(pronunciations.filter((_, idx) => idx !== i));
 
   // Event tours carry a date and an optional auto-schedule (countdown + ended
   // screen). These fields only apply, and only render, when tour_kind is event.
@@ -205,6 +220,9 @@ export function SettingsForm({ city }: { city: City }) {
         color_highlight: colorHighlight,
         font_heading: fontHeading,
         font_body: fontBody,
+        pronunciations: pronunciations
+          .map((p) => ({ from: p.from.trim(), to: p.to.trim() }))
+          .filter((p) => p.from && p.to),
         // Only send event scheduling for event tours, so a town/venue tour is
         // never given stray event dates.
         ...(isEventTour
@@ -573,6 +591,58 @@ export function SettingsForm({ city }: { city: City }) {
               ))}
             </select>
           </Field>
+
+          <div className="border-t border-gray-200 pt-6">
+            <p className="block text-sm font-bold mb-1">Pronunciations</p>
+            <p className="text-xs text-gray-500 mb-3">
+              Fix how the voice says tricky words and place names. Type the word
+              as it is written, then how it should sound. The tour still shows
+              the correct spelling on screen; only the spoken voice changes, and
+              it applies everywhere the word appears. You may need to tweak the
+              spelling until it sounds right. Needs a Publish to go live.
+            </p>
+            <div className="space-y-2">
+              {pronunciations.length === 0 && (
+                <p className="text-xs text-gray-400 italic">No pronunciations added yet.</p>
+              )}
+              {pronunciations.map((row, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={row.from}
+                    onChange={(e) => updatePron(i, 'from', e.target.value)}
+                    placeholder="Word or name (e.g. Llangollen)"
+                    maxLength={80}
+                    className={`${inputCls} flex-1`}
+                  />
+                  <span className="text-xs text-gray-400 shrink-0">say</span>
+                  <input
+                    type="text"
+                    value={row.to}
+                    onChange={(e) => updatePron(i, 'to', e.target.value)}
+                    placeholder="Say it as (e.g. thlan-GOTH-len)"
+                    maxLength={80}
+                    className={`${inputCls} flex-1`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePron(i)}
+                    className="shrink-0 text-gray-400 hover:text-red-600 px-2 text-xl leading-none"
+                    aria-label="Remove this pronunciation"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addPron}
+              className="mt-3 text-sm font-bold text-primary hover:text-primary-light"
+            >
+              + Add a word
+            </button>
+          </div>
         </div>
       </Section>
 

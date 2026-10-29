@@ -21,6 +21,7 @@ interface SaveSettingsInput {
   color_highlight: string;
   font_heading: string;
   font_body: string;
+  pronunciations: { from: string; to: string }[];
   // Event scheduling (only present for event tours)
   event?: {
     month: number;
@@ -97,6 +98,18 @@ export async function saveSettings(input: SaveSettingsInput) {
     ? input.font_body
     : 'Lato';
 
+  // Pronunciations: keep only well-formed rows, trim, cap length and count so a
+  // stray value can't bloat the config. Spoken-only; never shown on the tour.
+  const pronunciations = Array.isArray(input.pronunciations)
+    ? input.pronunciations
+        .map((p) => ({
+          from: String(p?.from ?? '').trim().slice(0, 80),
+          to: String(p?.to ?? '').trim().slice(0, 80),
+        }))
+        .filter((p) => p.from && p.to)
+        .slice(0, 100)
+    : [];
+
   // City name is required (we already require it via NOT NULL on the column)
   const cityName = input.city_name.trim();
   if (!cityName) {
@@ -142,6 +155,7 @@ export async function saveSettings(input: SaveSettingsInput) {
       color_highlight: colorHighlight,
       font_heading: fontHeading,
       font_body: fontBody,
+      pronunciations,
       // Guide
       guide_name: input.guide_name.trim() || 'Guide',
       guide_voice_id: input.guide_voice_id.trim() || null,
