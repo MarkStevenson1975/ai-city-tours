@@ -54,6 +54,24 @@ const TRAVEL_MODE_OPTIONS = [
   { value: 'driving', label: 'Driving tour' },
 ];
 
+// The narration voices an operator can choose. Each bundles the guide's name
+// and its ElevenLabs voice ID, so picking one sets both. Add more entries here
+// to offer more voices. The voice IDs must exist in the app's ElevenLabs account.
+const GUIDE_VOICES = [
+  {
+    key: 'harriet',
+    name: 'Harriet',
+    voiceId: 'NTqGiNK8P02i66yY2GOH',
+    label: 'Harriet (warm English female voice)',
+  },
+  {
+    key: 'rhys',
+    name: 'Rhys',
+    voiceId: 'wUkGqD7qevNIshEdEC5s',
+    label: 'Rhys (Welsh male voice)',
+  },
+];
+
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -534,29 +552,26 @@ export function SettingsForm({ city }: { city: City }) {
       <Section title="AI guide">
         <div className="bg-white rounded-xl p-8 shadow-sm space-y-6">
           <Field
-            label="Guide name"
-            hint="The name of the AI guide users hear. Hereford has 'Harriet'."
+            label="Guide voice"
+            hint="Who narrates the tour. Harriet is the warm English voice. Rhys is a Welsh male voice, better suited to Welsh towns, place names and tone. Changing this needs a Publish to reach the live tour."
           >
-            <input
-              type="text"
-              value={guideName}
-              onChange={(e) => setGuideName(e.target.value)}
-              maxLength={40}
-              placeholder="Harriet"
+            <select
+              value={GUIDE_VOICES.find((v) => v.voiceId === guideVoiceId)?.key ?? 'harriet'}
+              onChange={(e) => {
+                const preset = GUIDE_VOICES.find((v) => v.key === e.target.value);
+                if (preset) {
+                  setGuideName(preset.name);
+                  setGuideVoiceId(preset.voiceId);
+                }
+              }}
               className={inputCls}
-            />
-          </Field>
-          <Field
-            label="ElevenLabs voice ID"
-            hint="The voice Harriet (or whoever) speaks with. Find IDs in your ElevenLabs library."
-          >
-            <input
-              type="text"
-              value={guideVoiceId}
-              onChange={(e) => setGuideVoiceId(e.target.value)}
-              placeholder="NTqGiNK8P02i66yY2GOH"
-              className={`${inputCls} font-mono text-sm`}
-            />
+            >
+              {GUIDE_VOICES.map((v) => (
+                <option key={v.key} value={v.key}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
           </Field>
         </div>
       </Section>

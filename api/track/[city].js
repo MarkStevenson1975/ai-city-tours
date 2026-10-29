@@ -65,6 +65,15 @@ export default async function handler(req, res) {
     body.meta && typeof body.meta === 'object' ? body.meta : null;
   const userAgent = String(req.headers['user-agent'] || '').slice(0, 400);
 
+  // Never record crawler/bot traffic (Googlebot, Bingbot, link-preview fetchers,
+  // monitoring, etc.). Mirrors the public.is_bot_ua() filter used in the stats
+  // functions so recorded data and reported figures agree.
+  const BOT_RE = /googlebot|bingbot|bingpreview|yandex|duckduckbot|baiduspider|slurp|ahrefs|semrush|mj12bot|dotbot|petalbot|bytespider|applebot|facebookexternalhit|facebookcatalog|facebot|linkedinbot|twitterbot|slackbot|telegrambot|discordbot|whatsapp|crawler|spider|headlesschrome|python-requests|curl\/|wget\/|go-http-client|mediapartners-google|adsbot-google|google-inspectiontool|chrome-lighthouse|bot\//i;
+  if (BOT_RE.test(userAgent)) {
+    // Accept the request so nothing errors, but store nothing.
+    return res.status(204).end();
+  }
+
   const row = {
     device_id: deviceId,
     city_slug: city,
