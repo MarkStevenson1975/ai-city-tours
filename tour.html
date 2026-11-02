@@ -70,7 +70,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
-    :root{--color-primary:#1B4332;--color-primary-light:#2D6A4F;--color-bg:#F5F0E8;--color-accent:#C9A84C;--color-accent-light:#E8C96A;--color-text:#1A1A1A;--color-text-light:#F5F0E8;--color-muted:#E8E0D0;--color-muted-dark:#B0A898;--color-visited:#40916C;--color-highlight:#40916C;--color-highlight-tint:rgba(64,145,108,.12);--color-highlight-border:rgba(64,145,108,.3);--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Lato',sans-serif;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,.12);--shadow-lg:0 8px 32px rgba(0,0,0,.18);--transition:200ms ease}
+    :root{--color-accent-ink:var(--color-accent);--color-primary:#1B4332;--color-primary-light:#2D6A4F;--color-bg:#F5F0E8;--color-accent:#C9A84C;--color-accent-light:#E8C96A;--color-text:#1A1A1A;--color-text-light:#F5F0E8;--color-muted:#E8E0D0;--color-muted-dark:#B0A898;--color-visited:#40916C;--color-highlight:#40916C;--color-highlight-tint:rgba(64,145,108,.12);--color-highlight-border:rgba(64,145,108,.3);--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Lato',sans-serif;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,.12);--shadow-lg:0 8px 32px rgba(0,0,0,.18);--transition:200ms ease}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;overflow:hidden;background:var(--color-bg)}
     html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -177,7 +177,7 @@
     .stop-card-desc{font-size:.8rem;color:#666;line-height:1.4;margin-top:6px;margin-left:54px}
     .stop-card-sponsored{position:absolute;bottom:-11px;right:12px;background:var(--color-accent);color:#412402;font-size:10px;font-weight:700;padding:3px 10px;border-radius:50px;white-space:nowrap;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.15);max-width:160px;overflow:hidden;text-overflow:ellipsis}
     .stop-card.has-sponsor{margin-bottom:20px}
-    .stop-card-distance{color:var(--color-accent);font-weight:700;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
+    .stop-card-distance{color:var(--color-accent-ink);font-weight:700;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
     .stop-card-distance-num{font-size:.8rem}
     .stop-card-distance-away{font-size:.6rem;font-weight:600;opacity:.85}
     #screen-detail{background:var(--color-bg)}
@@ -194,10 +194,10 @@
     .detail-body{flex:1;overflow-y:auto;overscroll-behavior-y:contain;padding:16px 16px 120px}
     .narration-card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
     .narration-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-    .narration-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);display:flex;align-items:center;gap:6px}
+    .narration-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-ink);display:flex;align-items:center;gap:6px}
     .narration-text{font-family:var(--font-display);font-size:1.05rem;line-height:1.75;max-height:3.8em;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,black 55%,transparent 100%);mask-image:linear-gradient(to bottom,black 55%,transparent 100%)}
     .narration-text.expanded{max-height:none;-webkit-mask-image:none;mask-image:none}
-    .btn-expand-narration{font-size:.8rem;color:var(--color-accent);background:none;border:none;padding:4px 0 8px;cursor:pointer;font-weight:700;display:block}
+    .btn-expand-narration{font-size:.8rem;color:var(--color-accent-ink);background:none;border:none;padding:4px 0 8px;cursor:pointer;font-weight:700;display:block}
     .narration-play-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
     /* Venue/event end-of-stop handover: operator directions to the next stop
        plus a building-appropriate close. */
@@ -205,11 +205,11 @@
        visitor at the closest stop so they can start where they are standing. */
     .nearest-card{background:#fff;border:2px solid var(--color-accent);border-radius:14px;padding:14px 16px;margin-bottom:12px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.08)}
     .nearest-card:active{transform:scale(.99)}
-    .nearest-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent);margin-bottom:4px}
+    .nearest-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-ink);margin-bottom:4px}
     .nearest-name{font-family:var(--font-display);font-size:1.15rem;font-weight:600;color:var(--color-primary);line-height:1.2}
     .nearest-dist{font-size:.8rem;color:#777;margin-top:2px}
     .handover-card{background:#fff;border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid var(--color-accent)}
-    .handover-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:6px}
+    .handover-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-ink);margin-bottom:6px}
     .handover-text{font-size:1rem;line-height:1.6;margin-bottom:12px;white-space:pre-wrap}
     .handover-close{font-size:.95rem;line-height:1.55;color:var(--color-text);opacity:.85}
     .handover-card.final .handover-close{opacity:1;font-weight:600}
@@ -262,7 +262,7 @@
     .fact-text{font-size:.88rem;line-height:1.55}
     .fact-card.clampable .fact-text{max-height:2.9em;overflow:hidden;padding-right:16px;-webkit-mask-image:linear-gradient(to bottom,#000 50%,transparent 100%);mask-image:linear-gradient(to bottom,#000 50%,transparent 100%)}
     .fact-card.open .fact-text{max-height:none;-webkit-mask-image:none;mask-image:none}
-    .fact-plus{position:absolute;right:12px;top:11px;color:var(--color-accent);font-weight:800;font-size:.95rem;line-height:1;display:none}
+    .fact-plus{position:absolute;right:12px;top:11px;color:var(--color-accent-ink);font-weight:800;font-size:.95rem;line-height:1;display:none}
     .fact-card.clampable .fact-plus{display:block}
     .detail-stop-pip{width:30px;height:30px;border-radius:50%;background:var(--color-accent);color:var(--color-primary);font-weight:800;font-size:.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.3)}
     .narration-text{cursor:pointer}
@@ -379,7 +379,7 @@
     .modal-header h3{font-family:var(--font-display);font-size:1.4rem;font-weight:600;color:var(--color-primary);flex:1}
     .modal-close{background:var(--color-primary);color:var(--color-text-light);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;border:none;cursor:pointer}
     .modal-body{padding:16px}
-    .modal-location-label{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent);margin-bottom:14px}
+    .modal-location-label{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-ink);margin-bottom:14px}
     .typing-indicator{display:flex;align-items:center;gap:4px;padding:16px 0}
     .typing-dot{width:8px;height:8px;background:var(--color-primary);border-radius:50%;opacity:.4;animation:typing-bounce 1.2s infinite}
     .typing-dot:nth-child(2){animation-delay:.2s}
@@ -2073,7 +2073,8 @@ function applySplashIntro(){const el=document.getElementById('splash-intro-text'
 // facts (including ones used by the where-am-I button on a previous
 // visit) don't refire as the walker passes their proximity zones.
 function seedFiredFactsFromStorage(){try{const list=getPlayedFactIds();list.forEach(id=>state.firedFacts.add(id));}catch(e){}}
-function applyBrand(){const root=document.documentElement;const isHex=v=>typeof v==='string'&&/^#[0-9A-Fa-f]{6}$/.test(v);if(isHex(CONFIG.colorPrimary)){root.style.setProperty('--color-primary',CONFIG.colorPrimary);}if(isHex(CONFIG.colorAccent))root.style.setProperty('--color-accent',CONFIG.colorAccent);if(isHex(CONFIG.colorBackground))root.style.setProperty('--color-bg',CONFIG.colorBackground);if(isHex(CONFIG.colorHighlight)){const h=CONFIG.colorHighlight;root.style.setProperty('--color-highlight',h);const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);root.style.setProperty('--color-highlight-tint',`rgba(${r},${g},${b},.12)`);root.style.setProperty('--color-highlight-border',`rgba(${r},${g},${b},.3)`);}// Operator-uploaded splash image overrides the hardcoded default
+function applyBrand(){const root=document.documentElement;const isHex=v=>typeof v==='string'&&/^#[0-9A-Fa-f]{6}$/.test(v);if(isHex(CONFIG.colorPrimary)){root.style.setProperty('--color-primary',CONFIG.colorPrimary);}if(isHex(CONFIG.colorAccent)){root.style.setProperty('--color-accent',CONFIG.colorAccent);// Accent text on white/cream cards (Read more, labels, distances) must stay readable. If the operator's accent is too pale against white, fall back to the primary colour (or near-black) for that text only.
+const _lum=h=>{const c=[1,3,5].map(i=>{const v=parseInt(h.slice(i,i+2),16)/255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4)});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]};const _onWhite=h=>1.05/(_lum(h)+0.05);if(_onWhite(CONFIG.colorAccent)<1.8){root.style.setProperty('--color-accent-ink',(isHex(CONFIG.colorPrimary)&&_onWhite(CONFIG.colorPrimary)>=4.5)?CONFIG.colorPrimary:'#1A1A1A');}else{root.style.removeProperty('--color-accent-ink');}}if(isHex(CONFIG.colorBackground))root.style.setProperty('--color-bg',CONFIG.colorBackground);if(isHex(CONFIG.colorHighlight)){const h=CONFIG.colorHighlight;root.style.setProperty('--color-highlight',h);const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);root.style.setProperty('--color-highlight-tint',`rgba(${r},${g},${b},.12)`);root.style.setProperty('--color-highlight-border',`rgba(${r},${g},${b},.3)`);}// Operator-uploaded splash image overrides the hardcoded default
 {const img=document.getElementById('splash-city-img');if(img){const operatorCover=CONFIG.splashImageUrl;if(operatorCover){img.src=operatorCover;img.style.objectPosition='';}else{img.src='/default-cover.jpg';img.style.objectPosition='50% 72%';}img.parentElement.style.display='';}}}
 // Curated fonts. Heading list carries personality; body list is legibility-first.
 // Cormorant Garamond + Lato are preloaded in the head, so they need no extra
