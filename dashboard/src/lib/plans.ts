@@ -6,7 +6,7 @@ export type Tier = 'trail' | 'town' | 'destination';
 export type Interval = 'monthly' | 'annual';
 
 export const PLAN_STOP_LIMIT: Record<Tier, number | null> = {
-  trail: 10,
+  trail: 15,
   town: 20,
   destination: null, // unlimited
 };

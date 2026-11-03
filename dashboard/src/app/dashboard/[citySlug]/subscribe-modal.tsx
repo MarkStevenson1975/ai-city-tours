@@ -12,7 +12,7 @@ type Tier = 'trail' | 'town' | 'destination';
 type Interval = 'monthly' | 'annual';
 
 const PLANS: { tier: Tier; name: string; monthly: number; annual: number; blurb: string; featured?: boolean }[] = [
-  { tier: 'trail', name: 'Trail', monthly: 59, annual: 590, blurb: '1 tour, up to 10 stops' },
+  { tier: 'trail', name: 'Trail', monthly: 59, annual: 590, blurb: '1 tour, up to 15 stops' },
   { tier: 'town', name: 'Town', monthly: 99, annual: 990, blurb: 'Up to 3 tours, 20 stops each', featured: true },
   { tier: 'destination', name: 'Destination', monthly: 199, annual: 1990, blurb: 'Unlimited tours and stops' },
 ];
